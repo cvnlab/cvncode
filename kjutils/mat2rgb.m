@@ -17,6 +17,10 @@ function rgbimg = mat2rgb(imgvals,varargin)
 %                   (default = 0)
 
 % requires knkutils cmaplookup
+% KJ Update 2016-02-04: 1. cast everything to single to avoid dumb type bug
+%						2. Colormap fixes: accept strings eg 'jet' and 
+%							set cmax=inf if cmax==cmin to avoid lookup problem
+
 
 options=struct(...
     'clim',[-inf inf],...
@@ -74,6 +78,9 @@ end
 if(cmax==cmin)
     cmax=inf;
 end
+cmax=single(cmax);
+cmin=single(cmin);
+imgvals=single(imgvals);
 rgbimg = cmaplookup(imgvals,cmin,cmax,options.circulartype,options.cmap);
 
 if(~isempty(options.threshold))
@@ -84,7 +91,6 @@ if(isempty(options.overlayalpha) || all(+options.overlayalpha(:) >= 1))
     rgbimg(isnan(rgbimg))=options.rgbnan;
     return;
 end
-
 
 bg_cmin=options.bg_clim(1);
 bg_cmax=options.bg_clim(2);
@@ -97,8 +103,12 @@ end
 if(bg_cmax==bg_cmin)
     bg_cmax=inf;
 end
+
 %%%%% Map image background (underlay) to image matrix
 %%%%%
+bg_cmin=single(bg_cmin);
+bg_cmax=single(bg_cmax);
+imgbg=single(zeros(size(imgvals)));
 
 if(numel(options.background) == 1)
     imgbg=ones(size(imgvals))*options.background;
@@ -123,6 +133,8 @@ else
     %alpha is just a single value
     imgalpha=options.overlayalpha(1);
 end
+
+imgalpha=single(imgalpha);
 
 %image nan --> image=0, alpha=0
 %background nan --> background=0

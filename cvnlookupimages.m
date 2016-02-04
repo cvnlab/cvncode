@@ -484,7 +484,6 @@ if(~isempty(options.roimask))
             error('invalid size for roimask');
         end
         edgekernel=ones(roiwidth);
-        %edgekernel=[0 1 0; 1 1 1; 0 1 0];
         edgekernel=edgekernel/sum(edgekernel(:));
         
         mappedroi2=conv2(+mappedroi,edgekernel,'same');
