@@ -328,6 +328,12 @@ else
         [c,r]=spherefit(vertsph);
         vertsph=bsxfun(@minus,vertsph,c.')/r;
 
+        if(options.reset)
+            fprintf('''reset'' flag is set\n');
+        else
+            fprintf('No cached spherelookup found: %s\n',cachename);
+        end
+        fprintf('Building new lookup structure...\n');
         Lookup=spherelookup_generate(vertsph,az,el,tilt,options.xyextent,imgN,'verbose',true);
 
         Lookup.imglookup=uint32(Lookup.imglookup);
@@ -336,6 +342,7 @@ else
         Lookup.surffile=sphfile;
         Lookup.hemi=hemi;
         if(options.savelookup)
+            fprintf('Saving lookup structure: %s\n',cachename);
             save(cachename,'-struct','Lookup');
             system(['chmod g+rw ' cachename]);
         end
