@@ -4,21 +4,37 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 % Inputs:
 %   subject:    Name of freesurfer subject containing <hemi>.sphere, etc...
 %   vals:       Vx1 values for each vertex on the surface
-%   hemi:       lh or rh
+%           OR  struct('data',<L+R x 1>,'numlh',L,'numrh',R) to create
+%               images for both hemispheres side by side.  
+%               In this case, hemi, view_az_el_tilt, and Lookup must be 
+%               cell arrays
+%
+%   hemi:       lh or rh 
+%           OR  cell array for both hemis if vals=struct(...) 
+%               eg: {'lh','rh'} or {'rh','lh'} 
+%
 %   view_az_el_tilt: Triplet containing viewpoint azimuth, elevation, and tilt 
 %               Azimuth in degrees, range=[0,360], 0 = -y
 %               Elevation in degrees, range=[-90,90], 90 = +z 
 %               Camera tilt in degrees, range=[0,360]
+%           OR  cell array for both hemis eg: {[10 -40 0],[-10 -40 0]}
+%
 %   Lookup:     Lookup structure returned from previous call to
 %                   cvnlookupimages (or [] for first call).  Can speed up
 %                   multiple lookups with the same viewpoint.
 %               Reusable only if same subject,hemi,view,source, and target
 %                   spaces
+%           OR  cell array for both hemis: eg: {LookupL,LookupR} 
+%               If vals=struct(...) and hemis={'lh','rh'}, output Lookup 
+%               will already be a cell array {LookupL, LookupR}, which can 
+%               be passed to subsequent cvnlookupimages calls
+%
 %   
 % Outputs:
 %   mappedvals: <res>x<res> mapped image matrix (NOT RGB!)
 %   Lookup:     Structure containing lookup information.  Can speed up
 %                   multiple lookups with the same viewpoint.
+%            OR cell array if two hemis provided in input
 %   rgbimg:     Optional output containing RGB image: <res>x<res>x3
 %
 % View options: 'paramname','value',...
@@ -29,7 +45,7 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 %                   [  1  1 ] = entire circle (corners of image will be
 %                       outside sphere)
 %                   [ .7 .7 ] = largest box fully within circle
-%                   [ .6 .6 ] = default box with minimal loss of vertices
+%                   [ .6 .6 ] = DEFAULT box with minimal loss of vertices
 %               
 %   imageres:   Output image size (default=1000)
 %
@@ -61,6 +77,13 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 %   background:     'curv' (default), Vx1, 1x3 RGB
 %   bg_cmap:        Colormap for background underlay (default = gray)
 %   bg_clim:        Colormap limits for underlay (default = [-1 2])
+%   hemiborder:     Width of border between hemi images (default=2 pixels)
+%   text:           string to display in top left corner of RGB image 
+%               OR  cell array of strings if multiple hemis 
+%                   eg: 'LAYER1' or {'LEFT','RIGHT'}
+%   textsize:       font size in pixels (default=50) 
+%                   If textsize<1, fontsize will be textsize*imageres
+%   textcolor:      text color (default='w', ie white)
 %
 % ROI visualization options: 'paramname','value',...
 %   roiname:        label name (or cell array) for ROI(s) to draw on final RGB image
@@ -70,6 +93,8 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 %                   final RGB image
 %   roicolor:       RGB color for ROI outline(s) [r g b] from 0-1
 %                   default = [0 0 0] (black)
+%                   Can also be either Nx3 or a cell array of N [1x3] to 
+%                   specify different colors for each ROI
 %   roiwidth:       Line with of ROI outline(s). default=2
 %   
 %
@@ -107,7 +132,34 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 % % draw 2 roi borders.  first one is black, second is white
 % [img,L,rgbimg]=cvnlookupimages('C0041',M.ang,'lh',[10 -40 0],L,'roimask',{roiV1,roiV2},...
 %   'roicolor',{[0 0 0],[1 1 1]});
-
+%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Quick lookup of mapped values only (No RGB, etc...):
+%
+% [~,L,~]=cvnlookupimages('C0041',M.ecc,'lh',[10 -40 0]);
+% img1=spherelookup_vert2image(M.ang,L);
+% img2=spherelookup_vert2image(M.ecc,L);
+% figure;
+% imagesc([img1 img2])
+%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Display both hemispheres:
+% V=load('/stone/ext1/fmridata/20151214-ST001-D003/preprocessSURF/mean.mat');
+% %layer1
+% valstruct=struct('data',squeeze(V.data(:,1,:)),'numlh',V.numlh,'numrh',V.numrh);
+% L=[];
+% [img1,L,rgbimg1]=cvnlookupimages('C0045',valstruct,{'lh','rh'},{[10 -40 0],[-10 -40 0]},[]);
+% %layer2
+% valstruct.data=squeeze(V.data(:,2,:));
+% [img2,L,rgbimg2]=cvnlookupimages('C0045',valstruct,{'lh','rh'},[],L);
+%
+% % Quick lookup for both hemispheres (No RGB):
+% valstruct.data=squeeze(V.data(:,3,:));
+% img3=spherelookup_vert2image(valstruct,L);
+%
+% % Display stack of all 3 layers
+% figure;
+% imagesc([img1; img2; img3]);
 
 
 % Update KJ 2016-01-17: 
@@ -119,7 +171,12 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 % Update KJ 2016-01-27:
 %   1. Add optional 'threshold' param to make overlayalpha from vals
 %   2. Add ROI visualization options (draw outlines)
+%
+% Update KJ 2016-02-10:
+%   1. Accept vals=struct(...) to display both hemispheres
+%   2. Add text options for labeling output RGB
 
+%%
 %default options
 options=struct(...
     'reset',false,...
@@ -143,7 +200,10 @@ options=struct(...
     'roiname',[],...
     'roimask',[],...
     'roiwidth',{2},...
-    'roicolor',{[0 0 0]});
+    'roicolor',{[0 0 0]},...
+    'text',[],...
+    'textsize',50,...
+    'textcolor','w');
 
 
 if(~exist('Lookup','var') || isempty(Lookup))
@@ -185,9 +245,11 @@ else
     labeldir=sprintf('%s/label',subjdir);
 end
 
+%% handle multiple hemispheres if vals=struct
 if(isstruct(vals) && isfield(vals,'numlh'))
     view_az_el_tilt=cellify(view_az_el_tilt);
     hemi=cellify(hemi);
+    hemitext=cellify(options.text);
     Lookup=cellify(Lookup);
 
     imghemi={};
@@ -199,12 +261,15 @@ if(isstruct(vals) && isfield(vals,'numlh'))
         if(isempty(view_az_el_tilt))
             v=[];
         else
-            v=view_az_el_tilt{mod(i-1,numel(view_az_el_tilt))+1};
+            %dont loop through...just stop at last one in list
+            %v=view_az_el_tilt{mod(i-1,numel(view_az_el_tilt))+1};
+            v=view_az_el_tilt{min(i,numel(view_az_el_tilt))};
         end
         if(isempty(Lookup))
             L=[];
         else
-            L=Lookup{mod(i-1,numel(Lookup))+1};
+            %L=Lookup{mod(i-1,numel(Lookup))+1};
+            L=Lookup{min(i,numel(Lookup))};
         end
         switch(h)
             case 'lh'
@@ -219,6 +284,9 @@ if(isstruct(vals) && isfield(vals,'numlh'))
         if(~isempty(options.background) && numel(options.background)==size(vals.data,1))
             hemi_options.background=options.background(idx);
         end
+        if(numel(hemitext)==numel(hemi))
+            hemi_options.text=hemitext{min(i,numel(hemitext))};
+        end
         hemi_options.filename=[];
         optargs=struct2args(hemi_options);
         [imghemi{i},lookuphemi{i},rgbimghemi{i}]=cvnlookupimages(subject, hemivals, h, v, L, optargs{:});
@@ -229,13 +297,18 @@ if(isstruct(vals) && isfield(vals,'numlh'))
         rgbimghemi{i}(:,1:options.hemiborder,:)=options.rgbnan;
     end
     rgbimg=cat(2,rgbimghemi{:});
-    Lookup=lookuphemi;
+    if(numel(lookuphemi)==1)
+        Lookup=lookuphemi{1};
+    else
+        Lookup=lookuphemi;
+    end
     
     if(~isempty(options.filename))
         imwrite(rgbimg,options.filename);
     end
     return;
 end
+%%
 
 if(numel(vals)>1 && size(vals,1)==1)
     vals=vals.';
@@ -268,26 +341,6 @@ hemi=lower(hemi);
 if(isempty(view_az_el_tilt) && ~isempty(Lookup))
     view_az_el_tilt=[Lookup.azimuth Lookup.elevation Lookup.tilt];
 end
-%%
-% if(~isempty(options.roimask))
-%     if(strcmpi(options.surfsuffix,'orig'))
-%         sphfile=sprintf('%s/%s.sphere%s',surfdir,hemi,'');
-%     else
-%         sphfile=sprintf('%s/%s.sphere%s',surfdir,hemi,options.surfsuffix);
-%     end
-% 
-%     [vertsph,~,~] = freesurfer_read_surf_kj(sphfile);
-% 
-%     roimask=cvnlookupvertex(surfdir,hemi,[],options.surfsuffix,options.roimask);
-%     
-%     [az_el_tilt xy]=generate_sphere_viewpoints(vertsph,roimask);
-% elseif(~isempty(options.roiname))
-%     roifile=options.roiname;
-%     if(~any(options.roiname=='/' | options.roiname==filesep))
-%         roifile=sprintf('%s/%s',surfdir,hemi,options.roiname);
-%     end
-%     
-% end
 
 %az=mod(round(azel(1)),360);
 %el=mod(round(azel(2))+90,180)-90;
@@ -373,6 +426,7 @@ if(isequal(options.inputsuffix,'orig'))
 else
     options.inputsuffix_file=options.inputsuffix;
 end
+
 %% Map input values to image matrix!
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -505,11 +559,28 @@ if(~isempty(options.roimask))
     end
 end
 
+%% If 'text' argument provided, add text to output image(s)
+if(~isempty(options.text))
+    textsize=options.textsize;
+    if(textsize<1 && textsize>0)
+        textsize=textsize*options.imgN;
+    end
+    txtargs={0,0,options.text,'VerticalAlignment','top','fontsize',textsize,'color',options.textcolor};
+    rgbimg=addtext2img(rgbimg,txtargs,1);
+end
+
 %% If given filename, save RGB image to file 
 if(~isempty(options.filename))
     %save
     imwrite(rgbimg,options.filename);
 end
+
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%% HELPER FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% cellify inputs
 function c = cellify(c)
