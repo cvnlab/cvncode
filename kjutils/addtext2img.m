@@ -28,14 +28,19 @@ set(fig,'PaperPositionMode','auto');
 set(gca,'Position',[0 0 1 1]);
 
 %imshow(255*ones(size(img)));
-%imshow(img);
-imshow(nan(size(img)));
+if(isequal(class(img),'uint8'))
+    bgcolor=[1 2 3];
+else
+    bgcolor=[1 2 3]/255;
+end
+bgimg=cast(repmat(reshape(bgcolor,[1 1 3]),size(img,1),size(img,2)),'like',img);
+imshow(bgimg);
 
 for i = 1:numel(txtargs)
     text(txtargs{i}{:});
 end
 
-if(alias_amt == 1 && exist('screenimage','file')==2 && 0)
+if(alias_amt == 1 && exist('screenimage.m','file')==2 && 0)
     screenimg = screenimage(gca); %without anti-aliasing
 else
     screenimg = export_fig(gca,'-nocrop',['-a' num2str(alias_amt)]);
@@ -49,9 +54,15 @@ end
 %because screenimg sometimes has an extra row/column
 screenimg = screenimg(1:size(img,1), 1:size(img,2), :);
 
-%textmask = any(screenimg<255,3); %find non-white pixels
-textmask=any(~isnan(screenimg),3);
+%on some systems, export_fig might return a different class than the input
+if(~isequal(class(img),'uint8') && isequal(class(screenimg),'uint8'))
+    screenimg=cast(screenimg,'like',img)/255;
+elseif(isequal(class(img),'uint8') && ~isequal(class(screenimg),'uint8'))
+    screenimg=cast(screenimg*255,'like',img);
+end
 
+textmask = any(screenimg~=bgimg,3); %find non-white pixels
+% %textmask = any(screenimg<255,3); %find non-white pixels
 textmask = repmat(textmask,[1 1 3]); %make sure it includes r,g,and b
 
 new_img = img;
