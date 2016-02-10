@@ -19,7 +19,7 @@ function f = cvngetlayersinEPI(subjectid,datadir,numlayers,layerprefix,fstruncat
 %     etc.
 
 % calc
-fsdir = sprintf('/software/freesurfer/subjects/%s',subjectid);
+fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
 prefixes = {'lh' 'rh'};
 surfs = {};
 for p=1:numlayers

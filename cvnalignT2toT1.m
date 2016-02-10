@@ -15,8 +15,8 @@ function cvnalignT2toT1(subjectid,dataloc,wantmi)
 % See code for assumptions.
 
 % calc
-dir0 = sprintf('/stone/ext1/anatomicals/%s',subjectid);
-fsdir = sprintf('/software/freesurfer/subjects/%s',subjectid);
+dir0 = sprintf('%s/%s',cvnpath('anatomicals'),subjectid);
+fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
 
 % figure out T2 file [ASSUME THAT WE WILL MATCH PAIRS OF DIRECTORIES, JUST USE THE FIRST SCAN]
 t2file = matchfiles(sprintf('%s/*T2w*',dataloc));

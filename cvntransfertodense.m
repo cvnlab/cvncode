@@ -17,8 +17,8 @@ if(~exist('surftype','var') || isempty('surftype'))
 end
 
 % calc
-surf1file = sprintf('/software/freesurfer/subjects/%s/surf/%s.%s',subjectid,hemi,surftype);
-surf2file = sprintf('/software/freesurfer/subjects/%s/surf/%s.%sDENSE',subjectid,hemi,surftype);
+surf1file = sprintf('%s/%s/surf/%s.%s',     cvnpath('freesurfer'),subjectid,hemi,surftype);
+surf2file = sprintf('%s/%s/surf/%s.%sDENSE',cvnpath('freesurfer'),subjectid,hemi,surftype);
 
 % load surfaces (note that we skip the post-processing of vertices and faces since unnecessary for what we are doing)
 clear surf1;

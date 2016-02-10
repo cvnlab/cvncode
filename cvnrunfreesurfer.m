@@ -24,8 +24,8 @@ if ~exist('scanstouse','var') || isempty(scanstouse)
 end
 
 % calc
-dir0 = sprintf('/stone/ext1/anatomicals/%s',subjectid);
-fsdir = sprintf('/software/freesurfer/subjects/%s',subjectid);
+dir0 = sprintf('%s/%s',cvnpath('anatomicals'),subjectid);
+fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
 
 % make subject anatomical directory
 assert(mkdir(dir0));
@@ -127,7 +127,7 @@ for p=1:length(prefixes)
   [d,fslabels,colortable] = read_annotation(sprintf('%s/label/%s.aparc.annot',fsdir,prefix0),1);
 
   % save
-  save(sprintf('/stone/ext1/anatomicals/%s/%smidgray.mat',subjectid,prefix0), ...
+  save(sprintf('%s/%s/%smidgray.mat',cvnpath('anatomicals',subjectid,prefix0), ...
        'vertices','faces','thickness','curvature','fslabels');
 
 end
@@ -141,8 +141,8 @@ if isempty(regexp(extraflags,'hires'))
   rib = fstoint(rib);
 
   % load coordinates of surface vertices
-  coord0 = cat(2,loadmulti(sprintf('/stone/ext1/anatomicals/%s/lhmidgray.mat',subjectid),'vertices'), ...
-                 loadmulti(sprintf('/stone/ext1/anatomicals/%s/rhmidgray.mat',subjectid),'vertices'));
+  coord0 = cat(2,loadmulti(sprintf('%s/%s/lhmidgray.mat',cvnpath('anatomicals'),subjectid),'vertices'), ...
+                 loadmulti(sprintf('%s/%s/rhmidgray.mat',cvnpath('anatomicals'),subjectid),'vertices'));
 
   % compute distances to vertices [i.e. create a volume where gray matter voxels have certain informative values]
   [dist,mnix] = surfaceslice2(ismember(rib,[3 42]),coord0,3,4);  % NOTICE HARD-CODED VALUES HERE
@@ -159,10 +159,10 @@ end
 
 % calc
 [tfunFSSSlh,tfunFSSSrh,tfunSSFSlh,tfunSSFSrh] = ...
-  cvncalctransferfunctions('/software/freesurfer/subjects/fsaverage/surf/lh.sphere.reg', ...
-                           '/software/freesurfer/subjects/fsaverage/surf/rh.sphere.reg', ...
-                           sprintf('/software/freesurfer/subjects/%s/surf/lh.sphere.reg',subjectid), ...
-                           sprintf('/software/freesurfer/subjects/%s/surf/rh.sphere.reg',subjectid));
+  cvncalctransferfunctions([cvnpath('freesurfer') '/fsaverage/surf/lh.sphere.reg'], ...
+                           [cvnpath('freesurfer') '/fsaverage/surf/rh.sphere.reg'], ...
+                           sprintf('%s/%s/surf/lh.sphere.reg',cvnpath('freesurfer'),subjectid), ...
+                           sprintf('%s/%s/surf/rh.sphere.reg',cvnpath('freesurfer'),subjectid));
 
 % save
-save(sprintf('/stone/ext1/anatomicals/%s/tfun.mat',subjectid),'tfunFSSSlh','tfunFSSSrh','tfunSSFSlh','tfunSSFSrh');
+save(sprintf('%s/%s/tfun.mat',cvnpath('anatomicals'),subjectid),'tfunFSSSlh','tfunFSSSrh','tfunSSFSlh','tfunSSFSrh');

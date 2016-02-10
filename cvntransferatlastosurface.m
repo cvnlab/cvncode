@@ -10,7 +10,7 @@ function cvntransferatlastosurface(subjectid,fsmap,hemi,outpre,fstruncate,fun,ou
 % <fun> (optional) is a function to apply to <fsmap> after loading it.
 %   Default is to do nothing (use values as-is).
 % <outputdir> (optional) is the directory to write the .mgz files to.
-%   Default is /software/freesurfer/subjects/<subjectid>/surf/
+%   Default is cvnpath('freesurfer')/<subjectid>/surf/
 %
 % Take the <fsmap> file, apply <fun>, and then transfer to single-subject surface space
 % using nearest-neighbor interpolation.  Values in the other hemisphere are just set to 0.
@@ -24,7 +24,7 @@ function cvntransferatlastosurface(subjectid,fsmap,hemi,outpre,fstruncate,fun,ou
 fsnumv = 163842;  % vertices
 
 % calc
-fsdir = sprintf('/software/freesurfer/subjects/%s',subjectid);
+fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
 
 % input
 if ~exist('fun','var') || isempty(fun)
@@ -35,8 +35,8 @@ if ~exist('outputdir','var') || isempty(outputdir)
 end
 
 % load transfer functions
-a1 = load(sprintf('/stone/ext1/anatomicals/%s/tfun.mat',subjectid));
-a2 = load(sprintf('/stone/ext1/anatomicals/%s/tfunDENSE.mat',subjectid));
+a1 = load(sprintf('%s/%s/tfun.mat',     cvnpath('anatomicals'),subjectid));
+a2 = load(sprintf('%s/%s/tfunDENSE.mat',cvnpath('anatomicals'),subjectid));
 
 % load truncation indices
 a3 = load(sprintf('%s/surf/%s.DENSETRUNC%s.mat',fsdir,hemi,fstruncate));  % contains 'validix'

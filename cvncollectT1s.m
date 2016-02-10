@@ -13,7 +13,7 @@ function files = cvncollectT1s(subjectid,dataloc)
 % preserving the order. See code for specific assumptions.
 
 % calc
-dir0 = sprintf('/stone/ext1/anatomicals/%s',subjectid);
+dir0 = sprintf('%s/%s',cvnpath('anatomicals'),subjectid);
 
 % make subject anatomical directory
 assert(mkdir(dir0));

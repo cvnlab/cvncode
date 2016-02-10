@@ -7,14 +7,14 @@ function cvnwritemgz(subjectid,name,vals,hemi,outputdir)
 % <vals> is a vector of values for the surface
 % <hemi> is 'lh' or 'rh'
 % <outputdir> (optional) is the directory to write the file to.
-%   Default is /software/freesurfer/subjects/<subjectid>/surf/
+%   Default is cvnpath('freesurfer')/<subjectid>/surf/
 %
 % Write a file like <hemi>.<name>.mgz.
 % 
 % Note that we make certain assumptions about what fields to mangle (see code).
 
 % calc
-fsdir = sprintf('/software/freesurfer/subjects/%s',subjectid);
+fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
 
 % input
 if ~exist('outputdir','var') || isempty(outputdir)

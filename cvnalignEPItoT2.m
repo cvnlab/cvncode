@@ -43,7 +43,7 @@ end
 mkdirquiet(outputdir);
 
 % calc
-fsdir = sprintf('/software/freesurfer/subjects/%s',subjectid);
+fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
 t1nifti = sprintf('%s/mri/T1.nii.gz',fsdir);
 t2nifti = sprintf('%s/mri/T2alignedtoT1.nii.gz',fsdir);
 

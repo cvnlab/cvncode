@@ -5,6 +5,12 @@ function p = cvnpath(whichpath)
 % Hardcode common paths here, then call this function elsewhere to maximize
 % flexibility.
 %
+% Possibilities:
+%   'code'        (common cvnlab code on Dropbox)
+%   'freesurfer'  (FreeSurfer subjects directory)
+%   'fmridata'    (fmridata directory on stone)
+%   'anatomicals' (anatomicals directory on stone)
+%
 % eg: fsdir=sprintf('%s/%s',cvnpath('freesurfer'),subjectid) 
 %       instead of hardcoding in every function
 

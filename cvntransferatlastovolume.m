@@ -26,10 +26,10 @@ if ~exist('fun','var') || isempty(fun)
 end
 
 % calc
-fsdir = sprintf('/software/freesurfer/subjects/%s',subjectid);
+fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
 
 % load transfer functions
-load(sprintf('/stone/ext1/anatomicals/%s/tfun.mat',subjectid));
+load(sprintf('%s/%s/tfun.mat',cvnpath('anatomicals'),subjectid));
 
 % load gray-matter surface assignment (1-mm space)
 gmsa = fstoint(load_mgh(sprintf('%s/mri/ribbonsurfindex.mgz',fsdir)));

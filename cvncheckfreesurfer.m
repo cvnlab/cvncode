@@ -27,7 +27,7 @@ if ~exist('dims','var') || isempty(dims)
 end
 
 % calc
-fsdir = sprintf('/software/freesurfer/subjects/%s',subjectid);
+fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
 
 % load T1 anatomy (can either be standard 1-mm isotropic 256 x 256 x 256, or something else!)
 file0 = sprintf('%s/mri/T1.mgz',fsdir);

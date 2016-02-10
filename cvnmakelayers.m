@@ -31,9 +31,9 @@ function cvnmakelayers(subjectid,layerdepths,layerprefix,fstruncate)
 %  lh.curvatureDENSETRUNCpt.mgz
 
 % calc
-dir0 = sprintf('/stone/ext1/anatomicals/%s',subjectid);
-fsdir    = sprintf('/software/freesurfer/subjects/%s',subjectid);
-fsdirAVG = sprintf('/software/freesurfer/subjects/fsaverage');
+dir0 = sprintf('%s/%s',cvnpath('anatomicals'),subjectid);
+fsdir =    sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
+fsdirAVG = sprintf('%s/%s',cvnpath('freesurfer'),'fsaverage');
 
 % define
 hemis = {'lh' 'rh'};
