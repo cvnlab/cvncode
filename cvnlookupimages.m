@@ -215,6 +215,15 @@ elseif(~isempty(Lookup) && ischar(Lookup) && ~isempty(varargin))
     Lookup=[];
 end
 
+if(isstruct(Lookup))
+    if(isfield(Lookup,'inputsuffix'))
+        options.inputsuffix=Lookup.inputsuffix;
+    end
+    if(isfield(Lookup,'surfsuffix'))
+        options.surfsuffix=Lookup.surfsuffix;
+    end
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%
 %parse options
