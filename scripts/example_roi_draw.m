@@ -2,28 +2,28 @@ clearb all;
 close all;
 clc;
 
-prf_folder='/stone/ext1/freesurfer/subjects/C0041/PRF_results/mgz'
+prf_folder='/stone/ext1/freesurfer/subjects/C0041/PRF_results/mgz';
 
 subject='C0041';
 hemi='lh';
 valsuffix='DENSETRUNCpt';
-displaysuffix='DENSE';
+displaysuffix='DENSETRUNCpt';
 
 
 ang=load_mgh(sprintf('%s/%s.%s_ang_mean.mgz',prf_folder,hemi,hemi));
-ang=cvnlookupvertex(subject,hemi,[],displaysuffix,ang);
 
-
+%%
 if(isequal(hemi,'lh'))
     view_az_el_tilt=[10 -40 180];
 else
     view_az_el_tilt=[-10 -40 180];
 end
 
+%generate lookup
 [img1,L,rgbimg]=cvnlookupimages(subject,zeros(size(ang)),hemi,view_az_el_tilt,[],...
     'xyextent',[1 1],'alpha',0,'surfsuffix',displaysuffix,...
     'background',ang,'bg_clim',[0 360],'bg_cmap','jet',...
-    'text',upper(hemi),'roiname',{'*_lv'});
+    'text',upper(hemi),'roiname',{'*_lv'},'roicolor','w');
 
 %% let user draw ROI
 figure;
@@ -31,6 +31,10 @@ h=imshow(rgbimg);
 
 R=[];
 
+%press Escape to erase and start again
+%double click on final vertex to close polygon
+%right click on first vertex, and click "Create mask" to view the result
+%Keep going until user closes the window
 while(ishandle(h))
     [r,rx,ry]=roipoly();
     if(isempty(r))
@@ -40,7 +44,8 @@ while(ishandle(h))
     
     imgroi=spherelookup_vert2image(R,L,0);
     
-    tmprgb=bsxfun(@times,rgbimg,.5*imgroi + .5);
+    %quick way to merge rgbimg background with roi mask
+    tmprgb=bsxfun(@times,rgbimg,.75*imgroi + .25);
     set(h,'cdata',tmprgb);
     
 end
@@ -56,18 +61,15 @@ figure;
 imshow(rgbimg);
 
 %% now save the label file
-labelsuffix='DENSETRUNCpt';
 
 labelname='V1test';
 
-%transfer onto desired surface
-roival=cvnlookupvertex(subject,hemi,displaysuffix,labelsuffix,+R);
 roiidx=find(roival>0);
 
 if(isequal(labelsuffix,'orig'))
     labelsuffix='';
 end
-labelfile=sprintf('%s/%s/label/%s%s.%s.label',cvnpath('freesurfer'),subject,hemi,labelsuffix,labelname);
+labelfile=sprintf('%s/%s/label/%s%s.%s.label',cvnpath('freesurfer'),subject,hemi,displaysuffix,labelname);
 
 write_label(roiidx-1,zeros(numel(roiidx),3),ones(numel(roiidx),1),labelfile,subject,'TkReg');
 
