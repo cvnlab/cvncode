@@ -31,15 +31,21 @@ function [lookup] = spherelookup_generate(vertsph,azimuth,elevation,tilt,xyexten
 %   
 % Options:
 %   reverselookup:  Return image->sphere lookup (default=true)
+%   reversevert:    Vx3 vertices to use for reverse lookup 
+%                    (default=[] = use vertsph)
+%                   NOTE: If not [], MUST match size of vertsph argument
 %   verbose:        Print extra ouput
 %   silent:         No output printing at all
 %
 
-% Update 1-26-2015 KJ: Add reverselookup for ROI drawing
+% Update 2016-01-26 KJ: Add reverselookup for ROI drawing
+% Update 2016-02-11 KJ: Add option to use different verts for reverselookup
+%                           (eg: inflated)
 
 %default options
 options=struct(...
     'reverselookup',true,...
+    'reversevert',[],...
     'verbose',false,...
     'silent',false);
 
@@ -170,6 +176,12 @@ for i = 1:viewN
     %%%%%%%%%%%
     
     if(options.reverselookup)
+        vertrev=options.reversevert;
+        if(~isempty(vertrev) && size(vertrev,1)~=size(vertsph,1))
+            error('options.reversevert MUST match size of vertsph!');
+            vertrev=[];
+        end
+
         %if requested, generate image->vertex lookup as well
         %for vertices that don't contribute to a pixel, find the nearest
         %vertex that DOES contribute and use that vertex's pixel lookup
@@ -183,9 +195,19 @@ for i = 1:viewN
         tmpextrap(reverselookup>0)=~extrapmask(reverselookup(reverselookup>0));
         missingverts=viewmask_padded & (~lookupmasks(:,i) | ~tmpextrap);
         
-        S=scatteredInterpolant(viewvert(viewmask & ~missingverts,1), viewvert(viewmask & ~missingverts,2), ...
-            vertidx(viewmask & ~missingverts),'nearest');
-        missinglookup=S(viewvert(missingverts,1), viewvert(missingverts,2));
+        if(isempty(vertrev))
+            %if using viewverts for reverse lookup, just use X-Y
+            %coordinates since those are rotated correctly and planar
+            S=scatteredInterpolant(viewvert(viewmask & ~missingverts,1), viewvert(viewmask & ~missingverts,2), ...
+               vertidx(viewmask & ~missingverts),'nearest');
+            missinglookup=S(viewvert(missingverts,1), viewvert(missingverts,2));
+        else
+            %if using other verts (eg: inflated) for reverse lookup, 
+            % need to use full just use XYZ for lookup.  This takes longer
+            S=scatteredInterpolant(vertrev(viewmask & ~missingverts,1), vertrev(viewmask & ~missingverts,2), ...
+                vertrev(viewmask & ~missingverts,3),vertidx(viewmask & ~missingverts),'nearest');
+            missinglookup=S(vertrev(missingverts,1), vertrev(missingverts,2), vertrev(missingverts,3));
+        end
         reverselookup(missingverts,i)=reverselookup(missinglookup);
         
         if(options.verbose)

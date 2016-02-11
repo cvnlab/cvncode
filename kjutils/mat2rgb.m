@@ -10,7 +10,8 @@ function rgbimg = mat2rgb(imgvals,varargin)
 %   overlayalpha:   MxN mask where 1=main image, 0=background underlay
 %                     values between 0-1 = partial transparency
 %                   1x1 scalar = uniform partial transparency
-%   background:     MxN image matrix, 1x3 RGB, 1x1 RGB
+%   background:     MxN image matrix, 1x3 RGB, 1x1 RGB, 
+%                     or ColorSpec (eg: 'k'). (default=0)
 %   bg_cmap:        Colormap for background underlay (default = gray)
 %   bg_clim:        Colormap limits for underlay (default = [0 1])
 %   rgbnan:         replace any NaN in the final RGB  image with this value
@@ -20,7 +21,7 @@ function rgbimg = mat2rgb(imgvals,varargin)
 % KJ Update 2016-02-04: 1. cast everything to single to avoid dumb type bug
 %						2. Colormap fixes: accept strings eg 'jet' and 
 %							set cmax=inf if cmax==cmin to avoid lookup problem
-
+% Update 2016-02-11 KJ: Accept ColorSpec for background (eg: 'k' for black)
 
 options=struct(...
     'clim',[-inf inf],...
@@ -90,6 +91,10 @@ end
 if(isempty(options.overlayalpha) || all(+options.overlayalpha(:) >= 1))
     rgbimg(isnan(rgbimg))=options.rgbnan;
     return;
+end
+
+if(ischar(options.background))
+    options.background=colorspec2rgb(options.background);
 end
 
 bg_cmin=options.bg_clim(1);

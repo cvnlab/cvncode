@@ -91,11 +91,13 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 %                   <hemi>[surfsuffix].<roiname>.label
 %   roimask:        Vx1 binary mask (or cell array) for an ROI to draw on 
 %                   final RGB image
-%   roicolor:       RGB color for ROI outline(s) [r g b] from 0-1
+%   roicolor:       ColorSpec or RGB color for ROI outline(s) 
+%                   'y','m','c','r','g','b','w','k' OR
+%                   [r g b] from 0-1
 %                   default = [0 0 0] (black)
 %                   Can also be either Nx3 or a cell array of N [1x3] to 
 %                   specify different colors for each ROI
-%   roiwidth:       Line with of ROI outline(s). default=2
+%   roiwidth:       Line with of ROI outline(s). default=.5
 %   
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -175,6 +177,11 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 % Update KJ 2016-02-10:
 %   1. Accept vals=struct(...) to display both hemispheres
 %   2. Add text options for labeling output RGB
+% 
+% update KJ 2016-02-11:
+%   1. Use inflated surface for reverselookup
+%   2. Accept ColorSpec or [r,g,b] for roicolor (eg: 'w' for white)
+%   3. Use knk 'detectedges' for roi borders
 
 %%
 %default options
@@ -199,7 +206,7 @@ options=struct(...
     'surfdir',[],...
     'roiname',[],...
     'roimask',[],...
-    'roiwidth',{2},...
+    'roiwidth',{.5},...
     'roicolor',{[0 0 0]},...
     'text',[],...
     'textsize',50,...
@@ -386,17 +393,23 @@ else
         
         [vertsph,~,~] = freesurfer_read_surf_kj(sphfile);
 
+        %use inflated surface for reverse lookup (less topological
+        %   distortion for nearest neighbour lookup of holes pixel holes
+        inffile=sprintf('%s/%s.inflated%s',surfdir,hemi,options.surfsuffix_file);
+        [vertinf,~,~] = freesurfer_read_surf_kj(inffile);
+                
         %recenter and scale to unit sphere
         [c,r]=spherefit(vertsph);
         vertsph=bsxfun(@minus,vertsph,c.')/r;
-
+        
         if(options.reset)
             fprintf('''reset'' flag is set\n');
         else
             fprintf('No cached spherelookup found: %s\n',cachename);
         end
         fprintf('Building new lookup structure...\n');
-        Lookup=spherelookup_generate(vertsph,az,el,tilt,options.xyextent,imgN,'verbose',true);
+        Lookup=spherelookup_generate(vertsph,az,el,tilt,options.xyextent,imgN,...
+            'reversevert',vertinf,'verbose',true);
 
         Lookup.imglookup=uint32(Lookup.imglookup);
         Lookup.reverselookup=uint32(Lookup.reverselookup);
@@ -536,8 +549,7 @@ if(~isempty(options.roimask))
         roiwidth=options.roiwidth{min(i,numel(options.roiwidth))};
         roicolor=roicolor_cell{min(i,numel(roicolor_cell))};
         
-        roiwidth=round(roiwidth*2+1);
-        
+        roicolor=colorspec2rgb(roicolor);
         if(any(roicolor>1))
             roicolor=roicolor/255;
         end
@@ -553,14 +565,16 @@ if(~isempty(options.roimask))
         else
             error('invalid size for roimask');
         end
-        edgekernel=ones(roiwidth);
-        edgekernel=edgekernel/sum(edgekernel(:));
         
-        mappedroi2=conv2(+mappedroi,edgekernel,'same');
+        %edgekernel=ones(round(roiwidth*2+1));
+        %edgekernel=edgekernel/sum(edgekernel(:));
+        %mappedroi2=conv2(+mappedroi,edgekernel,'same');
+        %mappedroi=(mappedroi-mappedroi2)>.01;
         
-        %mappedroi=abs(mappedroi-mappedroi2)>.01;
-        mappedroi=(mappedroi-mappedroi2)>.01;
+        mappedroi=detectedges(mappedroi,roiwidth);
         mappedroi(isnan(mappedroi))=0;
+        mappedroi=mappedroi./max(mappedroi(:));
+                
         mappedroi=repmat(mappedroi,1,1,3);
         
         roiimg=repmat(reshape(roicolor,[1 1 3]),size(rgbimg,1),size(rgbimg,2));
