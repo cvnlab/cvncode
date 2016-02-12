@@ -26,6 +26,8 @@ function cvnanalyzePRF(hmv,datafiles,stimfiles,max_no_values,outputdir,subjid,fl
 %
 %NOTE i: number of data TR as to match stimulus TR
 %NOTE ii: if the data total number of vertices exceeds max_no_values, PRF
+%NOTE iii: it is assumed that the effective TR that is associated with
+%          the datafiles and the stimfiles is exactly 1 second.
 %analysis will be looped and the outputted results structure will be
 %different from the original "results" structure outputted by analyzePRF.m:
 %   the .noisereg field will not be saved
