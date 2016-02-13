@@ -6,6 +6,7 @@ function cvnstartup(resetpath)
 %   cvn code directories
 %   knkutils
 %   fsl and freesurfer toolboxes
+%   spm12
 %
 % Optional input:
 % if resetpath='reset', reset matlab default path before adding cvn
@@ -20,19 +21,14 @@ if(strcmpi(resetpath,'reset'))
 end
 
 %% user-specific paths are hardcoded here
-codehome=[getenv('HOME') '/Source'];
+homedir=getenv('HOME');
+
+codehome=[homedir '/Source'];
 cvnroot=[codehome '/cvncode'];
 knkroot=[codehome '/knkutils'];
-
-
-fsldir=getenv('FSLDIR');
-if(isempty(fsldir) || ~exist(fsldir,'dir'))
-  fsldir='/usr/local/fsl';
-end
-freesurfdir=getenv('FREESURFER_HOME');
-if(isempty(freesurfdir) || ~exist(freesurfdir,'dir'))
-  freesurfdir='/Applications/freesurfer';
-end
+spmdir=choosepath({'/software/spm12',[homedir '/MATLAB_TOOLBOXES/spm']});
+fsldir=choosepath({getenv('FSLDIR'), '/usr/local/fsl'});
+freesurfdir=choosepath({getenv('FREESURFER_HOME'), '/Applications/freesurfer'});
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -46,6 +42,7 @@ pth = [pth genpath(knkroot)];
 pth = [pth fsldir '/etc/matlab:'];
 pth = [pth freesurfdir '/matlab:'];
 pth = [pth freesurfdir '/fsfast/toolbox:'];
+pth = [pth spmdir ':'];
 
 % clean up path
 bad = {'/.' '.svn' '.git' 'DNBdata' 'DNBresults' '@'};
@@ -79,3 +76,21 @@ randn('state',sum(100*clock));
 
 % set format
 format long g;
+
+%%
+function p = choosepath(testpaths)
+
+p='';
+for i = 1:numel(testpaths)
+    if(~isempty(testpaths{i}) && exist(testpaths{i},'dir'))
+        p=testpaths{i};
+        break;
+    end
+end
+
+
+if(isempty(p))
+    warning('No path found for %s',whichpath);
+end
+
+
