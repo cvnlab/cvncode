@@ -87,7 +87,7 @@ options=struct(...
 %%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%
 %parse options
-input_opts=struct(varargin{:});
+input_opts=mergestruct(varargin{:});
 fn=fieldnames(input_opts);
 for f = 1:numel(fn)
     opt=input_opts.(fn{f});

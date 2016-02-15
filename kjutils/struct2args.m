@@ -1,5 +1,6 @@
 function args = struct2args(optstruct)
-if(numel(optstruct) > 1)
+
+if(numel(optstruct) ~= 1)
     args = {};
     return;
 end
