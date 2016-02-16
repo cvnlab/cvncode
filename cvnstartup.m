@@ -24,26 +24,30 @@ end
 homedir=getenv('HOME');
 
 codehome=[homedir '/Source'];
+
 cvnroot=[codehome '/cvncode'];
 knkroot=[codehome '/knkutils'];
-spmdir=choosepath({'/software/spm12',[homedir '/MATLAB_TOOLBOXES/spm']});
-fsldir=choosepath({getenv('FSLDIR'), '/usr/local/fsl'});
-freesurfdir=choosepath({getenv('FREESURFER_HOME'), '/Applications/freesurfer'});
-
+spmdir=choosepath({'/software/spm12',[homedir '/MATLAB_TOOLBOXES/spm']},'spm');
+fsldir=choosepath({getenv('FSLDIR'), '/usr/local/fsl'},'fsl');
+freesurfdir=choosepath({getenv('FREESURFER_HOME'), '/Applications/freesurfer'},'freesurfer');
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % define path (top is highest priority)!
 
 pth = '';
+
 pth = [pth cvnroot ':'];
 pth = [pth genpath([cvnroot '/utilities'])];
 pth = [pth genpath([cvnroot '/kjutils'])];
+
 pth = [pth genpath(knkroot)];
+
 pth = [pth fsldir '/etc/matlab:'];
 pth = [pth freesurfdir '/matlab:'];
 pth = [pth freesurfdir '/fsfast/toolbox:'];
 pth = [pth spmdir ':'];
 
+%%
 % clean up path
 bad = {'/.' '.svn' '.git' 'DNBdata' 'DNBresults' '@'};
 
@@ -78,7 +82,7 @@ randn('state',sum(100*clock));
 format long g;
 
 %%
-function p = choosepath(testpaths)
+function p = choosepath(testpaths,pathname)
 
 p='';
 for i = 1:numel(testpaths)
@@ -89,8 +93,8 @@ for i = 1:numel(testpaths)
 end
 
 
-if(isempty(p))
-    warning('No path found for %s',whichpath);
+if(isempty(p) && ~isempty(pathname))
+    warning('No path found for %s',pathname);
 end
 
 
