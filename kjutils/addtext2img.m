@@ -34,7 +34,8 @@ else
     bgcolor=[1 2 3]/255;
 end
 bgimg=cast(repmat(reshape(bgcolor,[1 1 3]),size(img,1),size(img,2)),'like',img);
-imshow(bgimg);
+%imshow(bgimg);
+image(bgimg);
 
 for i = 1:numel(txtargs)
     text(txtargs{i}{:});
