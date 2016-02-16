@@ -32,7 +32,7 @@ if(size(vertvalues,1)==1 && size(vertvalues,3)>1)
 elseif(size(vertvalues,1)==1 && size(vertvalues,3)==1)
     vertvalues=vertvalues.';
 end
-if(~isempty(Lookup.input2surf) && numel(Lookup.input2surf)==size(vertvalues,1))
+if(~isempty(Lookup.input2surf) && Lookup.inputN==size(vertvalues,1))
     fullvals=+vertvalues(Lookup.input2surf,:);
     img=fullvals(Lookup.imglookup,:);
 else
