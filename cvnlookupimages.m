@@ -243,9 +243,20 @@ for f = 1:numel(fn)
     end
 end
 
+%%% replace some alternate param names
 if(isfield(options,'alpha'))
     options.overlayalpha=options.alpha;
     options=rmfield(options,'alpha');
+end
+
+if(isfield(options,'colormap'))
+    options.cmap=options.colormap;
+    options=rmfield(options,'colormap');
+end
+
+if(isfield(options,'bg_colormap'))
+    options.bg_cmap=options.bg_colormap;
+    options=rmfield(options,'bg_colormap');
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -305,7 +316,11 @@ if(isstruct(vals) && isfield(vals,'numlh'))
         end
         hemi_options.filename=[];
         optargs=struct2args(hemi_options);
-        [imghemi{i},lookuphemi{i},rgbimghemi{i}]=cvnlookupimages(subject, hemivals, h, v, L, optargs{:});
+        [imghemi{i},lookuphemi{i},rgbimghemi{i},return_options]=cvnlookupimages(subject, hemivals, h, v, L, optargs{:});
+        
+        % copy clim from first hemi so both hemis have same colormap
+        options.clim=return_options.clim;
+        options.bg_clim=return_options.bg_clim;
     end
      %[mappedvals,Lookup,rgbimg,options]
     mappedvals=cat(2,imghemi{:});
@@ -439,7 +454,7 @@ else
     Lookup.inputsuffix=inputsuffix;
     Lookup.extrapmask=Lookup.extrapmask | ~validmask(Lookup.imglookup);
     Lookup.is_extrapolated=squeeze(any(any(Lookup.extrapmask,1),2));
-    Lookup.inputN=sum(validmask);
+    Lookup.inputN=size(vals,1);
     options.inputsuffix=inputsuffix;
 end
 
@@ -479,14 +494,17 @@ if(~isempty(options.overlayalpha) || ~isempty(options.threshold))
     elseif(ischar(options.background))
         %background was a string directing us to a freesurfer overlay
         curvfile=sprintf('%s/%s%s.%s',surfdir,hemi,options.surfsuffix_file,options.background);
-        [curv,~]=read_curv(curvfile);
-        if(isequal(options.background,'curv'))
-            curv=curv<0;
-        elseif(isequal(options.background,'sulc'))
-            curv=-curv;
+        if(exist(curvfile,'file')>0)
+            [curv,~]=read_curv(curvfile);
+            if(isequal(options.background,'curv'))
+                curv=curv<0;
+            elseif(isequal(options.background,'sulc'))
+                curv=-curv;
+            end
+            mappedcurv=curv(Lookup.imglookup);
+        else
+            mappedcurv=rgboptions.background;
         end
-        mappedcurv=curv(Lookup.imglookup);
-        
     else
         mappedcurv=rgboptions.background;
     end
@@ -507,6 +525,7 @@ if(~isempty(options.overlayalpha))
     end
     rgboptions.overlayalpha=mappedalpha;
 end
+
 
 rgbimg=mat2rgb(mappedvals,struct2args(rgboptions));
 
@@ -598,12 +617,34 @@ if(~isempty(options.filename))
     imwrite(rgbimg,options.filename);
 end
 
+%% Compute colormap limits for 'options' output
+% so we know what clims were actually used if input contained inf or -inf 
+options.clim=compute_clim(mappedvals,options.clim);
+if(~isempty(rgboptions.background) && isnumeric(rgboptions.background))
+    options.bg_clim=compute_clim(rgboptions.background,options.bg_clim);
+end
+
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%% HELPER FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% compute clim 
+function clim = compute_clim(v,clim)
+cmin=clim(1);
+cmax=clim(2);
+if(isempty(cmin) || ~isfinite(cmin))
+    cmin=nanmin(v(:));
+end
+if(isempty(cmax) || ~isfinite(cmax))
+    cmax=nanmax(v(:));
+end
+if(cmax==cmin)
+    cmax=inf;
+end
+clim=[cmin cmax];
 
 %% cellify inputs
 function c = cellify(c)

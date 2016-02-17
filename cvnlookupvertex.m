@@ -97,11 +97,9 @@ end
 sourcesurf=sprintf('%s/%s.sphere%s',surfdir,hemi,sourcesuffix_file);
 destsurf=sprintf('%s/%s.sphere%s',surfdir,hemi,destsuffix_file);
 
-[sourceverts,~,~]=freesurfer_read_surf_kj(sourcesurf);
-[destverts,~,~]=freesurfer_read_surf_kj(destsurf);
+sourceN=freesurfer_read_surf_kj(sourcesurf,'justcount',true);
+destN=freesurfer_read_surf_kj(destsurf,'justcount',true);
 
-sourceN=size(sourceverts,1);
-destN=size(destverts,1);
 validmask=true(destN,1);
 
 if(isequal(destsuffix,sourcesuffix))

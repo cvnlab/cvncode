@@ -11,6 +11,8 @@
 %   {100, 100, 'text2', 'FontSize', 10}, ...
 %   {200, 200, 'text3', 'VerticalAlignment','top'} };
 
+% Update 2016-02-16 KJ: use image() since imshow() won't work in terminal
+
 function new_img = addtext2img(img, txtargs, alias_amt)
 
 if(~iscell(txtargs{1}))
@@ -30,12 +32,15 @@ set(gca,'Position',[0 0 1 1]);
 %imshow(255*ones(size(img)));
 if(isequal(class(img),'uint8'))
     bgcolor=[1 2 3];
+    set(fig,'color',bgcolor/255);
 else
     bgcolor=[1 2 3]/255;
+    set(fig,'color',bgcolor);
 end
 bgimg=cast(repmat(reshape(bgcolor,[1 1 3]),size(img,1),size(img,2)),'like',img);
 %imshow(bgimg);
 image(bgimg);
+axis off;
 
 for i = 1:numel(txtargs)
     text(txtargs{i}{:});
