@@ -41,6 +41,9 @@ pth = [pth genpath([cvnroot '/utilities'])];
 pth = [pth genpath([cvnroot '/kjutils'])];
 
 pth = [pth genpath(knkroot)];
+pth = [pth genpath([codehome '/alignvolumedata'])];
+pth = [pth genpath([codehome '/viewsurfacedata'])];
+pth = [pth genpath([codehome '/preprocessfmri'])];
 
 pth = [pth fsldir '/etc/matlab:'];
 pth = [pth freesurfdir '/matlab:'];
