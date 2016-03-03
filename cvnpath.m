@@ -33,11 +33,17 @@ switch(lower(whichpath))
         testpaths={
             '/stone/ext1/fmridata'
             '/home/stone-ext1/fmridata'
+            '/Users/kjamison/KJSync/fmridata'
             };
     case 'anatomicals'
         testpaths={
             '/stone/ext1/anatomicals'
             '/home/stone-ext1/anatomicals'
+            };
+    case 'workbench'
+        testpaths={
+            '/home/stone/software/workbench_v1.1.1/bin_rh_linux64'
+            '/Applications/workbench/bin_macosx64'
             };
 end
 
