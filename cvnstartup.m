@@ -27,7 +27,7 @@ codehome=[homedir '/Source'];
 
 cvnroot=[codehome '/cvncode'];
 knkroot=[codehome '/knkutils'];
-spmdir=choosepath({'/software/spm12',[homedir '/MATLAB_TOOLBOXES/spm']},'spm');
+spmdir=choosepath({'/home/stone/software/spm12',[homedir '/TOOLBOXES/spm']},'spm');
 fsldir=choosepath({getenv('FSLDIR'), '/usr/local/fsl'},'fsl');
 freesurfdir=choosepath({getenv('FREESURFER_HOME'), '/Applications/freesurfer'},'freesurfer');
 

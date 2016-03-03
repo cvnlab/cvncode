@@ -13,24 +13,31 @@ function p = cvnpath(whichpath)
 %
 % eg: fsdir=sprintf('%s/%s',cvnpath('freesurfer'),subjectid) 
 %       instead of hardcoding in every function
+%
+% Note: If you have /stone/ext1 followed by /home/stone-ext1, this ensures
+%   that you can access it from any machine, and if we ARE on stone, it
+%   will use the faster local route /stone/ext1
 
 switch(lower(whichpath))
     case 'code'
         testpaths={
-            '/home/generic/Dropbox/cvnlab/code'
+            '/home/stone/generic/Dropbox/cvnlab/code'
             };
     case 'freesurfer'
         testpaths={
             '/stone/ext1/freesurfer/subjects'
+            '/home/stone-ext1/freesurfer/subjects'
             '/Users/kjamison/KJSync'
             };
     case 'fmridata'
         testpaths={
             '/stone/ext1/fmridata'
+            '/home/stone-ext1/fmridata'
             };
     case 'anatomicals'
         testpaths={
             '/stone/ext1/anatomicals'
+            '/home/stone-ext1/anatomicals'
             };
 end
 
