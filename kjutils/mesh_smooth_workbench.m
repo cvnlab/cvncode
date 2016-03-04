@@ -25,8 +25,9 @@ function smoothdata = mesh_smooth_workbench(surf,surfdata,fwhm,wb_command)
 % Examples:
 % surfL=cvnreadsurface('C0041','lh','layerA1','DENSETRUNCpt');
 % prfdir=sprintf('%s/C0041/PRF_results/mgz',cvnpath('freesurfer'));
+% wbc=sprintf('%s/wb_command',cvnpath('workbench'));
 % vertvals=load_mgh(sprintf('%s/lh.lh_ang_mean.mgz',prfdir));
-% smoothvals=mesh_diffuse_workbench(surfL, vertvals, 10);
+% smoothvals=mesh_smooth_workbench(surfL, vertvals, 10, wbc);
 
 % KJ 2016/02/29
 % TODO: Simulate FWHM and compute possible correction factor (quick
