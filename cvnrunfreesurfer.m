@@ -4,8 +4,8 @@ function cvnrunfreesurfer(subjectid,dataloc,extraflags,scanstouse)
 %
 % <subjectid> is like 'C0001'
 % <dataloc> is:
-%   (1) the scan directory like '/stone/ext1/fmridata/20151014-ST001-wynn,subject1'
-%   (2) a NIFTI T1 .nii.gz file like '/stone/ext1/fmridata/AurelieData/Austin_3D.nii.gz'
+%   (1) the scan directory like '/home/stone-ext1/fmridata/20151014-ST001-wynn,subject1'
+%   (2) a NIFTI T1 .nii.gz file like '/home/stone-ext1/fmridata/AurelieData/Austin_3D.nii.gz'
 % <extraflags> (optional) is a string with extra flags to pass to recon-all.
 %   Default: ''
 % <scanstouse> (optional) is a vector of indices of T1 scans to use.

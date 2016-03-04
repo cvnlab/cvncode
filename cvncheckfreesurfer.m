@@ -3,7 +3,7 @@ function cvncheckfreesurfer(subjectid,outputdir,skip,dims)
 % function cvncheckfreesurfer(subjectid,outputdir,skip,dims)
 %
 % <subjectid> is like 'C0001'
-% <outputdir> is like '/stone/ext1/anatomicals/C0001/checkfreesurfer'
+% <outputdir> is like '/home/stone-ext1/anatomicals/C0001/checkfreesurfer'
 % <skip> (optional) is number of slices to increment by. Default: 1.
 % <dims> (optional) is a vector of slice dimensions to process. Default: [1 2 3].
 %

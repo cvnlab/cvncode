@@ -3,7 +3,7 @@ function cvnalignmultiple(niifiles,outputprefix,mcmask,skips,rots)
 % function cvnalignmultiple(niifiles,outputprefix,mcmask,skips,rots)
 %
 % <niifiles> is a cell vector of NIFTI files
-% <outputprefix> is like '/stone/ext1/anatomicals/C0041/T1average'
+% <outputprefix> is like '/home/stone-ext1/anatomicals/C0041/T1average'
 % <mcmask> (optional) is {mn sd} with the mn and sd outputs of defineellipse3d.m.
 %   If [] or not supplied, we prompt the user to determine these with the GUI.
 % <skips> (optional) is number of slices to skip in each of the 3 dimensions.

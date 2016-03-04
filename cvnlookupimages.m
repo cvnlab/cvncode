@@ -146,7 +146,7 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Display both hemispheres:
-% V=load('/stone/ext1/fmridata/20151214-ST001-D003/preprocessSURF/mean.mat');
+% V=load('/home/stone-ext1/fmridata/20151214-ST001-D003/preprocessSURF/mean.mat');
 % %layer1
 % valstruct=struct('data',squeeze(V.data(:,1,:)),'numlh',V.numlh,'numrh',V.numrh);
 % L=[];

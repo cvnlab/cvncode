@@ -10,6 +10,7 @@ function p = cvnpath(whichpath)
 %   'freesurfer'  (FreeSurfer subjects directory)
 %   'fmridata'    (fmridata directory on stone)
 %   'anatomicals' (anatomicals directory on stone)
+%   'workbench'   (location of HCP wb_command)
 %
 % eg: fsdir=sprintf('%s/%s',cvnpath('freesurfer'),subjectid) 
 %       instead of hardcoding in every function

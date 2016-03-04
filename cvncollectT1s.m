@@ -3,7 +3,7 @@ function files = cvncollectT1s(subjectid,dataloc)
 % function files = cvncollectT1s(subjectid,dataloc)
 %
 % <subjectid> is like 'C0001'
-% <dataloc> is a scan directory like '/stone/ext1/fmridata/20151014-ST001-wynn,subject1'
+% <dataloc> is a scan directory like '/home/stone-ext1/fmridata/20151014-ST001-wynn,subject1'
 %   or a cell vector of scan directories
 %
 % Within the specified scan directories (in the order as given), 

@@ -3,8 +3,8 @@ function cvncheckfreesurferalignment(subjectid,outputdir,meanfunctional,skip,dim
 % function cvncheckfreesurferalignment(subjectid,outputdir,meanfunctional,skip,dims)
 %
 % <subjectid> is like 'C0001'
-% <outputdir> is like '/stone/ext1/fmridata/20151008-ST001-kk,test/freesurferalignment'
-% <meanfunctional> is like '/stone/ext1/fmridata/20151008-ST001-kk,test/preprocess/mean.nii'
+% <outputdir> is like '/home/stone-ext1/fmridata/20151008-ST001-kk,test/freesurferalignment'
+% <meanfunctional> is like '/home/stone-ext1/fmridata/20151008-ST001-kk,test/preprocess/mean.nii'
 % <skip> (optional) is number of slices to increment by. Default: 1.
 % <dims> (optional) is a vector of slice dimensions to process. Default: [1 2 3].
 %

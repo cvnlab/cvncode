@@ -3,8 +3,8 @@ function cvnalignEPItoT2(subjectid,outputdir,meanfunctional,mcmask,wantaffine,tr
 % function cvnalignEPItoT2(subjectid,outputdir,meanfunctional,mcmask,wantaffine,tr)
 %
 % <subjectid> is like 'C0001'
-% <outputdir> is like '/stone/ext1/fmridata/20151008-ST001-kk,test/freesurferalignment'
-% <meanfunctional> is like '/stone/ext1/fmridata/20151008-ST001-kk,test/preprocess/mean.nii'
+% <outputdir> is like '/home/stone-ext1/fmridata/20151008-ST001-kk,test/freesurferalignment'
+% <meanfunctional> is like '/home/stone-ext1/fmridata/20151008-ST001-kk,test/preprocess/mean.nii'
 % <mcmask> (optional) is {mn sd} with the mn and sd outputs of defineellipse3d.m.
 %   If [] or not supplied, we prompt the user to determine these with the GUI.
 % <wantaffine> (optional) is whether to use affine (instead of rigid-body). Default: 0.

@@ -53,7 +53,7 @@ function cvnanalyzePRF(hmv,datafiles,stimfiles,max_no_values,outputdir,subjid,fl
 %
 %<outputdir> string containing the path where *resulsts_PRF.mat files
 %will be saved. If the directory inputted does not exist it will be
-%created. NOTE the string has to end with a '/'
+%created.
 %
 %<subjid> string containing the subjid (i.e. the folder name for that
 %subject).
@@ -83,6 +83,7 @@ function cvnanalyzePRF(hmv,datafiles,stimfiles,max_no_values,outputdir,subjid,fl
 %
 %optional - if not provided or empty, default is foi=[1 2 4 5];
 
+outputdir=[outputdir,'/'];
 if ~exist('flagmgz','var') || isempty(flagmgz)
     flagmgz=0;
 end

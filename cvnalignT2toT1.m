@@ -3,7 +3,7 @@ function cvnalignT2toT1(subjectid,dataloc,wantmi)
 % function cvnalignT2toT1(subjectid,dataloc,wantmi)
 %
 % <subjectid> is like 'C0001'
-% <dataloc> is the scan directory like '/stone/ext1/fmridata/20151028-ST001-kk,testB'
+% <dataloc> is the scan directory like '/home/stone-ext1/fmridata/20151028-ST001-kk,testB'
 % <wantmi> is whether to use mutual information as the metric
 %
 % Load T2 volume from <dataloc> (DICOM format). (We use just the first T2 scan.)

@@ -67,6 +67,6 @@ switch lower(algorithm)
         surfvals=mesh_diffuse_fast(surfvals,surf.faces,iter);
     case 'workbench'
         wb_command=sprintf('%s/wb_command',cvnpath('workbench'));
-        surfvals=mesh_diffuse_workbench(surf,surfvals,fwhm,wb_command);
+        surfvals=mesh_smooth_workbench(surf,surfvals,fwhm,wb_command);
 end
 

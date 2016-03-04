@@ -3,7 +3,7 @@ function f = cvngetlayersinEPI(subjectid,datadir,numlayers,layerprefix,fstruncat
 % function f = cvngetlayersinEPI(subjectid,datadir,numlayers,layerprefix,fstruncate)
 %
 % <subjectid> is like 'C0001'
-% <datadir> is like '/stone/ext1/fmridata/20151008-ST001-kk,test'
+% <datadir> is like '/home/stone-ext1/fmridata/20151008-ST001-kk,test'
 % <numlayers> is like 6
 % <layerprefix> is like 'A'
 % <fstruncate' is like 'pt'

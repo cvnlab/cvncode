@@ -1,5 +1,5 @@
 function smoothdata = mesh_smooth_workbench(surf,surfdata,fwhm,wb_command)
-% smoothdata = mesh_smooth_workbench(surf,surfdata,fwhm)
+% smoothdata = mesh_smooth_workbench(surf,surfdata,fwhm,wb_command)
 %
 % Smooth values on a triangle mesh using the Connectome Workbench geodesic
 % algorithm.  This function is just a wrapper for:
