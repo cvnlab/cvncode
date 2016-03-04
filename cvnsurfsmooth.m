@@ -1,8 +1,9 @@
-function surfvals = cvnsurfsmooth(subject,surfvals,fwhm,hemi,surftype,surfsuffix)
-% surfvals = cvnsurfsmooth(subject,surfvals,fwhm,hemi,surftype,surfsuffix)
+function surfvals = cvnsurfsmooth(subject,surfvals,fwhm,hemi,surftype,surfsuffix,algorithm)
+% surfvals = cvnsurfsmooth(subject,surfvals,fwhm,hemi,surftype,surfsuffix,algorithm)
 %
-% Smooth vertex data along the surface using iterative vertex-neighbor
-% averaging.
+% Smooth vertex data along the surface using either iterative vertex-neighbor
+% averaging (fast but distorted for many surface), or HCP Connectome
+% Workbench's area-normalized algorithm (slow but much more accurate).
 %
 % Inputs:
 %   subject:    
@@ -11,7 +12,8 @@ function surfvals = cvnsurfsmooth(subject,surfvals,fwhm,hemi,surftype,surfsuffix
 %   hemi:       'lh','rh',{'lh','rh'}
 %   surftype:   'white', 'layerA1','layerA2',...
 %   surfsuffix: 'DENSETRUNCpt','DENSE','orig',...
-%
+%   algorithm:  'iterative (default), 'workbench'
+%  
 % Outputs:
 %   surfvals:  VxT smoothed values
 %
@@ -25,7 +27,20 @@ function surfvals = cvnsurfsmooth(subject,surfvals,fwhm,hemi,surftype,surfsuffix
 % vertvalsR=load_mgh(sprintf('%s/rh.rh_ang_mean.mgz',prfdir));
 % valstruct=struct('data',[vertvalsL; vertvalsR],...
 %   'numlh',size(vertvalsL,1),'numrh',size(vertvalsR,1));
-% smoothedvals=cvnsurfsmooth('C0041',valstruct,3,{'lh','rh'},'layerA1','DENSETRUNCpt');
+% smoothedvals=cvnsurfsmooth('C0041',valstruct,3,{'lh','rh'},'layerA1','DENSETRUNCpt','workbench');
+%
+% Note: 'workbench' mode has SIGNIFICANT overhead.  Every time
+%   you want to smooth a dataset, it will take ~30 seconds (per hemisphere)
+%   to compile its geodesic distance info.  Fortunately, you can smooth 
+%   multiple surface maps at a time, so you will usually want the 'surfdata' 
+%   input to be a VxT matrix combining all of your maps to smooth them 
+%   in one call.
+
+% KJ 2016-03-04 add 'workbench' option to wrap wb_command -metric-smoothing
+
+if(~exist('algorithm','var') || isempty('algorithm'))
+    algorithm='iterative';
+end
 
 if(isstruct(surfvals))
     if(~iscell(hemi))
@@ -39,11 +54,19 @@ if(isstruct(surfvals))
             vidx=(1:surfvals.numrh)+surfvals.numlh;
         end
         surfvals.data(vidx,:)=cvnsurfsmooth(subject,surfvals.data(vidx,:),...
-            hemi{h},surftype,surfsuffix);
+            hemi{h},surftype,surfsuffix,algorithm);
     end
     return;
 end
 
+
 surf=cvnreadsurface(subject,hemi,surftype,surfsuffix);
-iter=mesh_fwhm2iter_cvn(surf.faces,surf.vertices,fwhm);
-surfvals=mesh_diffuse_fast(surfvals,surf.faces,iter);
+switch lower(algorithm)
+    case {'iter','iterative'}
+        iter=mesh_fwhm2iter_cvn(surf.faces,surf.vertices,fwhm);
+        surfvals=mesh_diffuse_fast(surfvals,surf.faces,iter);
+    case 'workbench'
+        wb_command=sprintf('%s/wb_command',cvnpath('workbench'));
+        surfvals=mesh_diffuse_workbench(surf,surfvals,fwhm,wb_command);
+end
+
