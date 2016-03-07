@@ -10,6 +10,9 @@ function rgbimg = mat2rgb(imgvals,varargin)
 %   overlayalpha:   MxN mask where 1=main image, 0=background underlay
 %                     values between 0-1 = partial transparency
 %                   1x1 scalar = uniform partial transparency
+%   threshold:      1x1 scalar: alpha = imgvals>=threshold
+%   absthreshold:   1x1 scalar: alpha = abs(imgvals)>=threshold (overrides
+%                       'threshold')
 %   background:     MxN image matrix, 1x3 RGB, 1x1 RGB, 
 %                     or ColorSpec (eg: 'k'). (default=0)
 %   bg_cmap:        Colormap for background underlay (default = gray)
@@ -22,11 +25,13 @@ function rgbimg = mat2rgb(imgvals,varargin)
 %						2. Colormap fixes: accept strings eg 'jet' and 
 %							set cmax=inf if cmax==cmin to avoid lookup problem
 % Update 2016-02-11 KJ: Accept ColorSpec for background (eg: 'k' for black)
+% Update 2016-03-07 KJ: Add absthreshold option
 
 options=struct(...
     'clim',[-inf inf],...
     'overlayalpha',[],...
     'threshold',[],...
+    'absthreshold',[],...
     'background',0,...
     'bg_clim',[0 1],...
     'circulartype',0,...
@@ -84,7 +89,9 @@ cmin=single(cmin);
 imgvals=single(imgvals);
 rgbimg = cmaplookup(imgvals,cmin,cmax,options.circulartype,options.cmap);
 
-if(~isempty(options.threshold))
+if(~isempty(options.absthreshold))
+    options.overlayalpha=abs(imgvals)>=options.absthreshold;
+elseif(~isempty(options.threshold))
     options.overlayalpha=imgvals>=options.threshold;
 end
 
