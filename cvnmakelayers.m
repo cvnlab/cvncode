@@ -54,7 +54,7 @@ end
 %%%%%%%%%% subdivide layer and other surfaces (creating dense surfaces)
 
 % calc a list of surfaces
-surfs = {'inflated' 'sphere' 'sphere.reg'};
+surfs = {'inflated' 'sphere' 'sphere.reg','white','pial'};
 for p=1:length(layerdepths)
   surfs{end+1} = sprintf('layer%s%d',layerprefix,p);  % e.g. 'layerA1'
 end
