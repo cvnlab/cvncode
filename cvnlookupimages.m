@@ -534,19 +534,21 @@ rgbimg=mat2rgb(mappedvals,struct2args(rgboptions));
 %% If roimask is given, draw the ROI
 
 roirgb={};
-    
+roilist_idx=[];
 if(~isempty(options.roiname))
     roimask={};
-
+    roilist_idx=[];
     for i = 1:numel(options.roiname)
         [roimasktmp roiname roirgbtmp]=cvnroimask(subject,hemi,options.roiname{i},[],options.inputsuffix);
         roimask=[roimask roimasktmp];
         roirgb=[roirgb roirgbtmp];
-        
+        roilist_idx=[roilist_idx i*ones(1,numel(roimasktmp))];
         
     end
     options.roimask=roimask;
-    if(~isequal(options.roicolor,{'ctab'}))
+    if(isequal(options.roicolor,{'ctab'}))
+        roilist_idx=[];
+    else
         roirgb={};
     end
 end
@@ -567,8 +569,15 @@ if(~isempty(options.roimask))
         roimask=options.roimask{i};
         %roiwidth=options.roiwidth{mod(i-1,numel(options.roiwidth))+1};
         %roicolor=roicolor_cell{mod(i-1,numel(roicolor_cell))+1};
-        roiwidth=options.roiwidth{min(i,numel(options.roiwidth))};
-        roicolor=roicolor_cell{min(i,numel(roicolor_cell))};
+        
+        
+        if(~isempty(roilist_idx))
+            roiwidth=options.roiwidth{min(roilist_idx(i),numel(options.roiwidth))};
+            roicolor=roicolor_cell{min(roilist_idx(i),numel(roicolor_cell))};
+        else
+            roiwidth=options.roiwidth{min(i,numel(options.roiwidth))};
+            roicolor=roicolor_cell{min(i,numel(roicolor_cell))};
+        end
         
         roicolor=colorspec2rgb(roicolor);
         if(any(roicolor>1))
