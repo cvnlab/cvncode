@@ -26,14 +26,14 @@ fwhm012=[0.9605 2.1116 2.5596];
 avgvtxarea_orig=0.85956;
 fwhm_orig=fwhm/sqrt(avgvtxarea/avgvtxarea_orig);
 
-if(fwhm<fwhm012(1))
+if(fwhm_orig<fwhm012(1))
     niters=0;
-elseif(fwhm<fwhm012(2))
+elseif(fwhm_orig<fwhm012(2))
     a=1.1312;
     b=0.0564;
     c=fwhm012(1)-fwhm_orig;
     niters=(-b+sqrt(b^2-4*a*c))/(2*a);
-elseif(fwhm<fwhm012(3))
+elseif(fwhm_orig<fwhm012(3))
     a=0.2327;
     b=0.2118;
     c=fwhm012(2)-fwhm_orig;
