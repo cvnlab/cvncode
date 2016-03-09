@@ -28,7 +28,7 @@ switch(lower(whichpath))
         testpaths={
             '/stone/ext1/freesurfer/subjects'
             '/home/stone-ext1/freesurfer/subjects'
-            '/Users/kjamison/KJSync'
+            '/Users/kjamison/KJSync/freesurfer_subjects'
             };
     case 'fmridata'
         testpaths={
