@@ -17,6 +17,8 @@ function niters = mesh_fwhm2iter_cvn(faces,verts,fwhm)
 %
 % Based on cvnlab simulations with a regular hexagonal grid.
 
+% KJ 2016-03-09: Bugfix for calculation
+
 L = reshape(edgelengths(faces,verts),[],3);
 s = sum(L,2)/2;
 A = sqrt(s.*prod(bsxfun(@minus,s,L),2));

@@ -281,6 +281,8 @@ if(isstruct(vals) && isfield(vals,'numlh'))
     hemitext=cellify(options.text);
     Lookup=cellify(Lookup);
 
+    options.roimask=cellify(options.roimask);
+    
     imghemi={};
     rgbimghemi={};
     lookuphemi={};
@@ -312,6 +314,13 @@ if(isstruct(vals) && isfield(vals,'numlh'))
         end
         if(~isempty(options.background) && numel(options.background)==size(vals.data,1))
             hemi_options.background=options.background(idx);
+        end
+        
+        hemi_options.roimask={};
+        for r = 1:numel(options.roimask)
+            if(numel(options.roimask{r})==size(vals.data,1))
+                hemi_options.roimask{r}=options.roimask{r}(idx);
+            end
         end
         if(numel(hemitext)==numel(hemi))
             hemi_options.text=hemitext{min(i,numel(hemitext))};
