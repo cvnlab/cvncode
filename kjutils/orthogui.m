@@ -523,20 +523,6 @@ else
     axhist_pos = [0 0 1 .9];
 end
 
-axhist = axes('parent',hpanel,'outerposition',axhist_pos,'color',[1 1 1]);
-[hx xi] = hist(V(V(:) ~= 0 & ~isnan(V(:))),100);
-hhistfill = fill(xi([1 end end 1]),[0 0 max(hx) max(hx)],'k','linestyle','none','facealpha',.1);
-hold on;
-hbar = bar(xi,hx,1,'k');
-
-
-%set(axhist, 'yscale','log');
-yl = get(gca,'ylim');
-
-hcurhist = plot([0 0],yl,'r');
-set(hhistfill,'ydata',yl([1 1 2 2]));
-title('Intensity hist (click to find voxel)');
-
 if(~isempty(colormap_clim) || all(isnan(V(:))))
     cl = colormap_clim;
 else
@@ -557,6 +543,22 @@ if(cl(1) == cl(2))
     cl(2)=cl(1)+1;
 end
 colormap_clim = cl;
+
+axhist = axes('parent',hpanel,'outerposition',axhist_pos,'color',[1 1 1]);
+histx=linspace(cl(1),cl(2),100);
+[hx xi] = hist(V(V(:) ~= 0 & ~isnan(V(:))),histx);
+hhistfill = fill(xi([1 end end 1]),[0 0 max(hx) max(hx)],'k','linestyle','none','facealpha',.1);
+hold on;
+hbar = bar(xi,hx,1,'k');
+
+
+%set(axhist, 'yscale','log');
+yl = get(gca,'ylim');
+
+hcurhist = plot([0 0],yl,'r');
+set(hhistfill,'ydata',yl([1 1 2 2]));
+title('Intensity hist (click to find voxel)');
+
 
 set(hfig,'color',[0 0 0]);
 set(img,'alphadata',maxalpha);
@@ -1124,6 +1126,11 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function xyz2 = disp2orig(xyz,dimpermute,origsize)
+if(isempty(dimpermute))
+    xyz2=xyz;
+    return;
+end
+
 xyz2=xyz;
 xyz2(abs(dimpermute))=xyz;
 for i =1:numel(dimpermute)
