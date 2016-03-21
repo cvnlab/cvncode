@@ -6,7 +6,7 @@ mris_info surf/lh.inflatedDENSETRUNCpt  % 412008
 mris_info surf/rh.inflatedDENSETRUNCpt  % 469547
 
 % define
-datadir = '/stone/ext1/fmridata/20151008-ST001-kk,test/';
+datadir = '/home/stone-ext1/fmridata/20151008-ST001-kk,test/';
 numlh = 412008;
 numrh = 469547;
 numlayers = 6;
@@ -16,11 +16,11 @@ file0 = [datadir '/preprocessSURF/mean.nii'];
 data = single(loadbinary(file0,'int16',[numlh+numrh numlayers 0]));
 
 % write out a temporary mgz file
-cvnwritemgz('C0041','temp',data(1:numlh,1,1),'lh','/home/knk/');
-cvnwritemgz('C0041','temp',data(1:numlh,6,1),'lh','/home/knk/');
+cvnwritemgz('C0041','temp',data(1:numlh,1,1),'lh','/home/stone/knk/');
+cvnwritemgz('C0041','temp',data(1:numlh,6,1),'lh','/home/stone/knk/');
 
 % view it in freeview
-freeview -f surf/lh.inflatedDENSETRUNCpt:curv=surf/lhDENSETRUNCpt.curv:overlay=/home/knk/lh.temp.mgz
+freeview -f surf/lh.inflatedDENSETRUNCpt:curv=surf/lhDENSETRUNCpt.curv:overlay=/home/stone/knk/lh.temp.mgz
 
 
 
