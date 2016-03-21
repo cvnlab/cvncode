@@ -2,7 +2,7 @@ clearb all;
 close all;
 clc;
 
-prf_folder='/stone/ext1/freesurfer/subjects/C0041/PRF_results/mgz';
+prf_folder='/home/stone-ext1/freesurfer/subjects/C0041/PRF_results/mgz';
 
 subject='C0041';
 hemi='lh';
