@@ -28,13 +28,11 @@ switch(lower(whichpath))
         testpaths={
             '/stone/ext1/freesurfer/subjects'
             '/home/stone-ext1/freesurfer/subjects'
-            '/Users/kjamison/KJSync/freesurfer_subjects'
             };
     case 'fmridata'
         testpaths={
             '/stone/ext1/fmridata'
             '/home/stone-ext1/fmridata'
-            '/Users/kjamison/KJSync/fmridata'
             };
     case 'anatomicals'
         testpaths={
