@@ -1114,6 +1114,10 @@ py = mipy -  padgap(axidx,1);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function xyz2 = orig2disp(xyz,dimpermute,origsize)
+if(isempty(dimpermute))
+    xyz2=xyz;
+    return;
+end
 xyz2=xyz(abs(dimpermute));
 for i = 1:numel(dimpermute)
     dp=abs(dimpermute(i));
