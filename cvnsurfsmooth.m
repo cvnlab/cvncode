@@ -37,6 +37,7 @@ function surfvals = cvnsurfsmooth(subject,surfvals,fwhm,hemi,surftype,surfsuffix
 %   in one call.
 
 % KJ 2016-03-04 add 'workbench' option to wrap wb_command -metric-smoothing
+% KJ 2016-03-22 fix bug when data is a struct with both hemispheres
 
 if(~exist('algorithm','var') || isempty('algorithm'))
     algorithm='iterative';
@@ -54,7 +55,7 @@ if(isstruct(surfvals))
             vidx=(1:surfvals.numrh)+surfvals.numlh;
         end
         surfvals.data(vidx,:)=cvnsurfsmooth(subject,surfvals.data(vidx,:),...
-            hemi{h},surftype,surfsuffix,algorithm);
+            fwhm,hemi{h},surftype,surfsuffix,algorithm);
     end
     return;
 end
