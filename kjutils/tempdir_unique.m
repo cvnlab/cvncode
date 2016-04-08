@@ -14,7 +14,7 @@ if(~exist(tmpd,'dir') || r~=0)
     tmplen=20;
     tmpstr=char([double('A'):double('Z') double('a'):double('z') double('0'):double('9')]);
     for i = 1:10
-        tmpd=[tempdir 'tmp_' tmpstr(floor(rand(1,templen)*numel(tmpstr))+1)];
+        tmpd=[tempdir 'tmp_' tmpstr(floor(rand(1,tmplen)*numel(tmpstr))+1)];
         if(~exist(tmpd,'dir'))
             mkdir(tmpd);
             break;
