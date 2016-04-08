@@ -41,10 +41,12 @@ end
 
 tmpfiles={};
 
+tmpd=tempdir_unique;
+
 ts=timestamp;
 
 if(isstruct(surf))
-    surffile=sprintf('%s/tmpcvn_surf_%s.gii',tempdir,ts);
+    surffile=sprintf('%s/tmpcvn_surf_%s.gii',tmpd,ts);
     Gsurf=gifti(surf);
     system(sprintf('rm -f %s',surffile));
     
@@ -63,8 +65,8 @@ else
 end
 
 
-metricfile1=sprintf('%s/tmpcvn_metric1_%s.func.gii',tempdir,ts);
-metricfile2=sprintf('%s/tmpcvn_metric2_%s.func.gii',tempdir,ts);
+metricfile1=sprintf('%s/tmpcvn_metric1_%s.func.gii',tmpd,ts);
+metricfile2=sprintf('%s/tmpcvn_metric2_%s.func.gii',tmpd,ts);
 system(sprintf('rm -f %s %s',metricfile1,metricfile2));
 
 
@@ -78,14 +80,17 @@ extraargs='';
 cmd=sprintf('%s -metric-smoothing %s %s %.6f %s -method GEO_GAUSS_AREA %s',...
     wb_command,surffile,metricfile1,kernel_sigma,metricfile2,extraargs);
 
-
+fprintf('Executing workbench smoothing command:\n%s\n',cmd);
+stic=tic;
 [status,output]=system(cmd);
 
 if(exist(metricfile2,'file'))
     Gnew=gifti(metricfile2);
     smoothdata=cast(Gnew.cdata,'like',surfdata);
+    fprintf('Smoothing completed in %.2f seconds.\n',toc(stic));
 else
     smoothdata=[];
+    fprintf('Smoothing result not found!\n');
 end
 if(~isempty(tmpfiles))
     delete(tmpfiles{:});

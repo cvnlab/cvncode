@@ -612,7 +612,13 @@ if(~isempty(options.roimask))
         
         mappedroi=detectedges(mappedroi,roiwidth);
         mappedroi(isnan(mappedroi))=0;
-        mappedroi=mappedroi./max(mappedroi(:));
+        
+        %if an roi is not visible, make sure we don't divide by 0
+        roimax=max(mappedroi(:));
+        if(roimax==0)
+            roimax=1;
+        end
+        mappedroi=mappedroi./roimax;
                 
         mappedroi=repmat(mappedroi,1,1,3);
         

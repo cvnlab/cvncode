@@ -24,6 +24,7 @@ function rgb=colorspec2rgb(varargin)
 %      1     0     0
 %      0     0     0
 
+% KJ 2016-03-25: Use correct 'y' color
 
 colorname={};
 for i = 1:nargin
@@ -50,7 +51,7 @@ for i = 1:numel(colorname)
     end
     switch lower(colorname{i})
         case {'y','yellow'}
-            rgb1=[1 0 0];
+            rgb1=[1 1 0];
         case {'m','magenta'}
             rgb1=[1 0 1];
         case {'c','cyan'}
