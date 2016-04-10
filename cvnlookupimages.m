@@ -346,6 +346,7 @@ if(isstruct(vals) && isfield(vals,'numlh'))
     end
     
     if(~isempty(options.filename))
+        mkdirquiet(stripfile(options.filename));  % make dir if necessary
         imwrite(rgbimg,options.filename);
     end
     return;
@@ -639,8 +640,8 @@ end
 
 %% If given filename, save RGB image to file 
 if(~isempty(options.filename))
-    %save
-    imwrite(rgbimg,options.filename);
+    mkdirquiet(stripfile(options.filename));  % make dir if necessary
+    imwrite(rgbimg,options.filename);  % save
 end
 
 %% Compute colormap limits for 'options' output
