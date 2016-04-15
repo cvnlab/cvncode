@@ -1,0 +1,14 @@
+This is a collection of code used by the CVNLab (http://cvnlab.net).
+
+%%%%%%%%%% CHANGE HISTORY
+
+Below we document major code changes. Minor code changes and tweaks that have no significant impact are not mentioned here (e.g. things like cosmetic adjustments, code speed-ups, making functions more general by adding optional input arguments, fixing bugs that would have result in code crashes, etc.). Major changes include things that affect existing code mechanisms, make code backwards-incompatible, or change actual analysis results.
+
+-	2016/03/04 - Keith added ‘workbench’ option to cvnsurfsmooth.m.  Slow but more much accurate for irregular meshes like ours.  See documentation.
+-	2016/02/25 - Keith added tangential smoothing function cvnsurfsmooth.m (currently a single FWHM per surface)
+-	2016/02/10 - Keith updated cvnlookupimages, ROI drawing, labeling images, and other stuff (see Dropbox/cvnlab/code/scratch/roi_drawing/example_roi_draw.m)
+-	2016/02/05 - preprocessSURF20151214D003 → re-ran to get replication padding and fixed TR (2.010768 s)
+-	2016/02/05 - cubic interpolation in preprocessing is now using replication of first and last data points. pre-processed data prior to 2016/02/05 have the OLD style of interpolation (and potentially transient artifacts)
+-	2016/02/05 - Kendrick did global changes to cvnlab/code to start using the cvnpath mechanism
+-	2016/01/26 - Keith added cvnlookupimages v1.0 (See SphereLookup Image Generation )
+-	2016/01/18 - Kendrick started this section.
