@@ -1,5 +1,5 @@
 function [roimask, roidescription, roicolors] = cvnroimask(subject,hemi,roifile,roival,destsuffix,outputstyle)
-% [roimask, roidescription, roicolors] = cvnroimask(subject,hemi,roifile,roival,destsuffix)
+% [roimask, roidescription, roicolors] = cvnroimask(subject,hemi,roifile,roival,destsuffix,outputstyle)
 %
 % subject = freesurfer subject ID
 % hemi = lh or rh

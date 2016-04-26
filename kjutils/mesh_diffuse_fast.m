@@ -45,6 +45,7 @@ function [vertvals,A] = mesh_diffuse_fast(vertvals, faces_or_adjacency, iter)
 % smoothvalsB10=mesh_diffuse_fast(vertvalsB,A,10);
 %
 % KJ 2016/02/23
+% KJ 2016/04/01 Cast input to double and back for sparse mult
 
 if(~exist('iter','var') || isempty(iter))
     iter=1;
@@ -99,6 +100,8 @@ elseif(iterfrac<1-itertol)
     iter=ceil(iter);
 end
 
+inputclass=class(vertvals);
+vertvals=double(vertvals);
 for i = 1:floor(iter)
     vertvals=A*vertvals;
 end
@@ -106,3 +109,5 @@ end
 if(iterfrac>itertol)
     vertvals=(1-iterfrac)*vertvals+iterfrac*(A*vertvals);
 end
+
+vertvals=cast(vertvals,inputclass);

@@ -30,6 +30,7 @@ p.addParamValue('fontcolor',[]);
 p.addParamValue('xlabel',[]);
 p.addParamValue('ylabel',[]);
 p.addParamValue('antialias',1);
+p.addParamValue('interp',false);
 p.parse(varargin{:});
 r = p.Results;
 
@@ -81,7 +82,22 @@ if(ischar(cmap))
     cmap=evalin('caller',[cmap '(256)']);
 end
 cmap_sz = size(cmap,1);
-cimg = interp1(1:cmap_sz,cmap,linspace(1,cmap_sz,imgsize(1)));
+%cimg = interp1(1:cmap_sz,cmap,linspace(1,cmap_sz,imgsize(1)));
+%cx0=0:cmap_sz;
+%cimg0=cmap([1:end end],:);
+%cx=linspace(cx0(1),cx0(end),imgsize(1));
+if(r.interp)
+    cx0=-1:cmap_sz;
+    cimg0=cmap([1 1:end end],:);
+    cx=linspace(cx0(1),cx0(end),imgsize(1));
+else
+    cx0=0:cmap_sz;
+    cimg0=cmap([1:end end],:);
+    cx=linspace(cx0(1),cx0(end),imgsize(1));
+    cx=floor(cx);
+end
+cimg = interp1(cx0,cimg0,cx);
+
 cimg = reshape(cimg,[imgsize(1) 1 3]);
 cimg = repmat(cimg, [1 imgsize(2) 1]);
 
