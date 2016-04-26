@@ -1,5 +1,5 @@
-function rxy = roiline(hfig,img,xy)
-%rxy = roiline(hfig,img,xy)
+function [xypoint, xyline, pixelmask] = roiline(hfig,img,xy)
+%[xypoint, xyline, pixelmask] = roiline(hfig,img,xy)
 %
 %Interactive multi-point line-drawing tool.
 %
@@ -13,26 +13,40 @@ function rxy = roiline(hfig,img,xy)
 %Inputs:
 % hfig = figure handle for line drawing (default: gcf)
 % img  = image matrix to display and draw on (default: current image)
-% xy   = Nx2 initial xy points for roiline (default: [])
+% xy   = Px2 initial xy points for roiline (default: [])
 %
 %Outputs:
-% rxy  = Nx2 [x y] coordinates of points in the specified line
+% xypoint  = Px2 [x y] coordinates of points in the specified line
+% xyline   = (>P)x2 [x y] coordinates of pixels along rasterized line
+% pixelmask  = MxN binary mask of rasterized line segments
 %
 %Example:
-% [~,Lookup,rgbimg] = cvnlookupimages(...)
-% figure;
-% imshow(rgbimg);
-% rxy = roiline
-% %draw line segments....
+% >> [~,Lookup,rgbimg] = cvnlookupimages(...)
+% >> figure;
+% >> imshow(rgbimg);
+% >> [xypoint,xyline,pixelmask] = roiline;
+% %click points to draw line segments....
 % %right click to return
-% rxy =
+% xypoint =
 %
 %          24.578          43.628
 %          35.638          37.195
 %          42.320          26.961
 %          57.066          26.377
+% xyline = 
+%     25    44
+%     26    43
+%     27    42
+%     ...
+%     54    26
+%     55    26
+%     56    26
+%          
+% >> imagesc(pixelmask);
 
-rxy=[];
+xypoint=[];
+xyline=[];
+pixelmask=[];
 
 if(~exist('hfig','var') || isempty(hfig))
     hfig=gcf;
@@ -52,14 +66,21 @@ else
     himg=findobj(hfig,'type','image');
 end
 
+htag=findobj(hfig,'tag','roiline_is_drawing');
+if(ishandle(htag))
+    warning('roiline already in progress for this figure...\n');
+    return;
+end
 
 if(isempty(himg))
     return;
 end
 ax=get(himg,'Parent');
+imgsize=size(get(himg,'cdata'));
+imgsize=imgsize(1:2);
 
 set(himg,'hittest','off');
-set(ax,'xtick',[],'ytick',[],'visible','on'); %if imshow(), need to make axes visible
+set(ax,'hittest','on','xtick',[],'ytick',[],'visible','on'); %if imshow(), need to make axes visible
 set(ax,'buttondownfcn',@roiline_callback);
 set(hfig,'windowbuttonmotionfcn',@roiline_mousemove,'windowbuttonupfcn',@roiline_mouseup);
 set(hfig,'windowkeypressfcn',@roiline_keypress);
@@ -111,8 +132,9 @@ fprintf('Left-click a line segment''s midpoint to create a new point (split the 
 fprintf('Right-click an existing point to remove it\n');
 fprintf('\nRight-click anywhere else on the image to return the current points\n');
 fprintf('Close window or press Escape to cancel\n');
+fprintf('...\n');
 
-%%%%%
+%%%%% wait for user to finish
 waitfor(htag);
 if(~ishandle(hfig))
     return;
@@ -122,7 +144,46 @@ set(ax,'buttondownfcn',[]);
 set(hfig,'windowbuttonmotionfcn',[],'windowbuttonupfcn',[]);
 set(hfig,'windowkeypressfcn',[]);
 set([hp hmp],'buttondownfcn',[]);
-rxy=M.points;
+xypoint=M.points;
+
+fprintf('ROI selection:\n');
+disp(xypoint);
+
+if(nargout < 2)
+    return;
+end
+
+% generate binary pixel mask of line segments
+pixelmask=zeros(imgsize);
+if(isempty(xypoint) || isnan(xypoint(1,1)))
+    return;
+end
+if(size(xypoint,1)==1)
+    xyi=round(xypoint);
+    pixelmask(xyi(2),xyi(1))=1;
+    return;
+end
+
+% rasterize line segments by interp1 with extra points (2*max), then prune
+xyd=[0; sqrt(sum((xypoint(2:end,:)-xypoint(1:end-1,:)).^2,2))];
+d=sum(xyd);
+xyi=interp1(linspace(0,1,size(xypoint,1)),xypoint,linspace(0,1,2*d));
+xyi=round(xyi);
+xyi=xyi(any(xyi(2:end,:)~=xyi(1:end-1,:),2),:);
+
+% prune again to remove "corners"
+xyi2=xyi;
+n=1;
+for i = 2:size(xyi,1)-1
+    if(all(xyi2(n,:)==xyi(i,:) | xyi(i+1,:)==xyi(i,:)))
+    else
+        n=n+1;
+        xyi2(n,:)=xyi(i,:);
+    end
+end
+xyline=[xyi2(1:n,:); xyi(end,:)];
+
+pixelmask(sub2ind(size(pixelmask),xyline(:,2),xyline(:,1)))=1;
 
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -191,6 +252,7 @@ else
     %new click add point
 
     if(rightclick)
+        set(M.hmp,'visible','off');
         delete(M.htag);
     else
         %add point
