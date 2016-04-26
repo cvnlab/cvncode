@@ -452,15 +452,17 @@ else
     end
     cachename=sprintf('%s/%s.mat',lookupdir,makefilename(hemi,az,el,tilt,xyextent(1),xyextent(2),imgN,options.surfsuffix,options.surftype));
     
+    cacheversion='0';
     if(exist(cachename,'file') && ~options.reset)
         %load from file
         Lookup=load(cachename);
         if(~isfield(Lookup,'version'))
             Lookup.version='0';
         end
+        cacheversion=Lookup.version;
     end
     
-    if(~exist(cachename,'file') || options.reset || ~isequal(Lookup.version,lookup_version))
+    if(~exist(cachename,'file') || options.reset || ~isequal(cacheversion,lookup_version))
 
         %generate a new one and save it
         if(isequal(options.surftype,'sphere'))
@@ -487,7 +489,7 @@ else
         
         if(options.reset)
             fprintf('''reset'' flag is set\n');
-        elseif(~isequal(Lookup.version,lookup_version))
+        elseif(~isequal(cacheversion,lookup_version))
             fprintf('Lookup file is outdated.\n');
         else
             fprintf('No cached spherelookup found: %s\n',cachename);
