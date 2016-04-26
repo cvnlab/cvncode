@@ -43,5 +43,9 @@ if(Lookup.is_extrapolated)
     img(Lookup.extrapmask,:)=badval;
 end
 
-
-img=reshape(img,Lookup.imgN,Lookup.imgN,[]);
+if(isfield(Lookup,'imgsize'))
+    imgsize=Lookup.imgsize;
+else
+    imgsize=[Lookup.imgN Lookup.imgN];
+end
+img=reshape(img,imgsize(1),imgsize(2),[]);

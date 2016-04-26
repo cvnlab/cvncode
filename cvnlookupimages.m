@@ -170,7 +170,7 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 %   2. Add 'savelookup' option (default=true, but can say false
 %       to skip caching the lookup) 
 %   3. Add optional third 'rgbimg' output containing the XxYx3 RGB image.
-
+%
 % Update KJ 2016-01-27:
 %   1. Add optional 'threshold' param to make overlayalpha from vals
 %   2. Add ROI visualization options (draw outlines)
@@ -183,8 +183,14 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 %   1. Use inflated surface for reverselookup
 %   2. Accept ColorSpec or [r,g,b] for roicolor (eg: 'w' for white)
 %   3. Use knk 'detectedges' for roi borders
+%
+% update KJ 2016-04-25 (v1.1):
+%   1. Non-sphere surfaces + shading (inflated, etc)
+%   2. Add "version" to files to ensure consistency
 
 %%
+lookup_version='1.1';
+
 %default options
 options=struct(...
     'reset',false,...
@@ -212,7 +218,9 @@ options=struct(...
     'roicolor',{[0 0 0]},...
     'text',[],...
     'textsize',50,...
-    'textcolor','w');
+    'textcolor','w',...
+    'surftype','sphere',...
+    'surfshading',false);
 
 
 if(~exist('Lookup','var') || isempty(Lookup))
@@ -333,7 +341,40 @@ if(isstruct(vals) && isfield(vals,'numlh'))
         options.clim=return_options.clim;
         options.bg_clim=return_options.bg_clim;
     end
+    
      %[mappedvals,Lookup,rgbimg,options]
+     
+    %We may need to pad to make hemispheres match (if using inflated, e.g.)
+    hheight=cellfun(@(x)(size(x,1)),imghemi);
+    maxheight=max(hheight);
+    if(any(hheight~=maxheight))
+        for i=1:numel(imghemi)
+            if(hheight(i)~=maxheight)
+                dheight=maxheight-hheight(i);
+
+                %pad all relevant 2D images/lookups
+                pimg=@(img,v)([img; cast(v*ones(dheight,size(img,2),size(img,3)),'like',img)]);
+
+                imghemi{i}=pimg(imghemi{i},nan);
+                rgbimghemi{i}=pimg(rgbimghemi{i},options.rgbnan);
+                lookuphemi{i}.imglookup=pimg(lookuphemi{i}.imglookup,1);
+                lookuphemi{i}.extrapmask=pimg(lookuphemi{i}.extrapmask,true);
+                lookuphemi{i}.shading=pimg(lookuphemi{i}.shading,0);
+                lookuphemi{i}.imgsize=size(lookuphemi{i}.imglookup);
+                lookuphemi{i}.imgN=size(lookuphemi{i}.imglookup,2); %questionable
+                
+                %need to adjust reverselookup to account for any extra rows
+                %we added to image
+                rev=double(lookuphemi{i}.reverselookup);
+                revcol=floor(max(rev-1,0)/hheight(i))+1;
+                revrow=mod(max(rev-1,0),hheight(i))+1;
+                rev=(revcol-1)*maxheight+revrow;
+                rev(lookuphemi{i}.reverselookup==0)=0;
+                lookuphemi{i}.reverselookup=cast(rev,'like',lookuphemi{i}.reverselookup);
+            end
+        end
+    end
+    
     mappedvals=cat(2,imghemi{:});
     for i = 2:numel(rgbimghemi)
         rgbimghemi{i}(:,1:options.hemiborder,:)=options.rgbnan;
@@ -409,40 +450,65 @@ else
         mkdirquiet(lookupdir);
         system(['chmod g+rwx ' lookupdir]);
     end
-    cachename=sprintf('%s/%s.mat',lookupdir,makefilename(hemi,az,el,tilt,xyextent(1),xyextent(2),imgN,options.surfsuffix));
-
+    cachename=sprintf('%s/%s.mat',lookupdir,makefilename(hemi,az,el,tilt,xyextent(1),xyextent(2),imgN,options.surfsuffix,options.surftype));
+    
     if(exist(cachename,'file') && ~options.reset)
         %load from file
         Lookup=load(cachename);
-    else
+        if(~isfield(Lookup,'version'))
+            Lookup.version='0';
+        end
+    end
+    
+    if(~exist(cachename,'file') || options.reset || ~isequal(Lookup.version,lookup_version))
+
         %generate a new one and save it
-        sphfile=sprintf('%s/%s.sphere%s',surfdir,hemi,options.surfsuffix_file);
+        if(isequal(options.surftype,'sphere'))
+            sphfile=sprintf('%s/%s.sphere%s',surfdir,hemi,options.surfsuffix_file);
+
+            [vertsph,~,~] = freesurfer_read_surf_kj(sphfile);
+
+
+            %recenter and scale to unit sphere
+            [c,r]=spherefit(vertsph);
+            vertsph=bsxfun(@minus,vertsph,c.')/r;
+        else
+            sphfile=sprintf('%s/%s.%s%s',surfdir,hemi,options.surftype,options.surfsuffix_file);
+
+            [vertsph,facesph,~] = freesurfer_read_surf_kj(sphfile);
+            %vertsph=bsxfun(@minus,vertsph,c.')/r;
+        end
         
-        [vertsph,~,~] = freesurfer_read_surf_kj(sphfile);
 
         %use inflated surface for reverse lookup (less topological
         %   distortion for nearest neighbour lookup of holes pixel holes
         inffile=sprintf('%s/%s.inflated%s',surfdir,hemi,options.surfsuffix_file);
         [vertinf,~,~] = freesurfer_read_surf_kj(inffile);
-                
-        %recenter and scale to unit sphere
-        [c,r]=spherefit(vertsph);
-        vertsph=bsxfun(@minus,vertsph,c.')/r;
         
         if(options.reset)
             fprintf('''reset'' flag is set\n');
+        elseif(~isequal(Lookup.version,lookup_version))
+            fprintf('Lookup file is outdated.\n');
         else
             fprintf('No cached spherelookup found: %s\n',cachename);
         end
         fprintf('Building new lookup structure...\n');
-        Lookup=spherelookup_generate(vertsph,az,el,tilt,options.xyextent,imgN,...
-            'reversevert',vertinf,'verbose',true);
-
+        if(isequal(options.surftype,'sphere'))
+            Lookup=spherelookup_generate(vertsph,az,el,tilt,options.xyextent,imgN,...
+                'reversevert',vertinf,'verbose',true);
+        else
+            tic
+            Lookup=spherelookup_generate_notsphere(vertsph,facesph,az,el,tilt,imgN);
+            toc
+        end
+        
+        Lookup.surftype=options.surftype;
         Lookup.imglookup=uint32(Lookup.imglookup);
         Lookup.reverselookup=uint32(Lookup.reverselookup);
         Lookup.surfsuffix=options.surfsuffix;
         Lookup.surffile=sphfile;
         Lookup.hemi=hemi;
+        Lookup.version=lookup_version;
         if(options.savelookup)
             fprintf('Saving lookup structure: %s\n',cachename);
             save(cachename,'-struct','Lookup');
@@ -628,6 +694,10 @@ if(~isempty(options.roimask))
     end
 end
 
+%% 
+if(isfield(Lookup,'shading') && options.surfshading==true)
+    rgbimg=bsxfun(@times,rgbimg,Lookup.shading);
+end
 %% If 'text' argument provided, add text to output image(s)
 if(~isempty(options.text))
     textsize=options.textsize;
@@ -682,7 +752,11 @@ elseif(~iscell(c))
 end
 
 %% create a filename for lookup containing all relevant parameters
-function fname = makefilename(hemi,az,el,tilt,vx,vy,imgN,surfsuffix)
+function fname = makefilename(hemi,az,el,tilt,vx,vy,imgN,surfsuffix,surftype)
+
+if(~exist('surftype','var') || isempty(surftype))
+    surftype='sphere';
+end
 
 az=mod(round(az),360);
 el=round(el);
@@ -701,4 +775,4 @@ if(numel(imgN) == 1)
 elseif(numel(imgN)==2)
     resstr=sprintf('%dx%d',imgN(1),imgN(2));
 end
-fname=sprintf('spherelookup_%s_az%s_el%s_tilt%s_vx%s_vy%s_res%s_%s',hemi,azstr,elstr,tiltstr,vxstr,vystr,resstr,surfsuffix);
+fname=sprintf('%slookup_%s_az%s_el%s_tilt%s_vx%s_vy%s_res%s_%s',surftype,hemi,azstr,elstr,tiltstr,vxstr,vystr,resstr,surfsuffix);

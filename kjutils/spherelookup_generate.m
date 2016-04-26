@@ -232,9 +232,9 @@ if(~options.silent)
 
     fprintf('\n\n');
     if(viewN==1)
-        fprintf('Generated %dx%d lookup table in %.2f seconds\n',imgN,imgN,toc(ticstart)); 
+        fprintf('Generated %dx%d lookup table in %.2f seconds\n',imgN(1),imgN(end),toc(ticstart)); 
     else
-        fprintf('Generated %d %dx%d lookup tables in %.2f seconds\n',viewN,imgN,imgN,toc(ticstart)); 
+        fprintf('Generated %d %dx%d lookup tables in %.2f seconds\n',viewN,imgN(1),imgN(end),toc(ticstart)); 
     end
     fprintf('View masks include %d/%d vertices (%d NOT included in any masks = %.2f%%)\n',view_included,vertsN,view_missing,100*view_missing/vertsN);
     fprintf('Lookups include %d/%d masked vertices (%d masked but not found in any lookups = %.2f%%)\n',lookup_included,view_included,lookup_missing,100*lookup_missing/view_included);
