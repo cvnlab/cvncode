@@ -10,7 +10,7 @@ function [roimask, roidescription, roicolors] = cvnroimask(subject,hemi,roifile,
 %           1) by value (ie vertex label values) 
 %        or 2) by name if <roifile>.ctab is available
 % destsuffix = orig|DENSE|DENSETRUNCpt (defines output)
-% outputstyle = cell(default)|collapsebinary|collapsevals|matrix
+% outputstyle = cell(default)|collapsebinary|collapsevals|matrix|vals
 %
 % Outputs:
 %   roimask=1xN cell array of Vx1 binary masks
@@ -221,6 +221,8 @@ elseif(isequal(outputstyle,'collapsevals'))
     roimask=max(roimask*diag(1:size(roimask,2)),[],2);
 elseif(isequal(outputstyle,'mat'))
     
+elseif(isequal(outputstyle,'vals'))
+    roimask=fullroi;
 else
     %converting columns to rows takes the longest
     roimask=num2cell(roimask,1);
