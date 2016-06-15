@@ -161,6 +161,7 @@ ycrop=[find(ycrop,1,'first') find(ycrop,1,'last')];
 
 if(~isempty(imgheight) && (ycrop(2)-ycrop(1)+1)<imgheight)
     y0=floor((ycrop(1)+ycrop(2))/2 - imgheight/2);
+    y0=max(y0,1);
     ycrop=[y0 y0+imgheight-1];
 end
 
