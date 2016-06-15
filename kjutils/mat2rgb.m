@@ -99,22 +99,33 @@ cmin=single(cmin);
 imgvals=single(imgvals);
 rgbimg = cmaplookup(imgvals,cmin,cmax,options.circulartype,options.cmap);
 
+if(isempty(options.overlayalpha))
+    options.overlayalpha=ones(size(imgvals));
+elseif(numel(options.overlayalpha)==1)
+    options.overlayalpha=options.overlayalpha*ones(size(imgvals));
+end
+
+tmpalpha=[];
 if(options.inclusive)
     if(~isempty(options.absthreshold))
-        options.overlayalpha=abs(imgvals)>=options.absthreshold;
+        tmpalpha=abs(imgvals)>=options.absthreshold;
     elseif(~isempty(options.threshold))
-        options.overlayalpha=imgvals>=options.threshold;
+        tmpalpha=imgvals>=options.threshold;
     elseif(~isempty(options.overlayrange))
-        options.overlayalpha=imgvals>=options.overlayrange(1) & imgvals<=options.overlayrange(2);
+        tmpalpha=imgvals>=options.overlayrange(1) & imgvals<=options.overlayrange(2);
     end
 else
     if(~isempty(options.absthreshold))
-        options.overlayalpha=abs(imgvals)>options.absthreshold;
+        tmpalpha=abs(imgvals)>options.absthreshold;
     elseif(~isempty(options.threshold))
-        options.overlayalpha=imgvals>options.threshold;
+        tmpalpha=imgvals>options.threshold;
     elseif(~isempty(options.overlayrange))
-        options.overlayalpha=imgvals>options.overlayrange(1) & imgvals<options.overlayrange(2);
+        tmpalpha=imgvals>options.overlayrange(1) & imgvals<options.overlayrange(2);
     end
+end
+
+if(~isempty(tmpalpha))
+    options.overlayalpha=options.overlayalpha.*tmpalpha;
 end
 
 if(isempty(options.overlayalpha) || all(+options.overlayalpha(:) >= 1))
