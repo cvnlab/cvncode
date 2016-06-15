@@ -38,7 +38,7 @@ elseif(~isempty(regexp(surftype,'inflated'))) %#ok<RGXP1>
         case 'medial'
             viewpt_LR={[90 0 15],[-90 0 -15]};
         case 'lateral'
-            viewpt_LR={[270 0 -15],[-270 0 -15]};
+            viewpt_LR={[270 0 -15],[-270 0 15]};
         case 'medial-ventral'
             viewpt_LR={[45 -45 15],[-45 -45 -15]};
         case 'occip'

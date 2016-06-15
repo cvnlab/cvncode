@@ -454,11 +454,11 @@ else
     lookupdir=fullfile(surfdir, 'imglookup');
     if(~exist(lookupdir,'dir'))
         mkdirquiet(lookupdir);
-        system(['chmod g+rwx ' lookupdir]);
+        system(['chmod -R g+rwx ' lookupdir]);
     end
     cachename=sprintf('%s/%s.mat',lookupdir,makefilename(hemi,az,el,tilt,xyextent(1),xyextent(2),imgN,options.surfsuffix,options.surftype));
     
-    cacheversion='0';
+    cacheversion='1.1';
     if(exist(cachename,'file') && ~options.reset)
         %load from file
         Lookup=load(cachename);
