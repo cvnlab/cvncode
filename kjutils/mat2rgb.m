@@ -10,9 +10,13 @@ function rgbimg = mat2rgb(imgvals,varargin)
 %   overlayalpha:   MxN mask where 1=main image, 0=background underlay
 %                     values between 0-1 = partial transparency
 %                   1x1 scalar = uniform partial transparency
-%   threshold:      1x1 scalar: alpha = imgvals>=threshold
-%   absthreshold:   1x1 scalar: alpha = abs(imgvals)>=threshold (overrides
+%   threshold:      1x1 scalar: alpha = imgvals>threshold
+%   absthreshold:   1x1 scalar: alpha = abs(imgvals)>threshold (overrides
 %                       'threshold')
+%   overlayrange:   1x2 scalar: alpha = imgvals>range(1) & imgvals<range(2)
+%                   (overrides thresholds)
+%   inclusive:      true or false.  Include thresholds? (default=false)
+%                   ie: >=threshold instead of >threshold
 %   background:     MxN image matrix, 1x3 RGB, 1x1 RGB, 
 %                     or ColorSpec (eg: 'k'). (default=0)
 %   bg_cmap:        Colormap for background underlay (default = gray)
@@ -26,10 +30,15 @@ function rgbimg = mat2rgb(imgvals,varargin)
 %							set cmax=inf if cmax==cmin to avoid lookup problem
 % Update 2016-02-11 KJ: Accept ColorSpec for background (eg: 'k' for black)
 % Update 2016-03-07 KJ: Add absthreshold option
+% Update 2016-05-09 KJ: 1. Bugfix for nan support.  
+%                       2. Add overlayrange option
+%                       3. make thresholds exclusive (unless 'inclusive' param)
+%                       
 
 options=struct(...
     'clim',[-inf inf],...
     'overlayalpha',[],...
+    'overlayrange',[],...
     'threshold',[],...
     'absthreshold',[],...
     'background',0,...
@@ -37,7 +46,8 @@ options=struct(...
     'circulartype',0,...
     'cmap',jet(256),...
     'bg_cmap',gray(64),...
-    'rgbnan',0);
+    'rgbnan',0,...
+    'inclusive',false);
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%
@@ -89,14 +99,26 @@ cmin=single(cmin);
 imgvals=single(imgvals);
 rgbimg = cmaplookup(imgvals,cmin,cmax,options.circulartype,options.cmap);
 
-if(~isempty(options.absthreshold))
-    options.overlayalpha=abs(imgvals)>=options.absthreshold;
-elseif(~isempty(options.threshold))
-    options.overlayalpha=imgvals>=options.threshold;
+if(options.inclusive)
+    if(~isempty(options.absthreshold))
+        options.overlayalpha=abs(imgvals)>=options.absthreshold;
+    elseif(~isempty(options.threshold))
+        options.overlayalpha=imgvals>=options.threshold;
+    elseif(~isempty(options.overlayrange))
+        options.overlayalpha=imgvals>=options.overlayrange(1) & imgvals<=options.overlayrange(2);
+    end
+else
+    if(~isempty(options.absthreshold))
+        options.overlayalpha=abs(imgvals)>options.absthreshold;
+    elseif(~isempty(options.threshold))
+        options.overlayalpha=imgvals>options.threshold;
+    elseif(~isempty(options.overlayrange))
+        options.overlayalpha=imgvals>options.overlayrange(1) & imgvals<options.overlayrange(2);
+    end
 end
 
 if(isempty(options.overlayalpha) || all(+options.overlayalpha(:) >= 1))
-    rgbimg(isnan(rgbimg))=options.rgbnan;
+    rgbimg(repmat(isnan(imgvals),[1 1 3]))=options.rgbnan;
     return;
 end
 
@@ -161,3 +183,4 @@ rgbback(isnan(rgbback))=0;
 rgbimg=rgbimg.*imgalpha+rgbback.*(1-imgalpha);
 
 rgbimg(isnan(rgbimg)) = options.rgbnan;
+rgbimg(repmat(isnan(imgvals),[1 1 3]))=options.rgbnan;

@@ -73,8 +73,13 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 %   circulartype:   0,1 specifying circular colormap type
 %   overlayalpha:   Vx1 mask where 1=mapped image, 0=background underlay
 %                   values between 0-1 = partial transparency
-%   threshold:      sets overlayalpha = vals>=threshold (ignores 'overlayalpha')
-%   absthreshold:   sets overlayalpha = abs(vals)>=threshold
+%                OR 1x1 value between 0-1 for entire overlay
+%   threshold:      overlayalpha = val>threshold (ignores 'overlayalpha')
+%   absthreshold:   overlayalpha = abs(vals)>threshold
+%   overlayrange:   overlayalpha = vals>range(1) & vals<range(2)
+%   inclusive:      true or false.  Include thresholds? (default=false)
+%                   ie: >=threshold instead of >threshold
+
 %   background:     'curv' (default), Vx1, 1x3 RGB
 %   bg_cmap:        Colormap for background underlay (default = gray)
 %   bg_clim:        Colormap limits for underlay (default = [-1 2])
@@ -199,6 +204,7 @@ options=struct(...
     'clim',[-inf inf],...
     'threshold',[],...
     'absthreshold',[],...
+    'overlayrange',[],...
     'overlayalpha',[],...
     'background','curv',...
     'bg_clim',[-1 2],...
@@ -561,7 +567,8 @@ rgboptions=options;
 
 
 %Map background underlay and alpha map from vert2image if necessary
-if(~isempty(options.overlayalpha) || ~isempty(options.threshold) || ~isempty(options.absthreshold))
+if(~isempty(options.overlayalpha) || ~isempty(options.threshold) || ...
+    ~isempty(options.absthreshold) || ~isempty(options.overlayrange))
     if(isnumeric(options.background) && size(options.background,1)==size(vals,1))
         %background is same size as "vals" so use spherelookup_vert2image
         mappedcurv=spherelookup_vert2image(options.background,Lookup,nan);
