@@ -122,7 +122,7 @@ img=export_fig(gca,'-a1',scalestr,'-nocrop');
 
 img=double(img);
 imgval=img(:,:,1)*256*256 + img(:,:,2)*256 + img(:,:,3);
-lookup=imgval;
+lookup_faces=imgval;
 
 %close(fig);
 
@@ -158,23 +158,22 @@ ycrop=any(imgmask>0,1);
 
 xcrop=[find(xcrop,1,'first') find(xcrop,1,'last')];
 ycrop=[find(ycrop,1,'first') find(ycrop,1,'last')];
-
-if(~isempty(imgheight) && (ycrop(2)-ycrop(1)+1)<imgheight)
-    y0=floor((ycrop(1)+ycrop(2))/2 - imgheight/2);
-    y0=max(y0,1);
-    ycrop=[y0 y0+imgheight-1];
-end
-
-lookup=lookup(xcrop(1):xcrop(2),ycrop(1):ycrop(2));
+% 
+% if(~isempty(imgheight) && (ycrop(2)-ycrop(1)+1)<imgheight)
+%     y0=floor((ycrop(1)+ycrop(2))/2 - imgheight/2);
+%     y0=max(y0,1);
+%     ycrop=[y0 y0+imgheight-1];
+% end
+%     
+lookup_faces=lookup_faces(xcrop(1):xcrop(2),ycrop(1):ycrop(2));
 imgmask=imgmask(xcrop(1):xcrop(2),ycrop(1):ycrop(2));
 imgshading=imgshading(xcrop(1):xcrop(2),ycrop(1):ycrop(2));
 
-lookup=lookup.*imgmask;
-lookup(lookup==0)=1;
+lookup_faces=lookup_faces.*imgmask;
+lookup_faces(lookup_faces==0)=1;
+
 
 %%
-lookup_faces=lookup;
-
 facemask=false(size(surf.faces,1),1);
 facemask(unique(lookup_faces(imgmask)))=true;
 
@@ -198,6 +197,12 @@ S=scatteredInterpolant(viewvert(viewmask_padded,1), viewvert(viewmask_padded,2),
     linspace(yview(1),yview(2),imgsz(1)));
 imgy=flipud(imgy);
 lookup=S(imgx,imgy);
+% 
+% figure;
+% imagesc(lookup);
+% axis image;
+%%
+imgmask=imgmask & isfinite(lookup);
 lookup(~isfinite(lookup))=0;
 lookup=lookup.*imgmask;
 lookup(lookup==0)=1;
@@ -206,7 +211,7 @@ lookup(lookup==0)=1;
 imglookup=lookup;
 vertmasks=vertmask;
 lookupmasks=vertmask;
-extrapmask=~imgmask;
+extrapmask=~imgmask | ~vertmask(lookup);
 is_extrapolated=true;
 imgN=imgsz;
 vertsN=size(surf.vertices,1);

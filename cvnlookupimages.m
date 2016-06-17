@@ -90,9 +90,15 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 %   textsize:       font size in pixels (default=50) 
 %                   If textsize<1, fontsize will be textsize*imageres
 %   textcolor:      text color (default='w', ie white)
+%
+% Non-sphere surface options: 'paramname','value',....
 %   surftype:       sphere (default), inflated, white, etc...
 %   surfshading:    true|false to add lighting.  Only affects non-sphere
 %                   surftypes. Default = true
+%
+%   *NOTE: if surftype is not 'sphere', some defaults change:
+%    imageres:      default=500
+%    surfsuffix:    default='DENSETRUNCpt'; 
 %
 % ROI visualization options: 'paramname','value',...
 %   roiname:        label name (or cell array) for ROI(s) to draw on final RGB image
@@ -195,9 +201,12 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 % update KJ 2016-04-25 (v1.1):
 %   1. Non-sphere surfaces + shading (inflated, etc)
 %   2. Add "version" to files to ensure consistency
+%
+% update KJ 2016-06-16 (v1.2):
+%   1. Fix for non-sphere surfaces 
 
 %%
-lookup_version='1.1';
+lookup_version='1.2';
 
 %default options
 options=struct(...
@@ -254,6 +263,13 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%
 %parse options
 input_opts=mergestruct(varargin{:});
+
+%change defaults for non-sphere surfaces
+if(isfield(input_opts,'surftype') && ~isequal(input_opts.surftype,'sphere'))
+    options.surfsuffix='DENSETRUNCpt';
+    options.imageres=500;
+end
+
 fn=fieldnames(input_opts);
 for f = 1:numel(fn)
     opt=input_opts.(fn{f});
@@ -461,7 +477,7 @@ else
     end
     cachename=sprintf('%s/%s.mat',lookupdir,makefilename(hemi,az,el,tilt,xyextent(1),xyextent(2),imgN,options.surfsuffix,options.surftype));
     
-    cacheversion='1.1';
+    cacheversion='0';
     if(exist(cachename,'file') && ~options.reset)
         %load from file
         Lookup=load(cachename);

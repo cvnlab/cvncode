@@ -1,4 +1,4 @@
-function viewpt = cvnlookupviewpoint(subject,hemi,viewname,surftype)
+function [viewpt fliphemi] = cvnlookupviewpoint(subject,hemi,viewname,surftype)
 % viewpt = cvnlookupviewpoint(subject,hemi,viewname,surftype)
 %
 % Return predefined viewpoints for spherical or nonspherical lookups
@@ -12,13 +12,17 @@ function viewpt = cvnlookupviewpoint(subject,hemi,viewname,surftype)
 % Outputs
 %   viewpt:      [az el tilt] (in degrees) for use with lookup generation
 %                or {[azL elL tiltL], [azR elR tiltR]} if hemi={'lh','rh'}
+%   fliphemi:    true|false if recommend swapping LH/RH for display (eg:
+%                   inflated ventral)
 %
 % Current viewpoints:
 %  sphere: occip, ventral
-%  inflated: occip, ventral, dorsal, medial, lateral, medial-ventral
+%  inflated: occip, ventral, dorsal, medial, lateral, medial-ventral, parietal
 %    (these should work for other non-sphere as well, eg: white, pial, etc)
 %
 % Note: subject input is not currently used, but may be useful in the future
+
+fliphemi=false;
 
 if(isequal(surftype,'sphere'))
     switch(viewname)
@@ -33,8 +37,11 @@ elseif(~isempty(regexp(surftype,'inflated'))) %#ok<RGXP1>
     switch(viewname)
         case 'dorsal'
             viewpt_LR={[0 90 90],[0 90 90]};
+        case 'parietal'
+            viewpt_LR={[0 45 0],[0 45 0]};
         case 'ventral'
             viewpt_LR={[0 -90 -90],[0 -90 -90]};
+            fliphemi=true;
         case 'medial'
             viewpt_LR={[90 0 15],[-90 0 -15]};
         case 'lateral'
