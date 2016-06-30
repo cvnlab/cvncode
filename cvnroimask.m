@@ -10,7 +10,7 @@ function [roimask, roidescription, roicolors] = cvnroimask(subject,hemi,roifile,
 %           1) by value (ie vertex label values) 
 %        or 2) by name if <roifile>.ctab is available
 % destsuffix = orig|DENSE|DENSETRUNCpt (defines output)
-% outputstyle = cell(default)|collapsebinary|collapsevals|matrix|vals
+% outputstyle = cell|collapsebinary|collapsevals(default)|matrix|vals
 %
 % Outputs:
 %   roimask=1xN cell array of Vx1 binary masks
@@ -35,6 +35,15 @@ if(~exist('outputstyle','var') || isempty(outputstyle))
     outputstyle='cell';
 end
 
+if(iscell(hemi))
+    roimask={};
+    roidescription={};
+    roicolors={};
+    for h = 1:numel(hemi)
+        [roimask{h},roidescription{h},roicolors{h}]=cvnroimask(subject,hemi{h},roifile,roival,destsuffix,outputstyle);
+    end
+    return;
+end
 freesurfdir=cvnpath('freesurfer');
 subjdir=sprintf('%s/%s',freesurfdir,subject);
 labeldir=sprintf('%s/label',subjdir);
@@ -161,7 +170,7 @@ for s = 1:numel(suffixes)
                 
                 roidesc=ctab.struct_names(roiidx);
                 roirgb=ctab.table(roiidx,[1 2 3]);
-            else
+            elseif(~isempty(ctab))
                 %[roiidx,b]=ismember(ctab.table(:,end),roival);
                 [b,roiidx]=ismember(roival,ctab.table(:,end));
                 roiidx=roiidx(b);
