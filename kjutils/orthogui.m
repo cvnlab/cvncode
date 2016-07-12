@@ -359,7 +359,7 @@ if(isempty(figlink))
 else
     figtag = sprintf('orthogui.%d',figlink);
 end
-hfig = figure('name',titlestr,'NumberTitle','off','WindowButtonMotionFcn',@fig_mousemove,...
+hfig = figure('name',titlestr,'NumberTitle','off','WindowButtonDownFcn',@fig_mousedown,'WindowButtonMotionFcn',@fig_mousemove,...
     'WindowButtonUpFcn',@ax_mouseup,'tag',figtag,'WindowKeyPressFcn',@fig_keypress);
 
 bgmax = abs(nanmax(Vbg(:)));
@@ -836,7 +836,7 @@ if(isempty(idx1))
 end
 [~, idx2] = max(D.V(idx1));
 idx = idx1(idx2);
-[x y z] = ind2sub(size(D.V),idx);
+[x, y, z] = ind2sub(size(D.V),idx);
 M.cx = x;
 M.cy = y;
 M.cz = z;
@@ -882,6 +882,35 @@ M = getappdata(gcbf,'guidata');
 M.mouseax = [];
 setappdata(gcbf,'guidata',M);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function fig_mousedown(src,event)
+M = getappdata(gcbf,'guidata');
+co=get(M.hfig,'CurrentObject');
+if(any(M.ax==co))
+    return;
+end
+
+%For some reason (maybe newer Matlab?), ax_mousedown isn't
+% triggering for repeat clicks on the same axis.  So if that
+% happens, we need to use the figure mousedown, find which
+% axis was clicked, and manually trigger ax_mousedown
+cp=get(M.ax,'CurrentPoint');
+cp=cat(1,cp{:});
+cp=cp(1:2:end,1:2);
+
+xl=get(M.ax,'xlim');
+yl=get(M.ax,'ylim');
+
+xl=cat(1,xl{:});
+yl=cat(1,yl{:});
+
+axidx=find(cp(:,1)>=xl(:,1) & cp(:,1)<=xl(:,2) ...
+    & cp(:,2)>=yl(:,1) & cp(:,2)<=yl(:,2),1,'first');
+
+if(~isempty(axidx))
+    ax_mousedown(M.ax(axidx),[],axidx);
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function fig_mousemove(src,event)
