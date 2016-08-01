@@ -1,6 +1,8 @@
 function img=spherelookup_vert2image(vertvalues,Lookup,badval)
-% helper function to map inputs to image.  
+% helper function to map vertex inputs to image.  
 % Handles input2surf conversion when needed and extrapolation masking
+% Can handle multiple hemispheres if vertvalues is a valstruct 
+%   (i.e., a struct with 'data', 'numlh', and 'numrh' fields)
 
 if(~exist('badval','var') || isempty(badval))
     badval=0;
