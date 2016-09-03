@@ -95,6 +95,8 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 %   surftype:       sphere (default), inflated, white, etc...
 %   surfshading:    true|false to add lighting.  Only affects non-sphere
 %                   surftypes. Default = true
+%   padalign:       'top' (default), or 'bottom'.  If hemi images don't
+%                   have the same height, do we align the top or bottom?
 %
 %   *NOTE: if surftype is not 'sphere', some defaults change:
 %    imageres:      default=500
@@ -114,6 +116,15 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 %                   specify different colors for each ROI
 %   roiwidth:       Line with of ROI outline(s). default=.5
 %   
+%
+% Mosaic/multiple map options: If input contains more than one map
+%       (e.g., Vx6 with all 6 layers), output maps can be combined in a 
+%       'mosaic' format using the following options.  If 'mosaic'=[],
+%       return maps will be <res>x<res>xC, and rgbmaps will be
+%       <res>x<res>xCx3
+%   mosaic:             [rows,columns] (default=[])
+%   mosaicborder:       With of border between mosaic images (default=2px)
+%   mosaicbordercolor:  Color of mosaic border (default='w')
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Examples:
@@ -238,7 +249,11 @@ options=struct(...
     'textsize',50,...
     'textcolor','w',...
     'surftype','sphere',...
-    'surfshading',true);
+    'mosaic',[],...
+    'mosaicborder',2,...
+    'mosaicbordercolor','w',...
+    'surfshading',true,...
+    'padalign','top');
 
 
 if(~exist('Lookup','var') || isempty(Lookup))
@@ -355,9 +370,7 @@ if(isstruct(vals) && isfield(vals,'numlh'))
                 hemi_options.roimask{r}=options.roimask{r}(idx);
             end
         end
-        if(numel(hemitext)==numel(hemi))
-            hemi_options.text=hemitext{min(i,numel(hemitext))};
-        end
+        hemi_options.text=[];
         hemi_options.filename=[];
         optargs=struct2args(hemi_options);
         [imghemi{i},lookuphemi{i},rgbimghemi{i},return_options]=cvnlookupimages(subject, hemivals, h, v, L, optargs{:});
@@ -378,32 +391,53 @@ if(isstruct(vals) && isfield(vals,'numlh'))
                 dheight=maxheight-hheight(i);
 
                 %pad all relevant 2D images/lookups
-                pimg=@(img,v)([img; cast(v*ones(dheight,size(img,2),size(img,3)),'like',img)]);
-
+                if(strcmpi(options.padalign,'bottom'))
+                    pimg=@(img,v)([cast(v*ones(dheight,size(img,2),size(img,3)),'like',img); img]);
+                else
+                    pimg=@(img,v)([img; cast(v*ones(dheight,size(img,2),size(img,3)),'like',img)]);
+                end
+                
                 imghemi{i}=pimg(imghemi{i},nan);
                 rgbimghemi{i}=pimg(rgbimghemi{i},options.rgbnan);
                 lookuphemi{i}.imglookup=pimg(lookuphemi{i}.imglookup,1);
                 lookuphemi{i}.extrapmask=pimg(lookuphemi{i}.extrapmask,true);
                 lookuphemi{i}.shading=pimg(lookuphemi{i}.shading,0);
-                lookuphemi{i}.imgsize=size(lookuphemi{i}.imglookup);
-                lookuphemi{i}.imgN=size(lookuphemi{i}.imglookup,2); %questionable
+                %lookuphemi{i}.imgsize=size(lookuphemi{i}.imglookup);
+                %lookuphemi{i}.imgN=size(lookuphemi{i}.imglookup,2); %questionable
                 
                 %need to adjust reverselookup to account for any extra rows
                 %we added to image
                 rev=double(lookuphemi{i}.reverselookup);
                 revcol=floor(max(rev-1,0)/hheight(i))+1;
                 revrow=mod(max(rev-1,0),hheight(i))+1;
-                rev=(revcol-1)*maxheight+revrow;
+                if(strcmpi(options.padalign,'bottom'))
+                    rev=(revcol-1)*maxheight+revrow+dheight;
+                else
+                    rev=(revcol-1)*maxheight+revrow;
+                end
                 rev(lookuphemi{i}.reverselookup==0)=0;
                 lookuphemi{i}.reverselookup=cast(rev,'like',lookuphemi{i}.reverselookup);
             end
         end
     end
+    for i=1:numel(imghemi)
+        lookuphemi{i}.imgsize=size(lookuphemi{i}.imglookup);
+        lookuphemi{i}.imgN=size(lookuphemi{i}.imglookup,2); %questionable
+    end
     
     mappedvals=cat(2,imghemi{:});
+    if(~isempty(options.text))
+        for i = 1:numel(hemi)
+            if(numel(hemitext)==numel(hemi))
+                hemi_options.text=hemitext{min(i,numel(hemitext))};
+            end
+            rgbimghemi{i}=add_hemi_text(rgbimghemi{i},hemi_options.text,options.textsize,options.textcolor);
+        end
+    end
     for i = 2:numel(rgbimghemi)
         rgbimghemi{i}(:,1:options.hemiborder,:)=options.rgbnan;
     end
+   
     rgbimg=cat(2,rgbimghemi{:});
     if(numel(lookuphemi)==1)
         Lookup=lookuphemi{1};
@@ -411,7 +445,50 @@ if(isstruct(vals) && isfield(vals,'numlh'))
         Lookup=lookuphemi;
     end
     
-    if(~isempty(options.filename))
+    if(size(mappedvals,3)>1 && ~isempty(options.mosaic))
+        imgsz=size(rgbimg);
+        mappedvals=makeimagestack(mappedvals,0,0,options.mosaic,0);
+        %rgbimg=makeimagestack(rgbimg,0,0,options.mosaic,0);
+        
+        %seems to work better if we do r+g+b channels separately
+        tmprgb=rgbimg;
+        rgbimg={};
+        for i = 1:3
+            rgbimg{i}=makeimagestack(tmprgb(:,:,:,i),0,0,options.mosaic,0);
+        end
+        rgbimg=cat(3,rgbimg{:});
+        clear tmprgb;
+        
+        if(options.mosaicborder > 0)
+            mbc=options.mosaicbordercolor;
+            if(ischar(mbc))
+                mbc=colorspec2rgb(mbc);
+            elseif(numel(mbc)==1)
+                mbc=mbc*[1 1 1];
+            end
+            if(any(mbc>1))
+                mbc=mbc/255;
+            end
+            
+            if(~isfloat(rgbimg))
+                mbc=uint8(mbc*255);
+            end
+            for i = 2:options.mosaic(1)
+                rgbimg((i-1)*imgsz(1)+(1:options.mosaicborder),:,1)=mbc(1);
+                rgbimg((i-1)*imgsz(1)+(1:options.mosaicborder),:,2)=mbc(2);
+                rgbimg((i-1)*imgsz(1)+(1:options.mosaicborder),:,3)=mbc(3);
+            end
+            for i = 2:options.mosaic(2)
+                rgbimg(:,(i-1)*imgsz(2)+(1:options.mosaicborder),1)=mbc(1);
+                rgbimg(:,(i-1)*imgsz(2)+(1:options.mosaicborder),2)=mbc(2);
+                rgbimg(:,(i-1)*imgsz(2)+(1:options.mosaicborder),3)=mbc(3);
+            end
+        end
+
+    end
+    
+    %don't save image if maps are still 3D
+    if(~isempty(options.filename) && size(mappedvals,3)>1)
         mkdirquiet(stripfile(options.filename));  % make dir if necessary
         imwrite(rgbimg,options.filename);
     end
@@ -714,26 +791,30 @@ if(~isempty(options.roimask))
             roimax=1;
         end
         mappedroi=mappedroi./roimax;
-                
-        mappedroi=repmat(mappedroi,1,1,3);
-        
-        roiimg=repmat(reshape(roicolor,[1 1 3]),size(rgbimg,1),size(rgbimg,2));
-        rgbimg=rgbimg.*(1-mappedroi)+roiimg.*(mappedroi);
+             
+        if(size(rgbimg,4)>1)
+            mappedroi=repmat(mappedroi,[1 1 1 3]);
+            roiimg=repmat(reshape(roicolor,[1 1 1 3]),size(rgbimg,1),size(rgbimg,2),size(rgbimg,3));
+        else
+            mappedroi=repmat(mappedroi,1,1,3);
+            roiimg=repmat(reshape(roicolor,[1 1 3]),size(rgbimg,1),size(rgbimg,2));
+
+        end
+        rgbimg=bsxfun(@plus,bsxfun(@times,rgbimg,(1-mappedroi)),bsxfun(@times,roiimg,mappedroi));
     end
 end
 
 %% 
 if(isfield(Lookup,'shading') && options.surfshading==true)
-    rgbimg=bsxfun(@times,rgbimg,Lookup.shading);
+    if(size(rgbimg,4)>1)
+        rgbimg=bsxfun(@times,rgbimg,repmat(Lookup.shading,[1 1 1 3]));
+    else
+        rgbimg=bsxfun(@times,rgbimg,Lookup.shading);
+    end
 end
 %% If 'text' argument provided, add text to output image(s)
 if(~isempty(options.text))
-    textsize=options.textsize;
-    if(textsize<1 && textsize>0)
-        textsize=textsize*options.imgN;
-    end
-    txtargs={0,0,options.text,'VerticalAlignment','top','fontsize',textsize,'color',options.textcolor};
-    rgbimg=addtext2img(rgbimg,txtargs,1);
+    rgbimg=add_hemi_text(rgbimg,options.text,options.textsize,options.textcolor);
 end
 
 %% If given filename, save RGB image to file 
@@ -778,6 +859,27 @@ if(isempty(c))
 elseif(~iscell(c))
     c={c};
 end
+
+%%
+function rgbimg=add_hemi_text(rgbimg,text,textsize,textcolor)
+%% If 'text' argument provided, add text to output image(s)
+if(isempty(text))
+    return;
+end
+
+imgN=size(rgbimg,1);
+if(textsize<1 && textsize>0)
+    textsize=textsize*imgN;
+end
+txtargs={0,0,text,'VerticalAlignment','top','fontsize',textsize,'color',textcolor};
+if(size(rgbimg,4)>1)
+    for i=1:size(rgbimg,3)
+        rgbimg(:,:,i,:)=addtext2img(permute(rgbimg(:,:,i,:),[1 2 4 3]),txtargs,1);
+    end
+else
+    rgbimg=addtext2img(rgbimg,txtargs,1);
+end
+
 
 %% create a filename for lookup containing all relevant parameters
 function fname = makefilename(hemi,az,el,tilt,vx,vy,imgN,surfsuffix,surftype)
