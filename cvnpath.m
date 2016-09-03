@@ -7,6 +7,7 @@ function p = cvnpath(whichpath)
 %
 % Possibilities:
 %   'code'        (common cvnlab code on Dropbox)
+%   'ppresults'   (cvnlab pre-processing results on Dropbox)
 %   'freesurfer'  (FreeSurfer subjects directory)
 %   'fmridata'    (fmridata directory on stone)
 %   'anatomicals' (anatomicals directory on stone)
@@ -23,6 +24,10 @@ switch(lower(whichpath))
     case 'code'
         testpaths={
             '/home/stone/generic/Dropbox/cvnlab/code'
+            };
+    case 'ppresults'
+        testpaths={
+            '/home/stone/generic/Dropbox/cvnlab/ppresults'
             };
     case 'freesurfer'
         testpaths={
