@@ -19,7 +19,7 @@ dir0 = sprintf('%s/%s',cvnpath('anatomicals'),subjectid);
 fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
 
 % figure out T2 file [ASSUME THAT WE WILL MATCH PAIRS OF DIRECTORIES, JUST USE THE FIRST SCAN]
-t2file = matchfiles(sprintf('%s/*T2w*',dataloc));
+t2file = matchfiles(sprintf('%s/dicom/*T2w*',dataloc));
 assert(mod(length(t2file),2)==0);
 t2file = t2file{2};   % [hint: 2nd of the two is the one to use, as it is homogenity-corrected]
 
@@ -27,7 +27,7 @@ t2file = t2file{2};   % [hint: 2nd of the two is the one to use, as it is homoge
 assert(0==unix(sprintf('dcm2nii -o %s -r N -x N %s',dir0,t2file)));
 
 % find the T2 NIFTI
-t2nifti = matchfiles(sprintf('%s/*T2w*nii.gz',dir0));
+t2nifti = matchfiles(sprintf('%s/dicom/*T2w*nii.gz',dir0));
 assert(length(t2nifti)==1);
 t2nifti = t2nifti{1};
 
