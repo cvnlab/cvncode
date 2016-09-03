@@ -59,7 +59,6 @@ vals(bad) = 0;
 
 % load subject's T1 (so that we can be sure to save in the same format)
 n1 = load_nii(gunziptemp(sprintf('%s/mri/T1.nii.gz',fsdir)));
-  % save_nii(n1,sprintf('~/inout/%s.nii.gz',subjectid));  % testing purposes
 
 % make destination directory if necessary
 mkdirquiet(stripfile(outfile));
