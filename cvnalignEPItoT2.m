@@ -20,6 +20,9 @@ function cvnalignEPItoT2(subjectid,outputdir,meanfunctional,mcmask,wantaffine,tr
 % and a correlation metric. Note that there is an initial guess for the 
 % alignment, and this may need to be revisited as the need arises.
 %
+% Note that when the user is setting up the initial seed, if the user sets the variable
+% wantmanual=1, then the auto-alignment will be skipped when dbcont is issued.
+%
 % Alignment parameters ('tr', 'T') and 'mcmask' are saved to alignment.mat in <outputdir>.
 % Diagnostic images of the alignment quality are written to <outputdir>.
 % We also write out EPIalignedtoT2.nii.gz to <outputdir>. This is the mean functional
@@ -27,6 +30,9 @@ function cvnalignEPItoT2(subjectid,outputdir,meanfunctional,mcmask,wantaffine,tr
 % We also write out T2alignedtoEPI.nii.gz and T1alignedtoEPI.nii.gz to <outputdir>.
 %   This is the T2 and T1 that have been resliced to match the mean functional
 %   (and saved using the mean functional as a template).
+%
+% history:
+% - 2016/09/02 - implement wantmanual; fix the gzipping
 
 % input
 if ~exist('mcmask','var') || isempty(mcmask)
@@ -89,29 +95,42 @@ end
 alignvolumedata(vol1,vol1size,vol2,vol2size,tr);
 
 % pause to do some manual alignment (to get a reasonable starting point)
+clear wantmanual;
 keyboard;
 tr = alignvolumedata_exporttransformation;  % report to the user to save just in case
-  
-% auto-align (correlation)
-if wantaffine
-  alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[4 4 4]);
-  alignvolumedata_auto(mn,sd,[0 0 0 0 0 0 1 1 1 1 1 1],[4 4 4]);
-  alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[2 2 2]);
-  alignvolumedata_auto(mn,sd,[0 0 0 0 0 0 1 1 1 1 1 1],[2 2 2]);
-  alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[1 1 1]);
-  alignvolumedata_auto(mn,sd,[0 0 0 0 0 0 1 1 1 1 1 1],[1 1 1]);
-  alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[1 1 1]);
-  alignvolumedata_auto(mn,sd,[0 0 0 0 0 0 1 1 1 1 1 1],[1 1 1]);
-  alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[1 1 1]);
-  alignvolumedata_auto(mn,sd,[0 0 0 0 0 0 1 1 1 1 1 1],[1 1 1]);
-else
-  alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[4 4 4]);
-  alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[2 2 2]);
-  alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[1 1 1]);
-end
 
-% record transformation
-tr = alignvolumedata_exporttransformation;
+% if the user sets wantmanual to 1, then we will stop instead of proceeding with auto-alignment!
+
+% well, if the user wanted manual alignment, let it through
+if exist('wantmanual','var') && wantmanual
+
+  % do nothing
+
+% otherwise, do auto-alignment
+else  
+
+  % auto-align (correlation)
+  if wantaffine
+    alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[4 4 4]);
+    alignvolumedata_auto(mn,sd,[0 0 0 0 0 0 1 1 1 1 1 1],[4 4 4]);
+    alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[2 2 2]);
+    alignvolumedata_auto(mn,sd,[0 0 0 0 0 0 1 1 1 1 1 1],[2 2 2]);
+    alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[1 1 1]);
+    alignvolumedata_auto(mn,sd,[0 0 0 0 0 0 1 1 1 1 1 1],[1 1 1]);
+    alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[1 1 1]);
+    alignvolumedata_auto(mn,sd,[0 0 0 0 0 0 1 1 1 1 1 1],[1 1 1]);
+    alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[1 1 1]);
+    alignvolumedata_auto(mn,sd,[0 0 0 0 0 0 1 1 1 1 1 1],[1 1 1]);
+  else
+    alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[4 4 4]);
+    alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[2 2 2]);
+    alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[1 1 1]);
+  end
+
+  % record transformation
+  tr = alignvolumedata_exporttransformation;
+
+end
 
 % convert the transformation to a matrix
 T = transformationtomatrix(tr,0,vol1size);
@@ -133,15 +152,18 @@ epimatch = extractslices(vol1,vol1size,vol2,vol2size,tr,1);
 
 % save NIFTI file (EPI matched to the T2)
 vol1orig.img = inttofs(cast(epimatch,class(vol1orig.img)));
-save_untouch_nii(vol1orig,sprintf('%s/EPIalignedtoT2.nii.gz',outputdir));
+file0 = sprintf('%s/EPIalignedtoT2.nii',outputdir);
+save_untouch_nii(vol1orig,file0); gzip(file0); delete(file0);
 
 % save NIFTI file (T2 matched to the EPI)
 vol2orig.img = cast(anatmatch1,class(vol2orig.img));
-save_untouch_nii(vol2orig,sprintf('%s/T2alignedtoEPI.nii.gz',outputdir));
+file0 = sprintf('%s/T2alignedtoEPI.nii',outputdir);
+save_untouch_nii(vol2orig,file0); gzip(file0); delete(file0);
 
 % save NIFTI file (T1 matched to the EPI)
 vol2orig.img = cast(anatmatch3,class(vol2orig.img));
-save_untouch_nii(vol2orig,sprintf('%s/T1alignedtoEPI.nii.gz',outputdir));
+file0 = sprintf('%s/T1alignedtoEPI.nii',outputdir);
+save_untouch_nii(vol2orig,file0); gzip(file0); delete(file0);
 
 %%%%%%%%%%%%%%%%%%%%%%%% JUNK:
 
