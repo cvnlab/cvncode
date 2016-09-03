@@ -17,7 +17,8 @@ function cvnmakelayers(subjectid,layerdepths,layerprefix,fstruncate)
 %   and the single-subject dense surfaces.
 % Truncate the dense surfaces based on the fsaverage <fstruncate> surface,
 %   and write out new surfaces.
-% Calculate thickness and curvature values for the single-subject dense surfaces.
+% Calculate thickness, curvature, and sulc values for the single-subject dense surfaces.
+% Calculate SAPV and AEL for each surface (dense trunc only).
 %
 % Turn on matlabpool before calling for a big speed-up.
 %
@@ -29,6 +30,10 @@ function cvnmakelayers(subjectid,layerdepths,layerprefix,fstruncate)
 %  lh.DENSETRUNCpt.mat
 %  lh.curvatureDENSE.mgz
 %  lh.curvatureDENSETRUNCpt.mgz
+%  lh.sapv_sphere_DENSETRUNCpt.mgz
+%
+% history:
+% - 2016/04/29 - add saving of sulc, sapv, and ael; start using unix_wrapper
 
 % calc
 dir0 = sprintf('%s/%s',cvnpath('anatomicals'),subjectid);
@@ -48,7 +53,7 @@ parfor ii=1:2*length(layerdepths)
   % layer I (molecular layer) and layer A6 will be equivalent to canonical 
   % layer VI (innermost...)
   d=1-layerdepths(p);
-  assert(0==unix(sprintf('mris_expand -thickness %s/surf/%s.white %.2f %s/surf/%s.layer%s%d',fsdir,hemis{q},d,fsdir,hemis{q},layerprefix,p)));
+  unix_wrapper(sprintf('mris_expand -thickness %s/surf/%s.white %.2f %s/surf/%s.layer%s%d',fsdir,hemis{q},d,fsdir,hemis{q},layerprefix,p));
 end
 
 %%%%%%%%%% subdivide layer and other surfaces (creating dense surfaces)
@@ -63,7 +68,7 @@ end
 parfor ii=1:2*length(surfs)
   p = mod2(ii,length(surfs));
   q = ceil(ii/length(surfs));
-  assert(0==unix(sprintf('mris_mesh_subdivide --surf %s/surf/%s.%s --out %s/surf/%s.%sDENSE --method linear --iter 1',fsdir,hemis{q},surfs{p},fsdir,hemis{q},surfs{p})));
+  unix_wrapper(sprintf('mris_mesh_subdivide --surf %s/surf/%s.%s --out %s/surf/%s.%sDENSE --method linear --iter 1',fsdir,hemis{q},surfs{p},fsdir,hemis{q},surfs{p}));
 end
 
 %%%%%%%%%% calculate some transfer functions for the dense surfaces
@@ -134,26 +139,30 @@ for p=1:length(hemis)
   save(sprintf('%s/surf/%s.DENSE.mat',fsdir,hemis{p}),'validix');
 end
 
-%%%%%%%%%% transfer thickness and curvature values from standard to dense
+%%%%%%%%%% transfer thickness, curvature, and sulc values from standard to dense
 
 for p=1:length(hemis)
 
   % load
   a1 = load(sprintf('%s/%smidgray.mat',dir0,hemis{p}));
   a2 = load(sprintf('%s/surf/%s.DENSETRUNC%s.mat',fsdir,hemis{p},fstruncate));
+  a3 = read_curv(sprintf('%s/surf/%s.sulc',fsdir,hemis{p}));
 
   % transfer values
   thickness = cvntransfertodense(subjectid,a1.thickness,hemis{p},'nearest');
   curvature = cvntransfertodense(subjectid,a1.curvature,hemis{p},'nearest');
+  sulc      = cvntransfertodense(subjectid,a3,          hemis{p},'nearest');
 %  save(sprintf('%s/%smidgrayDENSE.mat',dir0,hemis{p}),'thickness','curvature');
 
   % write mgz
   cvnwritemgz(subjectid,'thicknessDENSE',thickness,hemis{p});
   cvnwritemgz(subjectid,'curvatureDENSE',curvature,hemis{p});
+  cvnwritemgz(subjectid,'sulcDENSE',     sulc,     hemis{p});
 
   % write mgz for truncated
   cvnwritemgz(subjectid,sprintf('thicknessDENSETRUNC%s',fstruncate),thickness(a2.validix),hemis{p});
   cvnwritemgz(subjectid,sprintf('curvatureDENSETRUNC%s',fstruncate),curvature(a2.validix),hemis{p});
+  cvnwritemgz(subjectid,sprintf('sulcDENSETRUNC%s',fstruncate),     sulc(a2.validix),     hemis{p});
 
   % write curv
   [verticesA,facesA] = freesurfer_read_surf_kj(sprintf('%s/surf/%s.%sDENSE',fsdir,hemis{p},'inflated'));
@@ -162,6 +171,29 @@ for p=1:length(hemis)
   % write curv for truncated
   [verticesA,facesA] = freesurfer_read_surf_kj(sprintf('%s/surf/%s.%sDENSETRUNC%s',fsdir,hemis{p},'inflated',fstruncate));
   write_curv(sprintf('%s/surf/%sDENSETRUNC%s.curv',fsdir,hemis{p},fstruncate),curvature(a2.validix),size(facesA,1));
+
+end
+
+%%%%%%%%%% compute and save some useful quantities for dense trunc surfaces
+
+% for each hemisphere
+for p=1:length(hemis)
+
+  % for each of the surfaces
+  for q=1:length(surfs)
+  
+    % read in the surface
+    [verticesA,facesA] = freesurfer_read_surf_kj(sprintf('%s/surf/%s.%sDENSETRUNC%s',fsdir,hemis{p},surfs{q},fstruncate));
+    
+    % compute and save SAPV
+    sapv = vertex_area(verticesA,facesA);  % column vector
+    cvnwritemgz(subjectid,sprintf('sapv_%s_DENSETRUNC%s',surfs{q},fstruncate),sapv,hemis{p});
+    
+    % compute and save AEL
+    ael = vertex_neighbor_distance(verticesA,facesA,'mean');  % column vector
+    cvnwritemgz(subjectid,sprintf('ael_%s_DENSETRUNC%s',surfs{q},fstruncate),ael,hemis{p});
+
+  end
 
 end
 
