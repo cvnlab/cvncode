@@ -1,9 +1,10 @@
-function cvnalignmultiple(niifiles,outputprefix,mcmask,skips,rots)
+function cvnalignmultiple(niifiles,subjectid,outputprefix,mcmask,skips,rots)
 
-% function cvnalignmultiple(niifiles,outputprefix,mcmask,skips,rots)
+% function cvnalignmultiple(niifiles,subjectid,outputprefix,mcmask,skips,rots)
 %
 % <niifiles> is a cell vector of NIFTI files
-% <outputprefix> is like '/home/stone-ext1/anatomicals/C0041/T1average'
+% <subjectid> is like 'C0001'
+% <outputprefix> is like 'T1average'
 % <mcmask> (optional) is {mn sd} with the mn and sd outputs of defineellipse3d.m.
 %   If [] or not supplied, we prompt the user to determine these with the GUI.
 % <skips> (optional) is number of slices to skip in each of the 3 dimensions.
@@ -26,9 +27,15 @@ function cvnalignmultiple(niifiles,outputprefix,mcmask,skips,rots)
 % Our final volume is the mean of all of the volumes (first volume plus the
 % resliced versions of the remaining volumes).
 %
-% We write out a NIFTI file to <outputprefix>.nii.gz using the first NIFTI as a template.
+% We write out a NIFTI file to <anatomicals>/<outputprefix>.nii.gz using the first NIFTI as a template.
 % 
-% Inspections of results are written to a directory called "<outputprefix>figures".
+% Inspections of results are written to a directory <ppresults>/<outputprefix>figures.
+%
+% history:
+% 2016/09/02 - change where files are written; fix the gzipping
+% 2016/07/12 - switch to _untouch_
+% 2016/06/10 - force non-finite values in resliced volumes to be 0 (flirt fails otherwise)
+% 2016/05/29 - added visualization of residuals
 
 % input
 if ~exist('mcmask','var') || isempty(mcmask)
@@ -41,14 +48,15 @@ if ~exist('rots','var') || isempty(rots)
   rots = [0 0 0];
 end
 
-% make directory
-mkdirquiet(sprintf('%sfigures',outputprefix));
+% calc
+dir0 = sprintf('%s/%s',cvnpath('anatomicals'),subjectid);
+pp0 =  sprintf('%s/%s',cvnpath('ppresults'),  subjectid);
 
 % match files
 niifiles = matchfiles(niifiles);
 
 % load the first volume
-vol1 = load_nii(gunziptemp(niifiles{1}));
+vol1 = load_untouch_nii(gunziptemp(niifiles{1}));
 vol1size = vol1.hdr.dime.pixdim(2:4);
 vol1data = double(vol1.img);
 vol1data(isnan(vol1data)) = 0;
@@ -64,14 +72,14 @@ else
 end
 
 % inspect first volume
-makeimagestack3dfiles(vol1data,sprintf('%sfigures/vol%03d',outputprefix,1),skips,rots,[],1);
+makeimagestack3dfiles(vol1data,sprintf('%s/%sfigures/vol%03d',pp0,outputprefix,1),skips,rots,[],1);
 
 % loop over volumes
 vols = vol1data;
 for p=2:length(niifiles)
 
   % load the volume
-  vol2 = load_nii(gunziptemp(niifiles{p}));
+  vol2 = load_untouch_nii(gunziptemp(niifiles{p}));
   vol2size = vol2.hdr.dime.pixdim(2:4);
   vol2data = double(vol2.img);
   vol2data(isnan(vol2data)) = 0;
@@ -89,9 +97,12 @@ for p=2:length(niifiles)
 
   % get slices from vol2 to match vol1
   matchvol = extractslices(vol2data,vol2size,vol1data,vol1size,tr);
+  
+  % REALLY IMPORTANT: ENSURE FINITE (e.g. flirt blows up otherwise)
+  matchvol(~isfinite(matchvol)) = 0;
 
   % inspect it
-  makeimagestack3dfiles(matchvol,sprintf('%sfigures/vol%03d',outputprefix,p),skips,rots,[],1);
+  makeimagestack3dfiles(matchvol,sprintf('%s/%sfigures/vol%03d',pp0,outputprefix,p),skips,rots,[],1);
   
   % record it
   vols(:,:,:,p) = matchvol;
@@ -105,8 +116,16 @@ end
 meanvol = mean(vols,4);
 
 % inspect it
-makeimagestack3dfiles(meanvol,sprintf('%sfigures/volavg',outputprefix),skips,rots,[],1);
+makeimagestack3dfiles(meanvol,sprintf('%s/%sfigures/volavg',pp0,outputprefix),skips,rots,[],1);
 
 % save NIFTI file as output
 vol1.img = cast(meanvol,class(vol1.img));
-save_nii(vol1,sprintf('%s.nii.gz',outputprefix));
+file0 = sprintf('%s/%s.nii',dir0,outputprefix);
+save_untouch_nii(vol1,file0); gzip(file0); delete(file0);
+
+% finally, write out residual images
+mx = prctile(flatten(abs(bsxfun(@minus,vols,meanvol))),99);
+for p=1:size(vols,4)
+  makeimagestack3dfiles(vols(:,:,:,p)-meanvol,sprintf('%s/%sfigures/resid%03d',pp0,outputprefix,p), ...
+                        skips,rots,cmapsign4(256),[-mx mx]);
+end
