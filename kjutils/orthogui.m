@@ -59,50 +59,6 @@ elseif(numel(varargin) > 1 && numel(varargin{1}) == 1 && ishghandle(varargin{1})
             D.Valpha = varargin{3};
             setappdata(hfig,'data',D);
             updatefig(M,false);
-        case {'setbackground'}
-            M = getappdata(hfig,'guidata');
-            D = getappdata(hfig,'data');
-            Vbg = varargin{3};
-            if(isempty(Vbg))
-                return;
-            end
-            if(isnumeric(Vbg))
-                Vbg={Vbg};
-            end
-            M.Vbg_count=numel(Vbg);
-            M.Vbg_idx=mod(M.Vbg_idx-1,M.Vbg_count)+1;
-            %Vbg=Vbg/nanmax(Vbg(:));
-            if(~isempty(M.bgpermute))
-                if(any(M.bgpermute < 0))
-                    df = find(M.bgpermute < 0);
-                    for i = 1:numel(df)
-                        for b=1:numel(Vbg)
-                            Vbg{b} = flipdim(Vbg{b},df(i));
-                        end
-                    end
-                end
-                for b = 1:numel(Vbg)
-                    Vbg{b} = permute(Vbg{b},abs(M.bgpermute));
-                end
-            end
-            D.Vbg=Vbg;
-            setappdata(hfig,'data',D);
-            setappdata(hfig,'guidata',M);
-            updatefig(M,false);
-        case {'setbackgroundidx'}
-            M = getappdata(hfig,'guidata');
-
-            bgidx = varargin{3};
-            if(isempty(bgidx) || bgidx == M.Vbg_idx)
-                return;
-            end
-          
-            M.Vbg_idx=mod(bgidx-1,M.Vbg_count)+1;
-            setappdata(hfig,'guidata',M);
-            updatefig(M,false);
-        case {'getbackgroundidx'}
-            M = getappdata(hfig,'guidata');
-            hfig = M.Vbg_idx;
         case {'location','loc'}
             M = getappdata(hfig,'guidata');
             [x, y, z] = splitvars(orig2disp(varargin{3},M.dimpermute,M.origsize));
@@ -171,9 +127,7 @@ p = inputParser;
 p.addParamValue('location',[]);
 p.addParamValue('loc',[]);
 p.addParamValue('background',[]);
-p.addParamValue('backgroundidx',[]);
 p.addParamValue('bg',[0]);
-p.addParamValue('bgidx',1);
 p.addParamValue('callback',{});
 p.addParamValue('title','Orthoviews');
 p.addParamValue('colormap','jet');
@@ -195,14 +149,9 @@ loc = r.location;
 cbfunc = r.callback;
 titlestr = r.title;
 bgfile = r.background;
-bgidx = r.backgroundidx;
 if(isempty(bgfile))
     bgfile = r.bg;
 end
-if(isempty(bgidx))
-    bgidx = r.bgidx;
-end
-
 if(isempty(loc))
     loc = r.loc;
 end
@@ -229,8 +178,6 @@ if(strcmpi(interpstyle,'none'))
 end
 
 Vbg = [];
-Vbg_idx=bgidx;
-Vbg_count=0;
 
 is_bg_default = false;
 if(isempty(bgfile))
@@ -255,16 +202,9 @@ elseif(isnumeric(bgfile))
     else
         Vbg = bgfile;
     end
-elseif(iscell(bgfile) && isnumeric(bgfile{1}))
-    Vbg=bgfile;
 else
 end
 
-if(isnumeric(Vbg))
-    Vbg={Vbg};
-end
-Vbg_count=numel(Vbg);
-    
 if(isempty(bgpermute))
     bgpermute = dimpermute;
 end
@@ -342,14 +282,10 @@ if(~isempty(bgpermute))
         if(any(bgpermute < 0))
             df = find(bgpermute < 0);
             for i = 1:numel(df)
-                for b = 1:numel(Vbg)
-                    Vbg{b} = flipdim(Vbg{b},df(i));
-                end
+                Vbg = flipdim(Vbg,df(i));
             end
         end
-        for b = 1:numel(Vbg)
-            Vbg{b} =  permute(Vbg{b},abs(bgpermute));
-        end
+        Vbg = permute(Vbg,abs(bgpermute));
     end
 end
 
@@ -426,26 +362,21 @@ end
 hfig = figure('name',titlestr,'NumberTitle','off','WindowButtonDownFcn',@fig_mousedown,'WindowButtonMotionFcn',@fig_mousemove,...
     'WindowButtonUpFcn',@ax_mouseup,'tag',figtag,'WindowKeyPressFcn',@fig_keypress);
 
-
-
-for b = 1:numel(Vbg)
-    bgmax = abs(nanmax(Vbg{b}(:)));
-    if(isnan(bgmax) || bgmax == 0)
-        Vbg{b} = zeros(size(Vbg{b}));
-    else
-        Vbg{b} = Vbg{b}./bgmax;
-    end
+bgmax = abs(nanmax(Vbg(:)));
+if(isnan(bgmax) || bgmax == 0)
+    Vbg = zeros(size(Vbg));
+else
+    Vbg = Vbg./bgmax;
 end
 
 if(isempty(bgfile))
-    Vbg = {0*V};
-    Vbg_count=1;
+    Vbg = 0*Vbg;
 end
 
 [mipx mipy mipz] = splitvars(round(sz/2));
-[mipbg1 mipbg2 mipbg3] = bgslice(Vbg{Vbg_idx},[mipx mipy mipz],sz);
+[mipbg1 mipbg2 mipbg3] = bgslice(Vbg,[mipx mipy mipz],sz);
 %if(~isempty(bgfile))
-    [bg1 bg2 bg3] = bgslice(Vbg{Vbg_idx},[cx cy cz],sz);
+    [bg1 bg2 bg3] = bgslice(Vbg,[cx cy cz],sz);
 %end
 
 showcursor = true;
@@ -654,17 +585,13 @@ curax = 1;
 mouseax = [];
 curax_rect = annotation(hfig,'rectangle',[0 0 1 1],'color',[1 0 0],'hittest','off');
 
-set(ax(1),'tag','ax1');
-set(ax(2),'tag','ax2');
-set(ax(3),'tag','ax3');
 
 
 D = fillstruct(V,Vbg,Valpha,Vrgb,surfslices);
 M = fillstruct(hfig,ax,img,bgimg,bgfile,maxalpha,cx,cy,cz,...
     hcurV,hcurH,hpanel,axmip,mouseax,curax,curax_rect,hcurVmip,hcurHmip,...
     imgmip,imgmipbg,axhist,hcurhist,hsurfslice,titlestr,cbfunc,figlink,cursorgap,...
-    mipsize,mipidx,colormap_clim,interpstyle,showcursor,origsize,dimpermute,bgpermute,...
-    showsurf,Vbg_idx,Vbg_count);
+    mipsize,mipidx,colormap_clim,interpstyle,showcursor,origsize,dimpermute,showsurf);
 
 setappdata(hfig,'guidata',M);
 setappdata(hfig,'data',D);
@@ -816,9 +743,7 @@ if(size(mask1_orig,1) ~= size(mask1,1))
 end
 
 if(~isempty(bgfile))
-    [bg1 bg2 bg3] = bgslice(D.Vbg{Vbg_idx},[cx cy cz],sz);
-    %[bg1 bg2 bg3] = bgslice(D.Vbg},[cx cy cz],sz);
-    
+    [bg1 bg2 bg3] = bgslice(D.Vbg,[cx cy cz],sz);
     if(~isempty(bgparams))
         set(bgimg,bgparams{:});
     end
@@ -1063,8 +988,6 @@ M = getappdata(gcbf,'guidata');
 movecursor = [];
 showcursor = M.showcursor;
 showsurf = M.showsurf;
-bgidx = M.Vbg_idx;
-
 if(strcmpi(event.Key,'h'))
     if(strcmpi(get(M.img(1),'visible'),'on'))
         set(M.img,'visible','off');
@@ -1078,11 +1001,6 @@ elseif(strcmpi(event.Key,'s'))
     showsurf=~M.showsurf;
 elseif(strcmpi(event.Key,'x'))
     showcursor=~M.showcursor;
-elseif(strcmpi(event.Key,'b'))
-    if(M.Vbg_count<=1)
-        return;
-    end
-    bgidx=mod(bgidx,M.Vbg_count)+1;
 elseif(strcmpi(event.Key,'leftarrow'))
     movecursor = [-1 0];
 elseif(strcmpi(event.Key,'rightarrow'))
@@ -1119,10 +1037,6 @@ elseif(showcursor ~= M.showcursor)
     updatefig(M);
 elseif(showsurf ~= M.showsurf)
     M.showsurf=showsurf;
-    setappdata(gcbf,'guidata',M);
-    updatefig(M);
-elseif(bgidx ~= M.Vbg_idx)
-    M.Vbg_idx=bgidx;
     setappdata(gcbf,'guidata',M);
     updatefig(M);
 end
@@ -1331,5 +1245,4 @@ fprintf('h          - Hide/Show foreground volume\n');
 fprintf('x          - Hide/Show crosshair\n');
 fprintf('s          - Hide/Show surface slices\n');
 fprintf('v          - Snap to nearest surface vertex\n');
-fprintf('b          - Cycle through background images\n');
 fprintf('[arrows]   - Navigate current ortho panel\n');

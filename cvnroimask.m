@@ -122,17 +122,11 @@ for s = 1:numel(suffixes)
         %                       or <name>.<ext>.ctab
         ctabfile1=[fullfile(fdir,strrep(fname,sprintf('%s%s.',hemi,filesuffix),'')) ext '.ctab'];
         ctabfile2=[labelfiles{f} '.ctab'];
-        ctabfile3=strrep(ctabfile1,'.label.ctab','.ctab');
-        ctabfile4=strrep(ctabfile2,'.label.ctab','.ctab');
         
         if(exist(ctabfile1,'file'))
             ctabfile=ctabfile1;
         elseif(exist(ctabfile2,'file'))
             ctabfile=ctabfile2;
-        elseif(exist(ctabfile3,'file'))
-            ctabfile=ctabfile3;
-        elseif(exist(ctabfile4,'file'))
-            ctabfile=ctabfile4;
         else
             ctabfile=[];
         end

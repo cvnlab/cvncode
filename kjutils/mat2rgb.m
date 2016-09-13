@@ -99,8 +99,6 @@ cmin=single(cmin);
 imgvals=single(imgvals);
 rgbimg = cmaplookup(imgvals,cmin,cmax,options.circulartype,options.cmap);
 
-rgbsz=sizefull(rgbimg,6);
-
 if(isempty(options.overlayalpha))
     options.overlayalpha=ones(size(imgvals));
 elseif(numel(options.overlayalpha)==1)
@@ -131,8 +129,7 @@ if(~isempty(tmpalpha))
 end
 
 if(isempty(options.overlayalpha) || all(+options.overlayalpha(:) >= 1))
-    rgbimg(rep2size(isnan(imgvals),rgbsz))=options.rgbnan;
-    %rgbimg(repmat(isnan(imgvals),[1 1 3]))=options.rgbnan;
+    rgbimg(repmat(isnan(imgvals),[1 1 3]))=options.rgbnan;
     return;
 end
 
@@ -165,23 +162,18 @@ if(numel(options.background) == 1)
     
 elseif(numel(options.background) == 3)
     %background was a single RGB triplet
-    rgbback=rep2size(reshape(options.background(:),[1 1 3]),rgbsz);
-    %rgbback=repmat(reshape(options.background(:),[1 1 3]),size(rgbimg,1),size(rgbimg,2));
+    rgbback=repmat(reshape(options.background(:),[1 1 3]),size(rgbimg,1),size(rgbimg,2));
 else
     imgbg=options.background;
     %convert background values->RGB
     rgbback = cmaplookup(imgbg,bg_cmin,bg_cmax,0,options.bg_cmap);
-    if(rgbsz(4)>1)
-        rgbback=rep2size(permute(rgbback,[1 2 4 3]),rgbsz);
-    end
 end
 
 %%%%%
 %%%%% Map alpha/mask values to image matrix
 %%%%%
 if(isequal(size(options.overlayalpha),size(imgvals)))
-    %imgalpha=repmat(options.overlayalpha,[1 1 3]);
-    imgalpha=rep2size(options.overlayalpha,rgbsz);
+    imgalpha=repmat(options.overlayalpha,[1 1 3]);
 else
     %alpha is just a single value
     imgalpha=options.overlayalpha(1);
@@ -194,8 +186,7 @@ imgalpha=single(imgalpha);
 %alpha nan --> final image = 0
 
 %imgalpha(isnan(imgalpha))=0;
-%imgalpha=imgalpha .* ~repmat(any(isnan(rgbimg),3),[1 1 3]);
-imgalpha=imgalpha .* ~rep2size(any(isnan(rgbimg),3),rgbsz);
+imgalpha=imgalpha .* ~repmat(any(isnan(rgbimg),3),[1 1 3]);
 rgbimg(isnan(rgbimg))=0;
 rgbback(isnan(rgbback))=0;
     
@@ -203,14 +194,4 @@ rgbback(isnan(rgbback))=0;
 rgbimg=rgbimg.*imgalpha+rgbback.*(1-imgalpha);
 
 rgbimg(isnan(rgbimg)) = options.rgbnan;
-rgbimg(rep2size(isnan(imgvals),rgbsz))=options.rgbnan;
-%rgbimg(repmat(isnan(imgvals),[1 1 3]))=options.rgbnan;
-
-%%
-function imgrep = rep2size(img1,sz2)
-sz=sizefull(img1,numel(sz2));
-szr=sz2./sz;
-if(any(szr~=floor(szr)))
-    error('Must be an integer multiple of image size');
-end
-imgrep=repmat(img1,szr);
+rgbimg(repmat(isnan(imgvals),[1 1 3]))=options.rgbnan;
