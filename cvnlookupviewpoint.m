@@ -33,7 +33,8 @@ if(isequal(surftype,'sphere'))
         otherwise
     end
     
-elseif(~isempty(regexp(surftype,'inflated'))) %#ok<RGXP1>
+%elseif(~isempty(regexp(surftype,'inflated'))) %#ok<RGXP1>
+elseif(isempty(regexp(surftype,'sphere'))) %#ok<RGXP1>
     switch(viewname)
         case 'dorsal'
             viewpt_LR={[0 90 90],[0 90 90]};

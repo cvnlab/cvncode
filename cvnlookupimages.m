@@ -488,7 +488,7 @@ if(isstruct(vals) && isfield(vals,'numlh'))
     end
     
     %don't save image if maps are still 3D
-    if(~isempty(options.filename) && size(mappedvals,3)>1)
+    if(~isempty(options.filename) && size(mappedvals,3)==1)
         mkdirquiet(stripfile(options.filename));  % make dir if necessary
         imwrite(rgbimg,options.filename);
     end

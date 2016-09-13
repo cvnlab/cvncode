@@ -1,11 +1,21 @@
-function [slices, vidx] = surface_slices(volsize,vertices,faces)
+function [slices, vidx] = surface_slices(volsize,vertices,faces,sorted_edges)
 
 valid=vertices(:,1)>=1 & vertices(:,1)<=volsize(1) ...
     & vertices(:,2)>=1 & vertices(:,2)<=volsize(2) ...
     & vertices(:,3)>=1 & vertices(:,3)<=volsize(3);
 
-faces=faces(all(valid(faces),2),:);
-edges=[faces(:,1) faces(:,2); faces(:,1) faces(:,3); faces(:,2) faces(:,3)];
+if(~exist('sorted_edges','var') || isempty(sorted_edges))
+    sorted_edges=[];
+end
+
+if(isempty(sorted_edges))
+    faces=faces(all(valid(faces),2),:);
+    edges=[faces(:,1) faces(:,2); faces(:,1) faces(:,3); faces(:,2) faces(:,3)];
+    edges=unique(sort(edges,2),'rows');
+else
+    edges=sorted_edges;
+end
+
 otherdim={[2 3],[1 3],[1 2]};
 
 
@@ -33,7 +43,7 @@ for d = 1:3
         dw=d1./(d1+d2);
 
         slices{d}{s}=bsxfun(@times,vo1(crossedges,:),1-dw)+bsxfun(@times,vo2(crossedges,:),dw);
-        vidx{d}{s}=edges(crossedges,1);
+        vidx{d}{s}=edges(crossedges,:);
     end
     %toc
 end

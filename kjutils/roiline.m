@@ -85,9 +85,12 @@ set(ax,'buttondownfcn',@roiline_callback);
 set(hfig,'windowbuttonmotionfcn',@roiline_mousemove,'windowbuttonupfcn',@roiline_mouseup);
 set(hfig,'windowkeypressfcn',@roiline_keypress);
 
-roilinestyle={'-','color','b','tag','roiline'};
-roipointstyle={'o','color','b','markerfacecolor','w','markersize',9,'tag','roipoint'};
-roimidpointstyle={'d','color','b','markerfacecolor','w','markersize',7,'tag','roimidpoint'};
+roilinestyle={'linestyle','-','color','b','tag','roiline'};
+roipointstyle={'marker','o','linestyle','none','color','b','markerfacecolor','w','markersize',9,'tag','roipoint'};
+roimidpointstyle={'marker','d','linestyle','none','color','b','markerfacecolor','w','markersize',7,'tag','roimidpoint'};
+roipointstyle1={'markerfacecolor','g'};
+roipointstyleN={'markerfacecolor','r'};
+
 points=xy;
 if(size(points,1)>1)
     midpoints=(points(1:end-1,:)+points(2:end,:))/2;
@@ -95,32 +98,45 @@ else
     midpoints=[nan nan];
 end
 
-hl=findobj(hfig,'tag','roiline');
-if(~isempty(hl))
-    delete(hl);
-end
-hp=findobj(hfig,'tag','roipoint');
-if(~isempty(hp))
-    delete(hp);
-end
-hp=findobj(hfig,'tag','roimidpoint');
-if(~isempty(hp))
-    delete(hp);
+tagdelete={'roiline','roipoint','roimidpoint'};
+for td = 1:numel(tagdelete)
+    hl=findobj(hfig,'tag',tagdelete{td});
+    if(~isempty(hl))
+        delete(hl);
+    end
 end
 
 hold on;
 hl=plot(ax,points(:,1),points(:,2),roilinestyle{:});
-hp=plot(ax,points(:,1),points(:,2),roipointstyle{:});
+
+if(size(points,1)==1)
+    hp1=plot(ax,points(1,1),points(1,2),roipointstyle{:},roipointstyle1{:});
+    hpN=plot(ax,nan,nan,roipointstyle{:},roipointstyleN{:});
+    hp=plot(ax,nan,nan,roipointstyle{:});
+elseif(size(points,1)==2)
+    hp1=plot(ax,points(1,1),points(1,2),roipointstyle{:},roipointstyle1{:});
+    hpN=plot(ax,points(end,1),points(end,2),roipointstyle{:},roipointstyleN{:});
+    hp=plot(ax,nan,nan,roipointstyle{:});
+else
+    hp1=plot(ax,points(1,1),points(1,2),roipointstyle{:},roipointstyle1{:});
+    hpN=plot(ax,points(end,1),points(end,2),roipointstyle{:},roipointstyleN{:});
+    hp=plot(ax,points(2:end-1,1),points(2:end-1,2),roipointstyle{:});
+end
+
 hmp=plot(ax,midpoints(:,1),midpoints(:,2),roimidpointstyle{:});
 
 htag=plot(ax,nan,nan,'tag','roiline_is_drawing');
 
-set([hp hmp],'hittest','on','buttondownfcn',@roiline_callback);
+set([hp1 hpN hp hmp],'hittest','on','buttondownfcn',@roiline_callback);
 
 mousedown=false;
 mousedown_pointidx=0;
-M=fillstruct(hfig,ax,himg,points,midpoints,hp,hl,hmp,htag,...
-    roilinestyle,roipointstyle,roimidpointstyle,mousedown,mousedown_pointidx);
+mousedown_initxy=[];
+mousedown_points=[];
+cursormode='draw';
+M=fillstruct(hfig,ax,himg,points,midpoints,hp,hp1,hpN,hl,hmp,htag,...
+    roilinestyle,roipointstyle,roimidpointstyle,roipointstyle1,roipointstyleN,...
+    cursormode,mousedown,mousedown_pointidx,mousedown_initxy,mousedown_points);
 setappdata(hfig,'data',M);
 
 %%%%%
@@ -141,9 +157,10 @@ if(~ishandle(hfig))
 end
 M=getappdata(hfig,'data');
 set(ax,'buttondownfcn',[]);
+set(hfig,'pointer','arrow');
 set(hfig,'windowbuttonmotionfcn',[],'windowbuttonupfcn',[]);
 set(hfig,'windowkeypressfcn',[]);
-set([hp hmp],'buttondownfcn',[]);
+set([hp hp1 hpN hmp],'buttondownfcn',[]);
 xypoint=M.points;
 
 fprintf('ROI selection:\n');
@@ -190,12 +207,44 @@ pixelmask(sub2ind(size(pixelmask),xyline(:,2),xyline(:,1)))=1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function roiline_update(hfig)
 M=getappdata(hfig,'data');
+% 
+% lstyle=M.roilinestyle;
+% pstyle=M.roipointstyle;
+% p1style=M.roipointstyle1;
+% pNstyle=M.roipointstyleN;
+
+mpstyle=M.roimidpointstyle;
+    
+if(isequal(M.cursormode,'move'))
+    mpstyle=[mpstyle 'marker' 'none'];
+end
+
+if(~isempty(mpstyle))
+    set(M.hmp,mpstyle{:});
+end
+
 if(isempty(M.points))
     set(M.hl,'xdata',nan,'ydata',nan);
+    set(M.hp1,'xdata',nan,'ydata',nan);
+    set(M.hpN,'xdata',nan,'ydata',nan);
     set(M.hp,'xdata',nan,'ydata',nan);
 else
     set(M.hl,'xdata',M.points(:,1),'ydata',M.points(:,2));
-    set(M.hp,'xdata',M.points(:,1),'ydata',M.points(:,2));
+
+    if(size(M.points,1)==1)
+        set(M.hp1,'xdata',M.points(1,1),'ydata',M.points(1,2));
+        set(M.hpN,'xdata',nan,'ydata',nan);
+        set(M.hp,'xdata',nan,'ydata',nan);
+    elseif(size(M.points,1)==2)
+        set(M.hp1,'xdata',M.points(1,1),'ydata',M.points(1,2));
+        set(M.hpN,'xdata',M.points(end,1),'ydata',M.points(end,2));
+        set(M.hp,'xdata',nan,'ydata',nan);
+    else
+        set(M.hp1,'xdata',M.points(1,1),'ydata',M.points(1,2));
+        set(M.hpN,'xdata',M.points(end,1),'ydata',M.points(end,2));
+        set(M.hp,'xdata',M.points(2:end-1,1),'ydata',M.points(2:end-1,2));
+    end
+    
 end
 
 if(isempty(M.midpoints))
@@ -217,6 +266,23 @@ rightclick = strcmpi(get(hfig,'SelectionType'),'alt');
 
 p=get(M.ax,'currentpoint');
 p=p(1,[1 2]);
+
+if(isequal(M.cursormode,'move'))
+    if(rightclick)
+        set(M.hmp,'visible','off');
+        delete(M.htag);
+        setappdata(hfig,'data',M);
+        roiline_update(hfig);
+    else
+        M.mousedown=true;
+
+        M.mousedown_pointidx=-1;
+        M.mousedown_initxy=p;
+        M.mousedown_points=M.points;
+        setappdata(hfig,'data',M);
+    end
+    return;
+end
 
 if(isequal(get(gcbo,'tag'),'roipoint'))
     D=distance(M.points.',p.');
@@ -288,15 +354,25 @@ end
 
 p=get(M.ax,'currentpoint');
 p=p(1,[1 2]);
-if(M.mousedown_pointidx > 0)
-    M.points(M.mousedown_pointidx,:)=p;
+
+if(isequal(M.cursormode,'move'))
+    d=p-M.mousedown_initxy;
+    M.points=bsxfun(@plus,M.mousedown_points,d);
     if(size(M.points,1)>1)
         M.midpoints=(M.points(1:end-1,:)+M.points(2:end,:))/2;
     else
         M.midpoints=[nan nan];
     end
+else
+    if(M.mousedown_pointidx > 0)
+        M.points(M.mousedown_pointidx,:)=p;
+        if(size(M.points,1)>1)
+            M.midpoints=(M.points(1:end-1,:)+M.points(2:end,:))/2;
+        else
+            M.midpoints=[nan nan];
+        end
+    end
 end
-
 setappdata(hfig,'data',M);
 roiline_update(hfig);
 
@@ -321,7 +397,22 @@ hfig=gcbf;
 M=getappdata(hfig,'data');
 switch eventdata.Key
     case 'escape'
+        M.midpoints=[];
+        M.cursormode='draw';
+        setappdata(hfig,'data',M);
+        roiline_update(hfig);
         M.points=[];
         setappdata(hfig,'data',M);
         delete(M.htag);
+    case 'm'
+        if(isequal(M.cursormode,'move'))
+            M.cursormode='draw';
+            set(hfig,'Pointer','arrow');
+        else
+            M.cursormode='move';
+            set(hfig,'Pointer','fleur');
+        end
+        setappdata(hfig,'data',M);
+        roiline_update(hfig);
+        
 end
