@@ -1,17 +1,26 @@
 function [surfslices,surfidx] = load_surface_slices(subjectid,datadir,surfname,surfsuffix)
 %[surfslices,surfidx] = load_surface_slices(subjectid,datadir,surfname,surfsuffix)
 
+do_savecache=false;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-epivolfile=sprintf('%s/freesurferalignment/T1alignedtoEPI.nii.gz',datadir);
+if(~isempty(datadir))
+    epivolfile=sprintf('%s/freesurferalignment/T1alignedtoEPI.nii.gz',datadir);
 
-%%%%%%%%% dont need to read in whole file for this!
-epivol=loadvol(epivolfile);
-episize=size(epivol);
+    %%%%%%%%% dont need to read in whole file for this!
+    epivol=loadvol(epivolfile);
+    episize=size(epivol);
 
 
-alignfile=sprintf('%s/freesurferalignment/alignment.mat',datadir);
-load(alignfile);
-
+    alignfile=sprintf('%s/freesurferalignment/alignment.mat',datadir);
+    load(alignfile);
+else
+    volfile=sprintf('%s/%s/mri/T1.nii.gz',cvnpath('freesurfer'),subjectid);
+    epivol=loadvol(volfile);
+    episize=size(epivol);
+    
+    tr=[];
+end
 if(~iscell(surfname))
     surfname={surfname};
 end
@@ -28,7 +37,7 @@ for s = 1:numel(surfname)
 
     surfslicefile=sprintf('%s/%s.mat',surfslicedir,fname);
 
-    if(~exist(surfslicedir,'dir'))
+    if(do_savecache && ~exist(surfslicedir,'dir'))
         mkdirquiet(surfslicedir);
     end
 
@@ -45,9 +54,11 @@ for s = 1:numel(surfname)
         [surfslices,vidx]=surface_slices(episize,epiverts,surfLR.faces);
         surfidx={};
         for i = 1:3
-            surfidx{i}=cellfun(@(x)((x<=surfLR.numvertsL)+1),vidx{i},'uniformoutput',false);
+            surfidx{i}=cellfun(@(x)(all(x<=surfLR.numvertsL,2)+1),vidx{i},'uniformoutput',false);
         end
-        save(surfslicefile,'surfslices','surfidx');
+        if(do_savecache)
+            save(surfslicefile,'surfslices','surfidx');
+        end
     end
     
 
@@ -87,9 +98,12 @@ surfLR.vertidxL=reshape(1:surfLR.numvertsL,[],1);
 surfLR.vertidxR=reshape((1:surfLR.numvertsR)+surfLR.numvertsL,[],1);
 surfLR.neighbors=vertex_neighbours(surfLR);
 
-
-epiverts4d = volumetoslices([surfLR.vertices ones(surfLR.numverts,1)].',tr);
-epiverts=epiverts4d(1:3,:)';
+if(~isempty(tr))
+    epiverts4d = volumetoslices([surfLR.vertices ones(surfLR.numverts,1)].',tr);
+    epiverts=epiverts4d(1:3,:)';
+else
+    epiverts=surfLR.vertices;
+end
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function voldata = loadvol(niifile)
