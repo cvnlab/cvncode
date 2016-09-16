@@ -302,41 +302,49 @@ figurewrite('runtrendstd',[],[],outputdir);
 
 if exist(tsnrfile,'file')  
 
-  % set these the same for all layers
-  xmx = prctile(flatten(double(M.data(logical(V.data)))),99.9);  % NOTE: only valid vertices
-  ymx = prctile(flatten(double(T.data(logical(V.data)))),99.9);
-  bxx = linspace(0,xmx,50);
-  byy = linspace(0,ymx,50);
+  todo = {{M 'Signal intensity' 'mean'} {H 'Bias-corrected intensity' 'homo'}};
+  for zz=1:length(todo)
+    X = todo{zz}{1};
+    label0 = todo{zz}{2};
+    file0 = todo{zz}{3};
 
-  % proceed
-  for pp=1:numlayers
-    figureprep([100 100 500 500]); hold on;
-    vv = logical(V.data(1,pp,:));  % NOTE: only valid vertices
-    xx = double(vflatten(M.data(1,pp,vv)));
-    yy = double(vflatten(T.data(1,pp,vv)));
-    zz = double(vflatten(H.data(1,pp,vv))) < 0.5;  % 1 means vein, 0 means not
-    n1 = hist2d(xx(zz),yy(zz),bxx,byy);     % count for the veins
-    n2 = hist2d(xx(~zz),yy(~zz),bxx,byy);   % count for the non-veins
-    [n,x,y] = hist2d(xx,yy,bxx,byy);
-    imagesc(x(1,:),y(:,1),log(n));
-    %scattersparse(xx,yy,3000,0,16,'r');
-    set(gca,'YDir','normal');
-    axis([0 xmx 0 ymx]);
-    caxis([0 log(max(n(:)))]);
-    colormap(jet(256));
-    straightline(median(xx),'v','r-');
-    straightline(median(yy),'h','r-');
-    xlabel('Signal intensity');
-    ylabel('tSNR');
-    title('2-D histogram (log of frequency)');
-      % add some dots
-    [ccx,ccy] = meshgrid(bxx,byy);
-    basicallyempty = (n1+n2) < 10;
-    ccx(basicallyempty) = NaN;
-    ccy(basicallyempty) = NaN;
-    scatter(ccx(:),ccy(:),16,cmaplookup(vflatten(n1./(n1+n2)),0,1,[],gray(256)),'filled');  % fraction that is vein
-      % finish up
-    figurewrite(sprintf('meanvstsnr_layer%d',pp),[],[],outputdir);
+    % set these the same for all layers
+    xmx = prctile(flatten(double(X.data(logical(V.data)))),99.9);  % NOTE: only valid vertices
+    ymx = prctile(flatten(double(T.data(logical(V.data)))),99.9);
+    bxx = linspace(0,xmx,50);
+    byy = linspace(0,ymx,50);
+
+    % proceed
+    for pp=1:numlayers
+      figureprep([100 100 500 500]); hold on;
+      vv = logical(V.data(1,pp,:));  % NOTE: only valid vertices
+      xx = double(vflatten(X.data(1,pp,vv)));
+      yy = double(vflatten(T.data(1,pp,vv)));
+      zz = double(vflatten(H.data(1,pp,vv))) < 0.5;  % 1 means vein, 0 means not
+      n1 = hist2d(xx(zz),yy(zz),bxx,byy);     % count for the veins
+      n2 = hist2d(xx(~zz),yy(~zz),bxx,byy);   % count for the non-veins
+      [n,x,y] = hist2d(xx,yy,bxx,byy);
+      imagesc(x(1,:),y(:,1),log(n));
+      %scattersparse(xx,yy,3000,0,16,'r');
+      set(gca,'YDir','normal');
+      axis([0 xmx 0 ymx]);
+      caxis([0 log(max(n(:)))]);
+      colormap(jet(256));
+      straightline(median(xx),'v','r-');
+      straightline(median(yy),'h','r-');
+      xlabel(label0);
+      ylabel('tSNR');
+      title('2-D histogram (log of frequency)');
+        % add some dots
+      [ccx,ccy] = meshgrid(bxx,byy);
+      basicallyempty = (n1+n2) < 10;
+      ccx(basicallyempty) = NaN;
+      ccy(basicallyempty) = NaN;
+      scatter(ccx(:),ccy(:),16,cmaplookup(vflatten(n1./(n1+n2)),0,1,[],gray(256)),'filled');  % fraction that is vein
+        % finish up
+      figurewrite(sprintf('%svstsnr_layer%d',file0,pp),[],[],outputdir);
+    end
+
   end
 
 end
