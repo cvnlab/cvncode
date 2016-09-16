@@ -335,12 +335,13 @@ if exist(tsnrfile,'file')
       xlabel(label0);
       ylabel('tSNR');
       title('2-D histogram (log of frequency)');
-        % add some dots
-      [ccx,ccy] = meshgrid(bxx,byy);
-      basicallyempty = (n1+n2) < 10;
-      ccx(basicallyempty) = NaN;
-      ccy(basicallyempty) = NaN;
-      scatter(ccx(:),ccy(:),16,cmaplookup(vflatten(n1./(n1+n2)),0,1,[],gray(256)),'filled');  % fraction that is vein
+% MAYBE WE DON'T WANT THESE:
+%         % add some dots
+%       [ccx,ccy] = meshgrid(bxx,byy);
+%       basicallyempty = (n1+n2) < 10;
+%       ccx(basicallyempty) = NaN;
+%       ccy(basicallyempty) = NaN;
+%       scatter(ccx(:),ccy(:),16,cmaplookup(vflatten(n1./(n1+n2)),0,1,[],gray(256)),'filled');  % fraction that is vein
         % finish up
       figurewrite(sprintf('%svstsnr_layer%d',file0,pp),[],[],outputdir);
     end
