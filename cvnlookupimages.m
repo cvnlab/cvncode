@@ -106,15 +106,17 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 %   roiname:        label name (or cell array) for ROI(s) to draw on final RGB image
 %                   Looks for label file in <subjectsdir>/<subject>/label:
 %                   <hemi>[surfsuffix].<roiname>.label
-%   roimask:        Vx1 binary mask (or cell array) for an ROI to draw on 
-%                   final RGB image
+%   roimask:        Vx1 binary mask (or cell array for multiple ROIs) for an ROI to draw on 
+%                   final RGB image.  If input data contains both
+%                   hemispheres, roimask should be (numlh+numrh)x1, or a
+%                   cell array of (numlh+numrh)x1 masks for multiple ROIs.
 %   roicolor:       ColorSpec or RGB color for ROI outline(s) 
 %                   'y','m','c','r','g','b','w','k' OR
 %                   [r g b] from 0-1
 %                   default = [0 0 0] (black)
 %                   Can also be either Nx3 or a cell array of N [1x3] to 
 %                   specify different colors for each ROI
-%   roiwidth:       Line with of ROI outline(s). default=.5
+%   roiwidth:       Line width of ROI outline(s). default=.5
 %   
 %
 % Mosaic/multiple map options: If input contains more than one map
