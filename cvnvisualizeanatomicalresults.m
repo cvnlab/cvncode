@@ -128,11 +128,17 @@ for zz=1:length(allviews)
   writefun(cvnloadmgz(sprintf('%s/surf/*.sulcDENSETRUNC%s.mgz',fsdir,fstruncate)) < 0, ...
     sprintf('sulc.png'),        'gray',     [-1 2],[],[]);
 
-  % Kastner atlas stuff
-  writefun(cvnloadmgz(sprintf('%s/surf/*.Kastner2015Labels*DENSETRUNC%s.mgz',fsdir,fstruncate)), ...
+  % Kastner atlas stuff (without names)
+  [roiimg,~,rgbimg]=writefun(cvnloadmgz(sprintf('%s/surf/*.Kastner2015Labels*DENSETRUNC%s.mgz',fsdir,fstruncate)), ...
     sprintf('kastner.png'),     'jet',      [0 25],     0.5,0.85);
 
-  % FreeSurfer aparc [see one-offs/freesurfer aparc colormap]
+  % Kastner atlas stuff (with names)
+  [~,roinames,~]=cvnroimask(subjectid,hemis,'Kastner*',[],sprintf('DENSETRUNC%s',fstruncate),'cell');
+  roinames=regexprep(roinames{1},'@.+','');
+  rgbimg=drawroinames(roiimg,rgbimg,L,1:numel(roinames),cleantext(roinames));
+  imwrite(rgbimg,sprintf('%s/%s',outputdir,'kastner_names.png'));
+ 
+  % FreeSurfer aparc (without names) [see one-offs/freesurfer aparc colormap]
   fsconstants;
   vals = [];
   for p=1:length(hemis)  % NOTE: must be hemis (same LH first convention)
@@ -143,8 +149,12 @@ for zz=1:length(allviews)
     roimask(bad) = 0;     % 0 is preserved. other entries are indices relative to fscolortable.
     vals = [vals; roimask(:)];
   end
-  writefun(vals, ...
+  [roiimg,~,rgbimg]=writefun(vals, ...
     sprintf('aparc.png'),     jet(36),      [0.5 36.5], 0.5,0.85);
+
+  % FreeSurfer aparc (with names)
+  rgbimg=drawroinames(roiimg,rgbimg,L,1:numel(fslabels),cleantext(fslabels));
+  imwrite(rgbimg,sprintf('%s/%s',outputdir,'aparc_names.png'));
 
 end
 
