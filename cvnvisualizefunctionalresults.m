@@ -11,7 +11,7 @@ function cvnvisualizefunctionalresults(subjectid,numlayers,layerprefix,fstruncat
 %
 % For a number of different views, write out figures showing a variety of quantities related
 % to the functional dataset in <ppdir>. These figures pertain to raw and bias-corrected
-% signal intensities, the 'valid' vertices, the 'dark' (<.5) vertices, and tSNR.
+% signal intensities, the 'valid' vertices, the 'dark' (<.5) vertices, mad, and tSNR.
 
 %%%%%%%%% setup
 
@@ -46,9 +46,11 @@ P = load(sprintf('%s/polyfit%02d.mat',ppdir,polydeg));
 % load in mean intensities
 M = load(sprintf('%s/mean.mat',ppdir));
 
-% load in tSNR
+% load in mad and tSNR
+madfile  = sprintf('%s/mad.mat',ppdir);
 tsnrfile = sprintf('%s/tsnr.mat',ppdir);
-if exist(tsnrfile,'file')  % some sessions don't have this...  so we omit that figure in these cases...
+if exist(madfile,'file') && exist(tsnrfile,'file')  % some sessions don't have this...  so we omit that figure in these cases...
+  D = load(madfile);
   T = load(tsnrfile);
 end
 
@@ -147,9 +149,11 @@ for zz=1:length(allviews)
       sprintf('valid_layer%d.png',pp),'gray',[0 1],[],[]);
   end
 
-  % tsnr for each layer
-  if exist(tsnrfile,'file')  
+  % mad and tsnr for each layer
+  if exist(madfile,'file') && exist(tsnrfile,'file')
     for pp=1:numlayers
+      writefun(double(vflatten(D.data(1,pp,:))), ...
+        sprintf('mad_layer%d.png',pp), 'hot',[0 epimx*(1/20)],[],[]);
       writefun(double(vflatten(T.data(1,pp,:))), ...
         sprintf('tsnr_layer%d.png',pp),'jet',[0 10],[],[]);
     end
