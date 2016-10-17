@@ -94,16 +94,14 @@ for s = 1:numel(suffixes)
 
     labelfiles={};
 
-    w=warning('off');
     [~,~,ext]=fileparts(roifile);
     if(ismember(ext,labelext))
-        labelfiles=matchfiles(labelname);
+        labelfiles=fullfilematch(labelname);
     else
         for le = 1:numel(labelext)
-            labelfiles=[labelfiles matchfiles([labelname labelext{le}])];
+            labelfiles=[labelfiles fullfilematch([labelname labelext{le}])];
         end
     end
-    warning(w);
     
     
     [sourceN,lookup,valid]=cvnlookupvertex(subject,hemi,suffix,destsuffix);

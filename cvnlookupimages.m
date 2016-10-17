@@ -722,7 +722,7 @@ if(~isempty(options.roiname))
     roimask={};
     roilist_idx=[];
     for i = 1:numel(options.roiname)
-        [roimasktmp roiname roirgbtmp]=cvnroimask(subject,hemi,options.roiname{i},[],options.inputsuffix);
+        [roimasktmp, roiname, roirgbtmp]=cvnroimask(subject,hemi,options.roiname{i},[],options.inputsuffix);
         roimask=[roimask roimasktmp];
         roirgb=[roirgb roirgbtmp];
         roilist_idx=[roilist_idx i*ones(1,numel(roimasktmp))];

@@ -17,8 +17,7 @@ function [rgbimg, alphaimg] = drawroinames(roiimg,rgbimg,Lookup,roivals,roinames
 % rgbimg:     MxNx3 RGB image with names added
 %
 %Examples:
-%
-%[~,roinames,~]=cvnroimask(subject,'lh','Kastner*',[],surfsuffix,'cell');
+%[~,roinames,~]=cvnroimask(subject,'lh','Kastner*',[],surfsuffix);
 %roinames=regexprep(roinames,'@.+','');
 % [img,Lookup,rgbimg]=cvnlookupimages(subject,valstruct,hemis,viewpt,...);
 % rgbimg2 = drawroinames(img,rgbimg,Lookup,1:numel(roinames),roinames);
@@ -41,7 +40,7 @@ textargs0={'color','w','backgroundcolor','k',...
         
 textbgalpha=.5;
 if(any(strcmpi(textargs,'alpha')))
-    aidx=find(strcmpi(textargs,'alpha'),1,'first');
+    aidx=find(strcmpi(textargs,'alpha'),1,'last');
     textbgalpha=min(1,max(0,textargs{aidx+1}));
     textargs=textargs(setdiff(1:numel(textargs),[aidx aidx+1]));
 end
