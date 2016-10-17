@@ -15,7 +15,7 @@ files = matchfiles(files);
 % load all data
 data = single([]);
 for p=1:length(files)
-  data = cat(4,data,single(getfield(load_untouch_nii(files{p}),'img')));
+  data = cat(4,data,single(getfield(load_untouch_nii(gunziptemp(files{p})),'img')));
 end
 
 % write the movie out
