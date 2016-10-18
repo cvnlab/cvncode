@@ -3,12 +3,12 @@ function files = fullfilematch(filestrings,case_sensitive)
 %
 %Find files with wildcard matching.  Returns a cell array of file paths.
 %eg: 
-%> files=fullfilematch('~/somedir/*.mat')
+%> files=fullfilematch('~/somedir*/*.mat')
 %A = 
 %
 %    '~/somedir/run1.mat'
-%    '~/somedir/run2.mat'
-%    '~/somedir/run3.mat'
+%    '~/somedirA/run2.mat'
+%    '~/somedirB/run3.mat'
 
 if(nargin < 2)
     case_sensitive = true;
@@ -31,6 +31,44 @@ if(~iscell(filestrings))
     filestrings = {filestrings};
 end
 
+if(isequal(filesep,'\'))
+    fsep='[/\\]'; 
+else
+    fsep=filesep;
+end
+
+filestrings0={};
+for f = 1:numel(filestrings)
+    filestr = filestrings{f};
+    if(isdir(filestr))
+        files_tmp = {filestr};
+    else
+        fparts=regexp(filestr,fsep,'split');
+
+        if(~isempty(regexp(filestr(1),fsep))) %#ok<RGXP1>
+            files_tmp={'/'};
+        else
+            files_tmp={''};
+        end
+        for p = 1:numel(fparts)-1
+            if(isempty(fparts{p}))
+                continue;
+            end
+            if(any(ismember(fparts{p},'*?')))
+                files_tmp=fullfilematch(strcat(files_tmp,fparts{p}));
+            else
+                files_tmp=strcat(files_tmp,fparts{p});
+            end
+            files_tmp=strcat(files_tmp,'/');
+        end
+        files_tmp=files_tmp(cellfun(@isdir,files_tmp));
+        files_tmp=strcat(files_tmp,fparts{end});
+        
+    end
+    filestrings0=[filestrings0; files_tmp(:)];
+end
+filestrings=filestrings0;
+
 files = {};
 for f = 1:numel(filestrings)
     filestr = filestrings{f};
@@ -39,6 +77,7 @@ for f = 1:numel(filestrings)
     else
         [filedir,fpattern,fext] = fileparts(filestr);
         fpattern = strrep([fpattern fext],'*','.*');
+        fpattern = strrep(fpattern,'?','.');
         fpattern = strrep(fpattern,'(','\(');
         fpattern = strrep(fpattern,')','\)');
         fpattern = ['^' fpattern '$'];
@@ -47,7 +86,10 @@ for f = 1:numel(filestrings)
         filestruct = dir(filedir);
         if(numel(filestruct) == 1 && filestruct(1).isdir)
             [filedir2,~,~] = fileparts(filedir);
-            filedir = strcat([filedir2 '/'],filestruct(1).name);
+            if(filedir2(end)~='/')
+                filedir2=[filedir2 '/'];
+            end
+            filedir = strcat(filedir2,filestruct(1).name);
             if(~isdir(filedir))
                 continue;
             end
@@ -67,7 +109,10 @@ for f = 1:numel(filestrings)
             if(isempty(filenames))
                 files_tmp = [];
             else
-                files_tmp = strcat([filedir '/'],filenames);
+                if(filedir(end)~='/')
+                    filedir=[filedir '/'];
+                end
+                files_tmp = strcat(filedir,filenames);
                 files_tmp = files_tmp(:);
             end
         end
