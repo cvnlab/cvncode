@@ -5,7 +5,7 @@ function cvnwritemgz(subjectid,name,vals,hemi,outputdir)
 % <subjectid> is like 'C0041' (can be 'fsaverage')
 % <name> is a string
 % <vals> is a vector of values for the surface
-% <hemi> is 'lh' or 'rh'
+% <hemi> is 'lh' or 'rh' or with some extension like 'lhDENSETRUNCpt'
 % <outputdir> (optional) is the directory to write the file to.
 %   Default is cvnpath('freesurfer')/<subjectid>/surf/
 %
@@ -22,9 +22,9 @@ if ~exist('outputdir','var') || isempty(outputdir)
 end
 
 % load template
-file0 = sprintf('%s/surf/%s.w-g.pct.mgh',fsdir,hemi);
+file0 = sprintf('%s/surf/%s.w-g.pct.mgh',fsdir,hemi(1:2));
 if ~exist(file0,'file')  % fsaverage doesn't have the above file, so let's use this one:
-  file0 = sprintf('%s/surf/%s.orig.avg.area.mgh',fsdir,hemi);
+  file0 = sprintf('%s/surf/%s.orig.avg.area.mgh',fsdir,hemi(1:2));
 end
 fsmgh = MRIread(file0);
 
