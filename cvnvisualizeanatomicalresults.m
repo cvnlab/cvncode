@@ -156,6 +156,28 @@ for zz=1:length(allviews)
   rgbimg=drawroinames(roiimg,rgbimg,L,1:numel(fslabels),cleantext(fslabels));
   imwrite(rgbimg,sprintf('%s/%s',outputdir,'aparc_names.png'));
 
+  %%%%% T1/T2/FMAP stuff:
+
+  % calc
+  infilenames =  [cellfun(@(x) sprintf('layer%s%d',layerprefix,x),num2cell(1:numlayers),'UniformOutput',0) {'white' 'pial'}];
+  outfilenames = [cellfun(@(x) sprintf('layer%d',x),num2cell(1:numlayers),'UniformOutput',0) {sprintf('layer%d',numlayers+1) 'layer0'}];
+
+  % process quantities for each layer
+  todos = {'T1' 'T2' 'FMAP'};
+  for q=1:length(todos)
+    for p=1:length(infilenames)
+      file0 = matchfiles(sprintf('%s/surf/*.%s_%s_DENSETRUNC%s.mgz',fsdir,todos{q},infilenames{p},fstruncate));
+      if isempty(file0)
+        continue;
+      end
+      temp = cvnloadmgz(file0);
+      if p==1
+        rng = [0 mean(temp)*3];  % WEIRD HEURISTIC!
+      end
+      writefun(temp,sprintf('%s_%s.png',todos{q},outfilenames{p}),'gray',rng,[],[]);
+    end
+  end
+
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
