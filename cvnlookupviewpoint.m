@@ -24,7 +24,7 @@ function [viewpt fliphemi] = cvnlookupviewpoint(subject,hemi,viewname,surftype)
 
 fliphemi=false;
 
-if(isequal(surftype,'sphere'))
+if(isequal(surftype,'sphere') || isequal(surftype,'sphere.reg'))
     switch(viewname)
         case 'occip'
             viewpt_LR = {[10 -40 0],[-10 -40 0]};
