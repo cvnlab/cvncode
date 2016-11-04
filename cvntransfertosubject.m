@@ -1,6 +1,6 @@
 function f = cvntransfertosubject(sourcesubject,destsubject,vals,hemi,interptype,sourcesuffix,destsuffix)
 
-% function f = cvntransfertosubject(subjectid,vals,hemi,interptype,surftype)
+% function f = cvntransfertosubject(sourcesubject,destsubject,vals,hemi,interptype,sourcesuffix,destsuffix)
 %
 % <sourcesubject> is like 'C0041'
 % <destsubject> is like 'CVNS005' or 'fsaverage'
