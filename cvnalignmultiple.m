@@ -115,17 +115,53 @@ end
 % average
 meanvol = mean(vols,4);
 
+%%%%% some visualizations
+
 % inspect it
 makeimagestack3dfiles(meanvol,sprintf('%s/%sfigures/volavg',pp0,outputprefix),skips,rots,[],1);
+
+% finally, write out residual images
+if size(vols,4) ~= 1  % IGNORE DEGENERATE CASE
+  mx = prctile(flatten(abs(bsxfun(@minus,vols,meanvol))),99);
+  for p=1:size(vols,4)
+    makeimagestack3dfiles(vols(:,:,:,p)-meanvol,sprintf('%s/%sfigures/resid%03d',pp0,outputprefix,p), ...
+                          skips,rots,cmapsign4(256),[-mx mx]);
+  end
+end
+
+% NO LONGER WANT:
+% %%%%% some finishing touches
+% 
+% % SPECIAL PROCESSING
+% if ismember(class(vol1.img),{'single' 'double'})
+%   fprintf('performing special processing.\n');
+% 
+%   % scale such that max is 30000
+%   mx = max(meanvol(:));   fprintf('max is %.2f\n',mx);
+%   fct = 30000/mx;         fprintf('applying scale factor of %.2f\n',fct);
+%   meanvol = meanvol*fct;
+%   
+%   % check 0.8-mm isotropic
+%   if ~isequal(round(vol1.hdr.dime.pixdim(2:4)*1000),[800 800 800])
+%     fprintf('UNEXPECTED');
+%     keyboard;
+%   end
+%   
+%   % pad to 320 x 320 x 320 matrix size
+%   padnum = [];
+%   for dim=1:3
+%     padnum(dim) = (320-size(meanvol,dim))/2;
+%   end
+%   assert(all(isint(padnum)));
+%   meanvol = padarray(meanvol,padnum,0,'both');
+%   assert(isequal(size(meanvol),[320 320 320]));
+%   
+%   % massage headers
+%   vol1.hdr.dime.dim(2:4) = [320 320 320];  % NOTE: this editing may not be sufficient, but we'll see...
+% 
+% end
 
 % save NIFTI file as output
 vol1.img = cast(meanvol,class(vol1.img));
 file0 = sprintf('%s/%s.nii',dir0,outputprefix);
 save_untouch_nii(vol1,file0); gzip(file0); delete(file0);
-
-% finally, write out residual images
-mx = prctile(flatten(abs(bsxfun(@minus,vols,meanvol))),99);
-for p=1:size(vols,4)
-  makeimagestack3dfiles(vols(:,:,:,p)-meanvol,sprintf('%s/%sfigures/resid%03d',pp0,outputprefix,p), ...
-                        skips,rots,cmapsign4(256),[-mx mx]);
-end
