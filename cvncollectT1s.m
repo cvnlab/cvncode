@@ -1,6 +1,6 @@
-function files = cvncollectT1s(subjectid,dataloc,gradfile,str0)
+function files = cvncollectT1s(subjectid,dataloc,gradfile,str0,wantskip)
 
-% function files = cvncollectT1s(subjectid,dataloc,gradfile,str0)
+% function files = cvncollectT1s(subjectid,dataloc,gradfile,str0,wantskip)
 %
 % <subjectid> is like 'C0001'
 % <dataloc> is a scan directory like '/home/stone-ext1/fmridata/20151014-ST001-wynn,subject1'
@@ -8,12 +8,16 @@ function files = cvncollectT1s(subjectid,dataloc,gradfile,str0)
 % <gradfile> (optional) is gradunwarp's scanner or coeff file (e.g. 'prisma').
 %   Default is [] which means do not perform gradunwarp.
 % <str0> (optional) is the filename match thing. Default: 'T1w'.
+% <wantskip> (optional) is whether to treat as pairs and use the second of each pair.
+%   (The idea is that the second of each pair might be homogeneity-corrected.)
+%   Default: 1.
 %
 % Within the specified scan directories (in the order as given), 
-% find all of the T1 (or whatever) DICOM directories, ignoring the 1st of each 
-% pair and keeping the 2nd of each pair. Then convert these DICOM directories
-% to NIFTI files.  If <gradfile> is specified, we additionally
-% run fslreorient2std and gradunwarp.
+% find all of the T1 (or whatever) DICOM directories, and if <wantskip>,
+% ignoring the 1st of each pair and keeping the 2nd of each pair.
+% Then convert these DICOM directories to NIFTI files.  
+% If <gradfile> is specified, we additionally run fslreorient2std
+% and gradunwarp.
 %
 % We return a cell vector of the final NIFTI filenames,
 % preserving the order. Note that filenames will be different
@@ -23,6 +27,7 @@ function files = cvncollectT1s(subjectid,dataloc,gradfile,str0)
 % Turn on matlabpool before calling for speed-ups!
 %
 % history:
+% - 2016/10/31 - add <wantskip>
 % - 2016/06/03 - add <str0> input; load from the dicom directory
 % - 2016/05/29 - add support for <gradfile>
 
@@ -32,6 +37,9 @@ if ~exist('gradfile','var') || isempty(gradfile)
 end
 if ~exist('str0','var') || isempty(str0)
   str0 = 'T1w';
+end
+if ~exist('wantskip','var') || isempty(wantskip)
+  wantskip = 1;
 end
 
 % calc
@@ -51,8 +59,10 @@ for p=1:length(dataloc)
 
   % match the files
   t1files0 = matchfiles(sprintf('%s/dicom/*%s*',dataloc{p},str0));
-  assert(mod(length(t1files0),2)==0);
-  t1files0 = t1files0(2:2:end);   % [hint: 2nd of each pair is the one that is homogenity-corrected]
+  if wantskip
+    assert(mod(length(t1files0),2)==0);
+    t1files0 = t1files0(2:2:end);   % [hint: 2nd of each pair is the one that is homogenity-corrected]
+  end
   
   % collect them up
   t1files = [t1files t1files0];
