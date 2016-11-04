@@ -678,9 +678,8 @@ if(~isempty(options.overlayalpha) || ~isempty(options.threshold) || ...
 
     elseif(ischar(options.background))
         %background was a string directing us to a freesurfer overlay
-        curvfile=sprintf('%s/%s%s.%s',surfdir,hemi,options.surfsuffix_file,options.background);
-        if(exist(curvfile,'file')>0)
-            [curv,~]=read_curv(curvfile);
+        curv=cvnreadsurfacemetric(subject,hemi,options.background,'',options.surfsuffix,'surfdir',surfdir);
+        if(~isempty(curv))
             if(isequal(options.background,'curv'))
                 curv=curv<0;
             elseif(isequal(options.background,'sulc'))
@@ -688,7 +687,8 @@ if(~isempty(options.overlayalpha) || ~isempty(options.threshold) || ...
             end
             mappedcurv=curv(Lookup.imglookup);
         else
-            mappedcurv=rgboptions.background;
+            %mappedcurv=rgboptions.background;
+            mappedcurv=zeros(size(Lookup.imglookup));
         end
     else
         mappedcurv=rgboptions.background;

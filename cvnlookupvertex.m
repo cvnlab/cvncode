@@ -15,17 +15,18 @@ function [destvals, lookupidx, validmask, sourcesuffix] = cvnlookupvertex(surfdi
 %   surfdir_or_subject: Either a directory where surfaces are found, or the
 %                         freesurfer subject ID
 %   hemi:               lh or rh
-%   sourcesuffix:       DENSE|DENSETRUNCpt|orig ("orig"=<hemi>.sphere)
+%   sourcesuffix:       DENSE|DENSETRUNCpt|orig|fsaverage|fsaverageDENSE ("orig"=<hemi>.sphere)
 %                         N=#vertices in source surface
-%   destsuffix:         DENSE|DENSETRUNCpt|orig ("orig"=<hemi>.sphere)
+%   destsuffix:         DENSE|DENSETRUNCpt|orig|fsaverage|fsaverageDENSE ("orig"=<hemi>.sphere)
 %                         M=#vertices in destination surface
 %   sourcevals:         NxT values to be transferred to new surface
 %                         (default=[], only compute lookupidx and validmask)
+%                         (can also be a =struct('data',<L+R>xT,'numlh',L,'numrh',R)
 %   badval:             Value to place in destvals for destination vertices 
 %                         without matching source vertices (default=nan)
 %
 % Outputs:
-%   destvals:           MxT mapped values on destination surface vertices
+%   destvals:           MxT mapped values on destination surface vertices (or valstruct)
 %   lookupidx:          Mx1 indices used for transferring 
 %   validmask:          Mx1 logical mask for dest vertices with no mapped
 %                         source vertex (false=no value for a given dest vertex)
@@ -34,6 +35,7 @@ function [destvals, lookupidx, validmask, sourcesuffix] = cvnlookupvertex(surfdi
 %
 
 % Update KJ 1-26-2015: Add automatic detection of source type (based on size(vals))
+% Update KJ 11-2-2016: Add fsaverage options and valstruct input options
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if(~exist('sourcevals','var') || isempty(sourcevals))
@@ -44,6 +46,72 @@ if(~exist('badval','var') || isempty(badval))
     badval=nan;
 end
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% if input was valstruct with both hemis
+if(isstruct(sourcevals) && isfield(sourcevals,'numlh'))
+    hemis={'lh','rh'};
+    
+    hdestvals={};
+    hlookupidx={};
+    hvalidmask={};
+    hsourcesuffix={};
+    
+    for h = 1:numel(hemis)
+        if(isempty(sourcevals.data))
+            vals=[];
+        else
+            if(isequal(hemis{h},'lh'))
+                vals=sourcevals.data(1:sourcevals.numlh,:);
+            else
+                vals=sourcevals.data(sourcevals.numlh+(1:sourcevals.numrh),:);
+            end
+        end
+        [hdestvals{h}, hlookupidx{h}, hvalidmask{h}, hsourcesuffix{h}]=cvnlookupvertex(surfdir_or_subject,hemis{h},sourcesuffix,destsuffix,vals,badval);
+    end
+    if(isempty(sourcevals.data))
+        numlh=hdestvals{1};
+        numrh=hdestvals{2};
+        destvals=struct('data',[],'numlh',numlh,'numrh',numrh);
+    else
+        numlh=size(hdestvals{1},1);
+        numrh=size(hdestvals{2},1);
+        destvals=struct('data',cat(1,hdestvals{:}),'numlh',numlh,'numrh',numrh);
+    end
+    lookupidx=hlookupidx;
+    validmask=cat(1,hvalidmask{:});
+    sourcesuffix=hsourcesuffix{1};
+    
+    return;
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% fsaverage transformations to/from non-matching mesh types
+midsuffix='';
+if(isequal(sourcesuffix,'fsaverage') && ~isequal(destsuffix,'orig'))
+    midsuffix='orig';
+elseif(isequal(destsuffix,'fsaverage') && ~isequal(sourcesuffix,'orig'))
+    midsuffix='orig';
+elseif(isequal(sourcesuffix,'fsaverageDENSE') && ~isequal(destsuffix,'DENSE'))
+    midsuffix='DENSE';
+elseif(isequal(destsuffix,'fsaverageDENSE') && ~isequal(sourcesuffix,'DENSE'))
+    midsuffix='DENSE';
+end
+
+if(~isempty(midsuffix))
+    [destvals1,lookupidx1,validmask1,sourcesuffix1]=cvnlookupvertex(surfdir_or_subject,hemi,sourcesuffix,midsuffix,sourcevals,badval);
+    [destvals2,lookupidx2,validmask2,sourcesuffix2]=cvnlookupvertex(surfdir_or_subject,hemi,midsuffix,destsuffix,destvals1,badval);
+    destvals=destvals2;
+    lookupidx=lookupidx1(lookupidx2);
+    validmask=validmask1(lookupidx2(validmask2));
+    sourcesuffix=sourcesuffix1;
+    return;
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 surfdir=[];
 if(ischar(surfdir_or_subject) && sum(surfdir_or_subject=='/' | surfdir_or_subject=='\')==0)
@@ -87,15 +155,36 @@ end
 %%%%%%%%%%%%
 sourcesuffix_file=sourcesuffix;
 destsuffix_file=destsuffix;
-if(isequal(sourcesuffix,'orig'))
-    sourcesuffix_file='';
-end
-if(isequal(destsuffix,'orig'))
-    destsuffix_file='';
+
+sourcesurfdir=surfdir;
+destsurfdir=surfdir;
+
+
+switch sourcesuffix
+    case 'orig'
+        sourcesuffix_file='';
+    case 'fsaverage'
+        sourcesuffix_file='.reg';
+        sourcesurfdir=sprintf('%s/%s/surf',freesurfdir,'fsaverage');
+    case 'fsaverageDENSE'
+        sourcesuffix_file='.regDENSE';
+        sourcesurfdir=sprintf('%s/%s/surf',freesurfdir,'fsaverage');
 end
 
-sourcesurf=sprintf('%s/%s.sphere%s',surfdir,hemi,sourcesuffix_file);
-destsurf=sprintf('%s/%s.sphere%s',surfdir,hemi,destsuffix_file);
+switch destsuffix
+    case 'orig'
+        destsuffix_file='';
+    case 'fsaverage'
+        destsuffix_file='.reg';
+        destsurfdir=sprintf('%s/%s/surf',freesurfdir,'fsaverage');
+    case 'fsaverageDENSE'
+        destsuffix_file='.regDENSE';
+        destsurfdir=sprintf('%s/%s/surf',freesurfdir,'fsaverage');
+end
+
+
+sourcesurf=sprintf('%s/%s.sphere%s',sourcesurfdir,hemi,sourcesuffix_file);
+destsurf=sprintf('%s/%s.sphere%s',destsurfdir,hemi,destsuffix_file);
 
 sourceN=freesurfer_read_surf_kj(sourcesurf,'justcount',true);
 destN=freesurfer_read_surf_kj(destsurf,'justcount',true);
@@ -119,6 +208,7 @@ sourcetype=regexprep(sourcesuffix,'^DENSETRUNC.+','DENSETRUNC');
 
 
 switch [sourcetype '-' desttype]
+
     case 'DENSETRUNC-DENSE'
         truncfile=sprintf('%s/%s.%s.mat',surfdir,hemi,sourcesuffix_file);
         assert(exist(truncfile,'file')>0);
@@ -173,6 +263,39 @@ switch [sourcetype '-' desttype]
 
         validmask=false(destN,1);
         validmask(dest2source)=true;
+        
+    %%
+    %%%%%%%%%%%%%%%%%%%%%%%%%
+    % fsaverage transfers
+    case 'DENSE-fsaverageDENSE'
+        avgfile=sprintf('%s/%s.DENSE_to_fsaverageDENSE.mat',sourcesurfdir,hemi);
+        assert(exist(avgfile,'file')>0);
+        vertmap=load(avgfile); %this is fsaverageDENSE=DENSE(validix)
+
+        lookupidx=vertmap.validix;
+        
+    case 'fsaverageDENSE-DENSE'
+        avgfile=sprintf('%s/%s.fsaverageDENSE_to_DENSE.mat',destsurfdir,hemi);
+        assert(exist(avgfile,'file')>0);
+        vertmap=load(avgfile); %this is DENSE=fsaverageDENSE(validix)
+        lookupidx=vertmap.validix;
+        
+    case 'orig-fsaverage'
+        avgfile=sprintf('%s/%s.orig_to_fsaverage.mat',sourcesurfdir,hemi);
+        assert(exist(avgfile,'file')>0);
+        vertmap=load(avgfile); %this is fsaverage=orig(validix)
+
+        lookupidx=vertmap.validix;
+        
+    case 'fsaverage-orig'
+        avgfile=sprintf('%s/%s.fsaverage_to_orig.mat',destsurfdir,hemi);
+        assert(exist(avgfile,'file')>0);
+        vertmap=load(avgfile); %this is orig=fsaverage(validix)
+        lookupidx=vertmap.validix;
+       
+        
+    otherwise
+
 end
 
 destvals=[];

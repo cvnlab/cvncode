@@ -12,7 +12,7 @@ function f = cvntransfertodense(subjectid,vals,hemi,interptype,surftype)
 %
 % Hm: only 'nearest' works.
 
-if(~exist('surftype','var') || isempty('surftype'))
+if(~exist('surftype','var') || isempty(surftype))
     surftype='sphere';
 end
 
