@@ -33,6 +33,7 @@ function cvnmakelayers(subjectid,layerdepths,layerprefix,fstruncate)
 %  lh.sapv_sphere_DENSETRUNCpt.mgz
 %
 % history:
+% - 2016/11/04 - added transfer functions for the fsaverage dense surfaces
 % - 2016/04/29 - add saving of sulc, sapv, and ael; start using unix_wrapper
 
 % calc
@@ -71,7 +72,7 @@ parfor ii=1:2*length(surfs)
   unix_wrapper(sprintf('mris_mesh_subdivide --surf %s/surf/%s.%s --out %s/surf/%s.%sDENSE --method linear --iter 1',fsdir,hemis{q},surfs{p},fsdir,hemis{q},surfs{p}));
 end
 
-%%%%%%%%%% calculate some transfer functions for the dense surfaces
+%%%%%%%%%% calculate some transfer functions for the dense surfaces [VERSION 1 (to standard fsaverage)]
 
 % calc
 [tfunFSSSlh,tfunFSSSrh,tfunSSFSlh,tfunSSFSrh] = ...
@@ -82,6 +83,22 @@ end
 
 % save
 save(sprintf('%s/tfunDENSE.mat',dir0),'tfunFSSSlh','tfunFSSSrh','tfunSSFSlh','tfunSSFSrh');
+
+%%%%%%%%%% calculate some transfer functions for the dense surfaces [VERSION 2 (to dense fsaverage)]
+
+% calc
+[tfunFSSSlh,tfunFSSSrh,tfunSSFSlh,tfunSSFSrh] = ...
+  cvncalctransferfunctions(sprintf('%s/surf/lh.sphere.regDENSE',fsdirAVG), ...
+                           sprintf('%s/surf/rh.sphere.regDENSE',fsdirAVG), ...
+                           sprintf('%s/surf/lh.sphere.regDENSE',fsdir), ...
+                           sprintf('%s/surf/rh.sphere.regDENSE',fsdir));
+
+% save
+save(sprintf('%s/tfunDENSEDENSE.mat',dir0),'tfunFSSSlh','tfunFSSSrh','tfunSSFSlh','tfunSSFSrh');
+
+%%%%%%%%%% revive the first version!!
+
+load(sprintf('%s/tfunDENSE.mat',dir0));
 
 %%%%%%%%%% truncate the dense surfaces based on the lh.<fstruncate> and rh.<fstruncate> fsaverage surfaces
 
