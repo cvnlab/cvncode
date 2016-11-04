@@ -32,6 +32,7 @@ function cvnalignEPItoT2(subjectid,outputdir,meanfunctional,mcmask,wantaffine,tr
 %   (and saved using the mean functional as a template).
 %
 % history:
+% - 2016/11/04 - round mn and sd to 6 significant digits
 % - 2016/09/02 - implement wantmanual; fix the gzipping
 
 % input
@@ -79,7 +80,7 @@ fprintf('vol2 has dimensions %s at %s mm.\n',mat2str(size(vol2)),mat2str(vol2siz
 % manually define ellipse to be used in the auto alignment
 if isempty(mcmask)
   [f,mn,sd] = defineellipse3d(vol2);
-  mcmask = {mn sd};
+  mcmask = {eval(mat2str(mn,6)) eval(mat2str(sd,6))};
   fprintf('mcmask = %s;\n',cell2str(mcmask));
 else
   mn = mcmask{1};
