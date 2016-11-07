@@ -102,6 +102,7 @@ fpos([3 4])=exportheight;
 set(gcf,'position',fpos);
 %axis off tight;
 axis off;
+axis manual; %don't allow any more automatic axis resizing
 
 vmin=min(viewvert,[],1);
 vmax=max(viewvert,[],1);
