@@ -15,9 +15,11 @@ function [destvals, lookupidx, validmask, sourcesuffix] = cvnlookupvertex(surfdi
 %   surfdir_or_subject: Either a directory where surfaces are found, or the
 %                         freesurfer subject ID
 %   hemi:               lh or rh
-%   sourcesuffix:       DENSE|DENSETRUNCpt|orig|fsaverage|fsaverageDENSE ("orig"=<hemi>.sphere)
+%   sourcesuffix:       DENSE|DENSETRUNCpt|orig|fsaverage|fsaverageDENSE|fsaverageDENSETRUNCpt
+%                         ("orig"=<hemi>.sphere)
 %                         N=#vertices in source surface
-%   destsuffix:         DENSE|DENSETRUNCpt|orig|fsaverage|fsaverageDENSE ("orig"=<hemi>.sphere)
+%   destsuffix:         DENSE|DENSETRUNCpt|orig|fsaverage|fsaverageDENSE|fsaverageDENSETRUNCpt
+%                         ("orig"=<hemi>.sphere)
 %                         M=#vertices in destination surface
 %   sourcevals:         NxT values to be transferred to new surface
 %                         (default=[], only compute lookupidx and validmask)
@@ -86,10 +88,34 @@ if(isstruct(sourcevals) && isfield(sourcevals,'numlh'))
     return;
 end
 
+    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% fsaverage transformations to/from truncated meshes
+if(regexpmatch(sourcesuffix,'^fsaverageDENSETRUNC.+'))
+    sourcesuffix_fsavg=strrep(sourcesuffix,'fsaverage','');
+    [destvals1,lookupidx1,validmask1,sourcesuffix1]=cvnlookupvertex('fsaverage',hemi,sourcesuffix_fsavg,'DENSE',sourcevals,badval);
+    [destvals2,lookupidx2,validmask2,sourcesuffix2]=cvnlookupvertex(surfdir_or_subject,hemi,'fsaverageDENSE',destsuffix,destvals1,badval);
+    destvals=destvals2;
+    lookupidx=lookupidx1(lookupidx2);
+    validmask=validmask1(lookupidx2(validmask2));
+    %sourcesuffix=sourcesuffix1;
+    return;
+elseif(regexpmatch(destsuffix,'^fsaverageDENSETRUNC.+'))
+    destsuffix_fsavg=strrep(destsuffix,'fsaverage','');
+    [destvals1,lookupidx1,validmask1,sourcesuffix1]=cvnlookupvertex(surfdir_or_subject,hemi,sourcesuffix,'fsaverageDENSE',sourcevals,badval);
+    [destvals2,lookupidx2,validmask2,sourcesuffix2]=cvnlookupvertex('fsaverage',hemi,'DENSE',destsuffix_fsavg,destvals1,badval);
+    destvals=destvals2;
+    lookupidx=lookupidx1(lookupidx2);
+    validmask=validmask1(lookupidx2(validmask2));
+    sourcesuffix=sourcesuffix1;
+    return;
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% fsaverage transformations to/from non-matching mesh types
+% fsaverage transformations to/from non-matching pairs ( eg: not
+% fsaverage->orig or fsaverageDENSE->DENSE )
 midsuffix='';
 if(isequal(sourcesuffix,'fsaverage') && ~isequal(destsuffix,'orig'))
     midsuffix='orig';

@@ -55,8 +55,9 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 %                If empty (default), use size(vals) to determine which
 %                input surface is the right size.
 %
-%   surfsuffix: Use <hemi>.sphere<surfsuffix>.  
-%                   DENSE(default)|DENSETRUNCpt|orig ("orig"=<hemi>.sphere)
+%   surfsuffix: Use <hemi>.<surftype><surfsuffix> for lookup/display. 
+%                   DENSE(default)|DENSETRUNCpt|orig|fsaverage|fsaverageDENSE|fsaverageDENSETRUNCpt 
+%                   ("orig"=<hemi>.sphere)
 %
 %   reset:      false (default): Load lookup from disk if available. 
 %               true: Regenerate lookup.
@@ -217,6 +218,10 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 %
 % update KJ 2016-06-16 (v1.2):
 %   1. Fix for non-sphere surfaces 
+%
+% update KJ 2016-11-07
+%   1. Add fsaverage output options
+%   2. Speed up ROI display when showing lots of parcels
 
 %%
 lookup_version='1.2';
@@ -310,10 +315,34 @@ if(isfield(options,'bg_colormap'))
     options.bg_cmap=options.bg_colormap;
     options=rmfield(options,'bg_colormap');
 end
+
+%% If displaying on fsaverage surface
+if(regexpmatch(options.surfsuffix,'^fsaverage'))
+    %First do vertex lookup/transfer from subject to fsaverage
+    %Then do cvnlookupimages with subject=fsaverage
+    
+    vals_fsavg=cvnlookupvertex(subject,hemi,options.inputsuffix,options.surfsuffix,vals);
+    
+    inputsuffix_fsavg=strrep(options.surfsuffix,'fsaverage','');
+    if(isempty(inputsuffix_fsavg))
+        inputsuffix_fsavg='orig';
+    end
+    if(isequal(options.surftype,'sphere'))
+        surfsuffix_fsavg=regexprep(inputsuffix_fsavg,'^DENSE.+','DENSE');
+    else
+        surfsuffix_fsavg=inputsuffix_fsavg;
+    end
+    
+    options.inputsuffix=inputsuffix_fsavg;
+    options.surfsuffix=surfsuffix_fsavg;
+    
+    optargs=struct2args(options);
+    [mappedvals,Lookup,rgbimg,options] = cvnlookupimages('fsaverage', vals_fsavg, hemi, view_az_el_tilt, Lookup, optargs{:});
+    return;
+end
+
+%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
 if(~isempty(options.surfdir) && exist(options.surfdir,'dir'))
     surfdir=options.surfdir;
     labeldir=surfdir;
@@ -683,6 +712,12 @@ if(~isempty(options.overlayalpha) || ~isempty(options.threshold) || ...
             if(isequal(options.background,'curv'))
                 curv=curv<0;
             elseif(isequal(options.background,'sulc'))
+                if(nanmean(abs(curv(:)))>1)
+                    %newer freesurfer versions scale sulc from [-10,10], so
+                    %for display purposes just divide so we can still use
+                    %[-1,1] range
+                    curv=curv/10;
+                end
                 curv=-curv;
             end
             mappedcurv=curv(Lookup.imglookup);
@@ -722,7 +757,7 @@ if(~isempty(options.roiname))
     roimask={};
     roilist_idx=[];
     for i = 1:numel(options.roiname)
-        [roimasktmp, roiname, roirgbtmp]=cvnroimask(subject,hemi,options.roiname{i},[],options.inputsuffix);
+        [roimasktmp, roiname, roirgbtmp]=cvnroimask(subject,hemi,options.roiname{i},[],options.inputsuffix,'collapsevals');
         roimask=[roimask roimasktmp];
         roirgb=[roirgb roirgbtmp];
         roilist_idx=[roilist_idx i*ones(1,numel(roimasktmp))];
@@ -770,7 +805,8 @@ if(~isempty(options.roimask))
         
         if(size(roimask,1)==size(vals,1))
             %alpha mask is same size as "vals" so use spherelookup_vert2image
-            mappedroi=spherelookup_vert2image(roimask~=0,Lookup,nan);
+            %mappedroi=spherelookup_vert2image(roimask~=0,Lookup,nan);
+            mappedroi=spherelookup_vert2image(roimask,Lookup,nan);
         elseif(size(roimask,1)==Lookup.vertsN)
             %alpha mask is same size as original surface (ie: lookup), so
             %just a straight lookup
@@ -784,8 +820,27 @@ if(~isempty(options.roimask))
         %mappedroi2=conv2(+mappedroi,edgekernel,'same');
         %mappedroi=(mappedroi-mappedroi2)>.01;
         
-        mappedroi=detectedges(mappedroi,roiwidth);
-        mappedroi(isnan(mappedroi))=0;
+        %%%%%%
+        % old style: return multi-roi parcellation as a cell array of binary masks
+        %   that we have to loop through... very slow for large parcellations
+        %mappedroi=detectedges(mappedroi,roiwidth);
+        %mappedroi(isnan(mappedroi))=0;
+        
+        %%%%%%
+        % new style: return multi-roi parcellation as a vector of parcel
+        %   labels (one val per pixel), then loop through each value to find
+        %   each parcel's edge.  This is much faster
+        rval=unique(mappedroi(:));
+        rval=rval(rval~=0 & isfinite(rval));
+        mroinan=~isfinite(mappedroi);
+        mappedroi2=zeros(size(mappedroi));
+        for rv = 1:numel(rval)
+            mroi=single(mappedroi==rval(rv));
+            mroi(mroinan)=nan;
+            mappedroi2=max(mappedroi2,detectedges(mroi,roiwidth));
+            mappedroi2(isnan(mappedroi2))=0;
+        end
+        mappedroi=mappedroi2;
         
         %if an roi is not visible, make sure we don't divide by 0
         roimax=max(mappedroi(:));

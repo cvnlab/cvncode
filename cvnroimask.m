@@ -10,7 +10,7 @@ function [roimask, roidescription, roicolors] = cvnroimask(subject,hemi,roifile,
 %           1) by value (ie vertex label values) 
 %        or 2) by name if <roifile>.ctab is available
 % destsuffix = orig|DENSE|DENSETRUNCpt (defines output)
-% outputstyle = cell|collapsebinary|collapsevals(default)|matrix|vals
+% outputstyle = cell(default)|collapsebinary|collapsevals|matrix|vals
 %
 % Outputs:
 %   roimask=1xN cell array of Vx1 binary masks
@@ -99,7 +99,7 @@ for s = 1:numel(suffixes)
         labelfiles=fullfilematch(labelname);
     else
         for le = 1:numel(labelext)
-            labelfiles=[labelfiles fullfilematch([labelname labelext{le}])];
+            labelfiles=[labelfiles; fullfilematch([labelname labelext{le}])];
         end
     end
     
