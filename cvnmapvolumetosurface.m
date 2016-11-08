@@ -1,14 +1,17 @@
-function cvnmapvolumetosurface(subjectid,numlayers,layerprefix,fstruncate,volfiles,names)
+function cvnmapvolumetosurface(subjectid,numlayers,layerprefix,fstruncate,volfiles,names,datafun)
 
-% function cvnmapvolumetosurface(subjectid,numlayers,layerprefix,fstruncate,volfiles,names)
+% function cvnmapvolumetosurface(subjectid,numlayers,layerprefix,fstruncate,volfiles,names,datafun)
 %
 % <subjectid> is like 'C0051'
 % <numlayers> is like 6
 % <layerprefix> is like 'A'
 % <fstruncate' is like 'pt'
 % <volfiles> is a wildcard matching one or more NIFTI files
-% <names> is a cell vector of strings to be used as prefixes in output filenames.
+% <names> is a string (or cell vector of strings) to be used as prefixes in output filenames.
 %   There should be a 1-to-1 correspondence between <volfiles> and <names>.
+% <datafun> (optional) is a function (or cell vector of functions) to apply to the data 
+%   right after loading them in. If you pass only one function, we apply that function
+%   to each volume.
 %
 % Use cubic interpolation to transfer the volume data in <volfiles> onto the layer 
 % surfaces (e.g. layerA1-A6) as well as the white and pial surfaces.
@@ -21,10 +24,17 @@ function cvnmapvolumetosurface(subjectid,numlayers,layerprefix,fstruncate,volfil
 fsres = 256;
 newres = 320;
 
+% input
+if ~exist('datafun','var') || isempty(datafun)
+  datafun = @(x) x;
+end
+if ~iscell(names)
+  names = {names};
+end
+
 % calc
 fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
 hemis = {'lh' 'rh'};
-volfiles = matchfiles(volfiles);
 
 % figure out surface names
 surfs = {}; surfsB = {};
@@ -49,18 +59,23 @@ for p=1:length(hemis)
 end
 
 % load volumes
-data = [];
-for p=1:length(volfiles)
-  a1 = load_untouch_nii(gunziptemp(volfiles{p}));
-  data(:,:,:,p) = fstoint(double(a1.img));
-end
+data = cvnloadstandardnifti(volfiles);
 assert(isequal(sizefull(data,3),[newres newres newres]));  % sanity check
+
+% expand datafun
+if ~iscell(datafun)
+  datafun = {datafun};
+end
+if length(datafun)==1
+  datafun = repmat(datafun,[1 size(data,4)]);
+end
 
 % interpolate volume onto surface and save .mgz file
 for p=1:size(data,4)
+  temp = feval(datafun{p},data(:,:,:,p));
   for q=1:length(hemis)
     for r=1:length(surfs)
-      temp = ba_interp3_wrapper(data(:,:,:,p),vertices{q,r}(1:3,:),'cubic');
+      temp = ba_interp3_wrapper(temp,vertices{q,r}(1:3,:),'cubic');
       cvnwritemgz(subjectid,sprintf('%s_%s',names{p},surfsB{r}),temp,hemis{q});
     end
   end
