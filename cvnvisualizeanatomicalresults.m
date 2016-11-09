@@ -156,14 +156,14 @@ for zz=1:length(allviews)
   rgbimg=drawroinames(roiimg,rgbimg,L,1:numel(fslabels),cleantext(fslabels));
   imwrite(rgbimg,sprintf('%s/%s',outputdir,'aparc_names.png'));
 
-  %%%%% T1/T2/FMAP stuff:
+  %%%%% T1/T2/FMAP/SINUSBW stuff:
 
   % calc
   infilenames =  [cellfun(@(x) sprintf('layer%s%d',layerprefix,x),num2cell(1:numlayers),'UniformOutput',0) {'white' 'pial'}];
   outfilenames = [cellfun(@(x) sprintf('layer%d',x),num2cell(1:numlayers),'UniformOutput',0) {sprintf('layer%d',numlayers+1) 'layer0'}];
 
   % process quantities for each layer
-  todos = {'T1' 'T2' 'FMAP'};
+  todos = {'T1' 'T2' 'FMAP' 'SINUSBW'};
   for q=1:length(todos)
     for p=1:length(infilenames)
       file0 = matchfiles(sprintf('%s/surf/*.%s_%s_DENSETRUNC%s.mgz',fsdir,todos{q},infilenames{p},fstruncate));
@@ -171,10 +171,14 @@ for zz=1:length(allviews)
         continue;
       end
       temp = cvnloadmgz(file0);
-      if p==1
+      if ismember(todos{q},{'T1' 'T2' 'FMAP'}) && p==1
         rng = [0 mean(temp)*3];  % WEIRD HEURISTIC!
+        cmap0 = 'gray';
+      elseif isequal(todos{q},'SINUSBW')
+        rng = [0 10];
+        cmap0 = 'hot';
       end
-      writefun(temp,sprintf('%s_%s.png',todos{q},outfilenames{p}),'gray',rng,[],[]);
+      writefun(temp,sprintf('%s_%s.png',todos{q},outfilenames{p}),cmap0,rng,[],[]);
     end
   end
 
@@ -184,6 +188,6 @@ end
 
 %% maybe for future:
   %% aparc 2009?
-  %% fsaverage sphere
-  %% fsaverage inflated
+  %% fsaverage sphere?
+  %% fsaverage inflated?
   %% HCP
