@@ -1001,11 +1001,10 @@ if(isempty(background))
     return;
 end
 
-if(isempty(outputsuffix) || isequal(inputsuffix,outputsuffix))
-    return;
+if(~isempty(outputsuffix) && ~ isequal(inputsuffix,outputsuffix))
+    background=cvnlookupvertex(subject,hemi,inputsuffix,outputsuffix,background);
 end
 
-background=cvnlookupvertex(subject,hemi,inputsuffix,outputsuffix,background);
 if(isstruct(background))
     bgdata=background.data;
 else
