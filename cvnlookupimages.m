@@ -316,13 +316,61 @@ if(isfield(options,'bg_colormap'))
     options=rmfield(options,'bg_colormap');
 end
 
+
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if(~isempty(options.surfdir) && exist(options.surfdir,'dir'))
+    surfdir=options.surfdir;
+    labeldir=surfdir;
+else
+    freesurfdir=cvnpath('freesurfer');
+    subjdir=sprintf('%s/%s',freesurfdir,subject);
+    surfdir=sprintf('%s/surf',subjdir);
+    labeldir=sprintf('%s/label',subjdir);
+end
+
+%% Cast inputs to double to avoid issues with booleans and nans
+if(~isempty(vals))
+    if(isstruct(vals))
+        if(~isnumeric(vals.data))
+            vals.data=double(vals.data);
+        end
+    elseif(~isnumeric(vals))
+        vals=double(vals);
+    end
+end
+
+if(~isempty(options.background))
+    if(isstruct(options.background))
+        if(~isnumeric(options.background.data))
+            options.background.data=double(options.background.data);
+        end
+    elseif(~ischar(options.background))
+        options.background=double(options.background);
+    end
+end
+
 %% If displaying on fsaverage surface
 if(regexpmatch(options.surfsuffix,'^fsaverage'))
     %First do vertex lookup/transfer from subject to fsaverage
     %Then do cvnlookupimages with subject=fsaverage
     
     vals_fsavg=cvnlookupvertex(subject,hemi,options.inputsuffix,options.surfsuffix,vals);
+    if(ischar(options.background))
+        %load background and transform into same space as input (since
+        %later calls will have 'fsaverage' as subject and won't be able to
+        %load curv, sulc, etc...)
+        options.background = load_surface_background(subject,hemi,options.background,options.inputsuffix,options.surfsuffix,surfdir);
+    elseif(~isempty(options.background))
+        options.background = cvnlookupvertex(subject,hemi,options.inputsuffix,options.surfsuffix,options.background);
+    end
     
+    %cast background vals to double to avoid issues with booleans and nans
+    if(isstruct(options.background))
+        options.background=double(options.background.data);
+    else
+        options.background=double(options.background);
+    end
     inputsuffix_fsavg=strrep(options.surfsuffix,'fsaverage','');
     if(isempty(inputsuffix_fsavg))
         inputsuffix_fsavg='orig';
@@ -339,18 +387,6 @@ if(regexpmatch(options.surfsuffix,'^fsaverage'))
     optargs=struct2args(options);
     [mappedvals,Lookup,rgbimg,options] = cvnlookupimages('fsaverage', vals_fsavg, hemi, view_az_el_tilt, Lookup, optargs{:});
     return;
-end
-
-%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if(~isempty(options.surfdir) && exist(options.surfdir,'dir'))
-    surfdir=options.surfdir;
-    labeldir=surfdir;
-else
-    freesurfdir=cvnpath('freesurfer');
-    subjdir=sprintf('%s/%s',freesurfdir,subject);
-    surfdir=sprintf('%s/surf',subjdir);
-    labeldir=sprintf('%s/label',subjdir);
 end
 
 %% handle multiple hemispheres if vals=struct
@@ -707,28 +743,21 @@ if(~isempty(options.overlayalpha) || ~isempty(options.threshold) || ...
 
     elseif(ischar(options.background))
         %background was a string directing us to a freesurfer overlay
-        curv=cvnreadsurfacemetric(subject,hemi,options.background,'',options.surfsuffix,'surfdir',surfdir);
+        curv = load_surface_background(subject,hemi,options.background,options.inputsuffix,options.surfsuffix,surfdir);
+        if(isstruct(curv))
+            curv=curv.data;
+        end
         if(~isempty(curv))
-            if(isequal(options.background,'curv'))
-                curv=curv<0;
-            elseif(isequal(options.background,'sulc'))
-                if(nanmean(abs(curv(:)))>1)
-                    %newer freesurfer versions scale sulc from [-10,10], so
-                    %for display purposes just divide so we can still use
-                    %[-1,1] range
-                    curv=curv/10;
-                end
-                curv=-curv;
-            end
             mappedcurv=curv(Lookup.imglookup);
         else
             %mappedcurv=rgboptions.background;
             mappedcurv=zeros(size(Lookup.imglookup));
         end
+       
     else
         mappedcurv=rgboptions.background;
     end
-    rgboptions.background=mappedcurv;
+    rgboptions.background=double(mappedcurv);
 end
 
 if(~isempty(options.overlayalpha))
@@ -963,3 +992,41 @@ elseif(numel(imgN)==2)
     resstr=sprintf('%dx%d',imgN(1),imgN(2));
 end
 fname=sprintf('%slookup_%s_az%s_el%s_tilt%s_vx%s_vy%s_res%s_%s',surftype,hemi,azstr,elstr,tiltstr,vxstr,vystr,resstr,surfsuffix);
+
+%% load a freesurfer overlay file and transform it to the desired output space (eg: curv orig->DENSETRUNCpt or curv DENSETRUNCpt->fsaverage)
+function background = load_surface_background(subject,hemi,backgroundtype,inputsuffix,outputsuffix,surfdir)
+
+background=cvnreadsurfacemetric(subject,hemi,backgroundtype,'',inputsuffix,'surfdir',surfdir);
+if(isempty(background))
+    return;
+end
+
+if(isempty(outputsuffix) || isequal(inputsuffix,outputsuffix))
+    return;
+end
+
+background=cvnlookupvertex(subject,hemi,inputsuffix,outputsuffix,background);
+if(isstruct(background))
+    bgdata=background.data;
+else
+    bgdata=background;
+end
+
+if(isequal(backgroundtype,'curv'))
+    bgdata=bgdata<0;
+elseif(isequal(backgroundtype,'sulc'))
+    if(nanmean(abs(bgdata(:)))>1)
+        %newer freesurfer versions scale sulc from [-10,10], so
+        %for display purposes just divide so we can still use
+        %[-1,1] range
+        bgdata=bgdata/10;
+    end
+    bgdata=-bgdata;
+end
+
+if(isstruct(background))
+    background.data=double(bgdata);
+else
+    background=double(bgdata);
+end
+    
