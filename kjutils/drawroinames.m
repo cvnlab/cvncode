@@ -46,6 +46,15 @@ if(any(strcmpi(textargs,'alpha')))
 end
 
         
+if(size(rgbimg,4)>1)
+    do_4D=true;
+    rgbimg_orig=permute(rgbimg,[1 2 4 3]);
+    rgbimg=rgbimg_orig(:,:,:,1);
+else
+    rgbimg_orig=[];
+    do_4D=false;
+end
+
 xoffset=0;
 imgout={};
 alphaimg={};
@@ -72,6 +81,7 @@ for i = 1:numel(Lookup)
     txtimg=addtext2img(nan(size(rgbimg)),{roixy(:,1),roixy(:,2),roistr,textargs0{:},textargs{:}},1);
 
     txtbg=isnan(txtimg);
+    
     txtrect=~txtbg & repmat(max(txtimg,[],3)<=0,[1 1 3]);
     txtimg(txtbg)=0;
     txtalpha=min(1,~txtbg*textbgalpha + (~txtbg & ~txtrect));
@@ -86,6 +96,10 @@ end
 
 imgout=max(cat(4,imgout{:}),[],4);
 alphaimg=max(cat(4,alphaimg{:}),[],4);
-rgbimg=rgbimg.*(1-alphaimg) + imgout.*alphaimg;
-
+if(do_4D)
+    rgbimg=bsxfun(@plus,bsxfun(@times,rgbimg_orig,1-alphaimg),imgout.*alphaimg);
+    rgbimg=permute(rgbimg,[1 2 4 3]);
+else
+    rgbimg=rgbimg.*(1-alphaimg) + imgout.*alphaimg;
+end
 alphaimg=alphaimg(:,:,1);

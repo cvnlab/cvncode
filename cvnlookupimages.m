@@ -852,13 +852,19 @@ if(~isempty(options.roimask))
         
         
         if(~isempty(roilist_idx))
-            roiwidth=options.roiwidth{min(roilist_idx(i),numel(options.roiwidth))};
-            roicolor=roicolor_cell{min(roilist_idx(i),numel(roicolor_cell))};
-            roiname=options.roiname{min(roilist_idx(i),numel(options.roiname))};
+            iroi=roilist_idx(i);
         else
-            roiwidth=options.roiwidth{min(i,numel(options.roiwidth))};
-            roicolor=roicolor_cell{min(i,numel(roicolor_cell))};
-            roiname=options.roiname{min(i,numel(options.roiname))};
+            iroi=i;
+        end
+
+        roiwidth=options.roiwidth{min(iroi,numel(options.roiwidth))};
+        roicolor=roicolor_cell{min(iroi,numel(roicolor_cell))};
+        if(isempty(options.roiname))
+            roiname={};
+        elseif(iscell(options.roiname) && numel(options.roiname)==numel(options.roimask))
+            roiname=options.roiname{min(iroi,numel(options.roiname))};
+        else
+            roiname=options.roiname;
         end
         
         roicolor=colorspec2rgb(roicolor);
@@ -928,10 +934,10 @@ if(~isempty(options.roimask))
             end
             rgbimg=bsxfun(@plus,bsxfun(@times,rgbimg,(1-mappedroi)),bsxfun(@times,roiimg,mappedroi));
         end
-        if(do_drawroinames && numel(roiname) == numel(rval))
+        if(do_drawroinames && ~isempty(rval) && numel(roiname) >= numel(rval))
             tmplookup=Lookup;
             tmplookup.imgsize=size(tmplookup.imglookup);
-            rgbimg=drawroinames(mappedroi_orig,rgbimg,tmplookup,rval,cleantext(roiname));
+            rgbimg=drawroinames(mappedroi_orig,rgbimg,tmplookup,rval,cleantext(roiname(rval)));
         end
 
     end
