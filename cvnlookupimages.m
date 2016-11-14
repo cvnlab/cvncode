@@ -118,7 +118,7 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 %                   Can also be either Nx3 or a cell array of N [1x3] to 
 %                   specify different colors for each ROI
 %   roiwidth:       Line width of ROI outline(s). default=.5
-%   
+%   drawroinames:   true|false(default) or cell array of ROI names to draw
 %
 % Mosaic/multiple map options: If input contains more than one map
 %       (e.g., Vx6 with all 6 layers), output maps can be combined in a 
@@ -191,7 +191,11 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 % % Display stack of all 3 layers
 % figure;
 % imagesc([img1; img2; img3]);
-
+%
+% % Or Display all 6 layers in a 3x2 mosaic
+% figure;
+% valstruct.data=V.data(:,1:6);
+% [img1,L,rgbimg1]=cvnlookupimages('C0045',valstruct,{'lh','rh'},{[10 -40 0],[-10 -40 0]},[],'mosaic',[3 2]);
 
 % Update KJ 2016-01-17: 
 %   1. Automatic input type detection (based on size(vals))
@@ -222,7 +226,11 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 % update KJ 2016-11-07
 %   1. Add fsaverage output options
 %   2. Speed up ROI display when showing lots of parcels
-
+%
+% update KJ 2016-11-14
+%   1. Add drawroinames flag
+%   2. Fix mosaic mode for nonsphere surfaces
+%   3. Allow hemi text to be a cell array with a string for each rgb map 
 %%
 lookup_version='1.2';
 
@@ -252,6 +260,7 @@ options=struct(...
     'roimask',[],...
     'roiwidth',{.5},...
     'roicolor',{[0 0 0]},...
+    'drawroinames',false,...
     'text',[],...
     'textsize',50,...
     'textcolor','w',...
@@ -459,9 +468,9 @@ if(isstruct(vals) && isfield(vals,'numlh'))
 
                 %pad all relevant 2D images/lookups
                 if(strcmpi(options.padalign,'bottom'))
-                    pimg=@(img,v)([cast(v*ones(dheight,size(img,2),size(img,3)),'like',img); img]);
+                    pimg=@(img,v)(cat(1,cast(v*ones(dheight,size(img,2),size(img,3),size(img,4)),'like',img), img));
                 else
-                    pimg=@(img,v)([img; cast(v*ones(dheight,size(img,2),size(img,3)),'like',img)]);
+                    pimg=@(img,v)(cat(1,img,cast(v*ones(dheight,size(img,2),size(img,3),size(img,4)),'like',img)));
                 end
                 
                 imghemi{i}=pimg(imghemi{i},nan);
@@ -784,20 +793,44 @@ roirgb={};
 roilist_idx=[];
 if(~isempty(options.roiname))
     roimask={};
+    roiname={};
     roilist_idx=[];
     for i = 1:numel(options.roiname)
-        [roimasktmp, roiname, roirgbtmp]=cvnroimask(subject,hemi,options.roiname{i},[],options.inputsuffix,'collapsevals');
+        [roimasktmp, roinametmp, roirgbtmp]=cvnroimask(subject,hemi,options.roiname{i},[],options.inputsuffix,'collapsevals');
+        if(isempty(roinametmp))
+        elseif(numel(roinametmp)==1)
+            roinametmp=regexprep(roinametmp,'@.+$','');
+        else
+            roisuff=common_suffix(roinametmp);
+            if(~isempty(roisuff) && roisuff(1)=='@')
+                roinametmp=strrep(roinametmp,roisuff,'');
+            end
+        end
         roimask=[roimask roimasktmp];
+        roiname = [roiname {roinametmp}];
         roirgb=[roirgb roirgbtmp];
-        roilist_idx=[roilist_idx i*ones(1,numel(roimasktmp))];
+        %roilist_idx=[roilist_idx i*ones(1,numel(roimasktmp))];
+        roilist_idx=[roilist_idx i];
         
     end
     options.roimask=roimask;
+    options.roiname=roiname;
     if(isequal(options.roicolor,{'ctab'}))
         roilist_idx=[];
     else
         roirgb={};
     end
+end
+
+do_drawroinames=false;
+if(isequal(options.drawroinames,true))
+    do_drawroinames=true;
+elseif(ischar(options.drawroinames))
+    options.roiname={options.drawroinames};
+    do_drawroinames=true;
+elseif(iscell(options.drawroinames))
+    options.roiname=options.drawroinames;
+    do_drawroinames=true;
 end
 
 if(~isempty(options.roimask))
@@ -821,9 +854,11 @@ if(~isempty(options.roimask))
         if(~isempty(roilist_idx))
             roiwidth=options.roiwidth{min(roilist_idx(i),numel(options.roiwidth))};
             roicolor=roicolor_cell{min(roilist_idx(i),numel(roicolor_cell))};
+            roiname=options.roiname{min(roilist_idx(i),numel(options.roiname))};
         else
             roiwidth=options.roiwidth{min(i,numel(options.roiwidth))};
             roicolor=roicolor_cell{min(i,numel(roicolor_cell))};
+            roiname=options.roiname{min(i,numel(options.roiname))};
         end
         
         roicolor=colorspec2rgb(roicolor);
@@ -862,31 +897,43 @@ if(~isempty(options.roimask))
         rval=unique(mappedroi(:));
         rval=rval(rval~=0 & isfinite(rval));
         mroinan=~isfinite(mappedroi);
-        mappedroi2=zeros(size(mappedroi));
-        for rv = 1:numel(rval)
-            mroi=single(mappedroi==rval(rv));
-            mroi(mroinan)=nan;
-            mappedroi2=max(mappedroi2,detectedges(mroi,roiwidth));
-            mappedroi2(isnan(mappedroi2))=0;
-        end
-        mappedroi=mappedroi2;
-        
-        %if an roi is not visible, make sure we don't divide by 0
-        roimax=max(mappedroi(:));
-        if(roimax==0)
-            roimax=1;
-        end
-        mappedroi=mappedroi./roimax;
-             
-        if(size(rgbimg,4)>1)
-            mappedroi=repmat(mappedroi,[1 1 1 3]);
-            roiimg=repmat(reshape(roicolor,[1 1 1 3]),size(rgbimg,1),size(rgbimg,2),size(rgbimg,3));
-        else
-            mappedroi=repmat(mappedroi,1,1,3);
-            roiimg=repmat(reshape(roicolor,[1 1 3]),size(rgbimg,1),size(rgbimg,2));
 
+        mappedroi_orig=mappedroi;
+            
+        if(roiwidth>0)
+            mappedroi2=zeros(size(mappedroi));
+            for rv = 1:numel(rval)
+                mroi=single(mappedroi==rval(rv));
+                mroi(mroinan)=nan;
+                mappedroi2=max(mappedroi2,detectedges(mroi,roiwidth));
+                mappedroi2(isnan(mappedroi2))=0;
+            end
+
+            mappedroi=mappedroi2;
+
+            %if an roi is not visible, make sure we don't divide by 0
+            roimax=max(mappedroi(:));
+            if(roimax==0)
+                roimax=1;
+            end
+            mappedroi=mappedroi./roimax;
+
+            if(size(rgbimg,4)>1)
+                mappedroi=repmat(mappedroi,[1 1 1 3]);
+                roiimg=repmat(reshape(roicolor,[1 1 1 3]),size(rgbimg,1),size(rgbimg,2),size(rgbimg,3));
+            else
+                mappedroi=repmat(mappedroi,1,1,3);
+                roiimg=repmat(reshape(roicolor,[1 1 3]),size(rgbimg,1),size(rgbimg,2));
+
+            end
+            rgbimg=bsxfun(@plus,bsxfun(@times,rgbimg,(1-mappedroi)),bsxfun(@times,roiimg,mappedroi));
         end
-        rgbimg=bsxfun(@plus,bsxfun(@times,rgbimg,(1-mappedroi)),bsxfun(@times,roiimg,mappedroi));
+        if(do_drawroinames && numel(roiname) == numel(rval))
+            tmplookup=Lookup;
+            tmplookup.imgsize=size(tmplookup.imglookup);
+            rgbimg=drawroinames(mappedroi_orig,rgbimg,tmplookup,rval,cleantext(roiname));
+        end
+
     end
 end
 
@@ -898,6 +945,7 @@ if(isfield(Lookup,'shading') && options.surfshading==true)
         rgbimg=bsxfun(@times,rgbimg,Lookup.shading);
     end
 end
+
 %% If 'text' argument provided, add text to output image(s)
 if(~isempty(options.text))
     rgbimg=add_hemi_text(rgbimg,options.text,options.textsize,options.textcolor);
@@ -957,9 +1005,22 @@ imgN=size(rgbimg,1);
 if(textsize<1 && textsize>0)
     textsize=textsize*imgN;
 end
+
 txtargs={0,0,text,'VerticalAlignment','top','fontsize',textsize,'color',textcolor};
 if(size(rgbimg,4)>1)
     for i=1:size(rgbimg,3)
+        %if text for this hemi is a cell array with a string for each rgb map, 
+        % add different text to each map
+        if(iscell(text))
+            if(i<=numel(text))
+                txtargs{3}=text{i};
+            else
+                continue;
+            end
+        end
+        if(isempty(txtargs{3}))
+            continue;
+        end
         rgbimg(:,:,i,:)=addtext2img(permute(rgbimg(:,:,i,:),[1 2 4 3]),txtargs,1);
     end
 else

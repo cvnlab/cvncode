@@ -84,8 +84,8 @@ for i = 1:numel(Lookup)
     xoffset=xoffset+Lookup{i}.imgsize(2);
 end
 
-imgout=max(imgout{:});
-alphaimg=max(alphaimg{:});
+imgout=max(cat(4,imgout{:}),[],4);
+alphaimg=max(cat(4,alphaimg{:}),[],4);
 rgbimg=rgbimg.*(1-alphaimg) + imgout.*alphaimg;
 
 alphaimg=alphaimg(:,:,1);
