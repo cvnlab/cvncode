@@ -10,6 +10,9 @@ function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncat
 %
 % For a number of different views, write out figures showing a variety of different
 % anatomical and atlas-related quantities.
+%
+% history:
+% - 2016/11/22 - omit a few of these for the fsaverage case
 
 %%%%% PREP
 
@@ -78,9 +81,11 @@ for zz=1:length(allviews)
   %%%%% WRITE MAPS
 
   % SAPV for each layer
-  for p=1:numlayers
-    writefun(cvnloadmgz(sprintf('%s/surf/*.sapv_layer%s%d_DENSETRUNC%s.mgz',fsdir,layerprefix,p,fstruncate)), ...
-      sprintf('sapv_layer%d.png',p),'jet',[0 .25],[],[]);
+  if ~isequal(subjectid,'fsaverage')
+    for p=1:numlayers
+      writefun(cvnloadmgz(sprintf('%s/surf/*.sapv_layer%s%d_DENSETRUNC%s.mgz',fsdir,layerprefix,p,fstruncate)), ...
+        sprintf('sapv_layer%d.png',p),'jet',[0 .25],[],[]);
+    end
   end
 
   % SAPV for the sphere
@@ -90,17 +95,21 @@ for zz=1:length(allviews)
   % distortion map for each layer
   %   log2(sapv_sphere/sapv_layer)
   %   0 means no distortion. + means sphere is enlarged. - means sphere is shrunken.
-  for p=1:numlayers
-    writefun( ...
-      log2(cvnloadmgz(sprintf('%s/surf/*.sapv_sphere_DENSETRUNC%s.mgz',fsdir,fstruncate)) ./ ...
-           cvnloadmgz(sprintf('%s/surf/*.sapv_layer%s%d_DENSETRUNC%s.mgz',fsdir,layerprefix,p,fstruncate))), ...
-      sprintf('distortion_layer%d.png',p),'cmapsign4',[-2 2],[],[]);
+  if ~isequal(subjectid,'fsaverage')
+    for p=1:numlayers
+      writefun( ...
+        log2(cvnloadmgz(sprintf('%s/surf/*.sapv_sphere_DENSETRUNC%s.mgz',fsdir,fstruncate)) ./ ...
+             cvnloadmgz(sprintf('%s/surf/*.sapv_layer%s%d_DENSETRUNC%s.mgz',fsdir,layerprefix,p,fstruncate))), ...
+        sprintf('distortion_layer%d.png',p),'cmapsign4',[-2 2],[],[]);
+    end
   end
 
   % AEL for each layer (probably very very similar to SAPV)
-  for p=1:numlayers
-    writefun(cvnloadmgz(sprintf('%s/surf/*.ael_layer%s%d_DENSETRUNC%s.mgz',fsdir,layerprefix,p,fstruncate)), ...
-      sprintf('ael_layer%d.png',p),'jet',[0 1],[],[]);
+  if ~isequal(subjectid,'fsaverage')
+    for p=1:numlayers
+      writefun(cvnloadmgz(sprintf('%s/surf/*.ael_layer%s%d_DENSETRUNC%s.mgz',fsdir,layerprefix,p,fstruncate)), ...
+        sprintf('ael_layer%d.png',p),'jet',[0 1],[],[]);
+    end
   end
 
   % curvature
