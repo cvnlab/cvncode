@@ -48,6 +48,14 @@ for zz=1:length(allviews)
   hemiflip0 = allviews{zz}{3};
   imageres0 = allviews{zz}{4};
   fsaverage0 = allviews{zz}{5};
+  
+  % get out early
+  if isequal(subjectid,'fsaverage') && fsaverage0
+    % NOTE: this is a bit awkward. there was a crash (a transfer file missing) when trying to do this case.
+    %       conceptually, it is a bit redundant and crazy (to transfer fsaverage to fsaverage).
+    %       so, we just do a hack and omit this for-loop case!!
+    continue;
+  end
 
   % calc
   outputdir = sprintf('%s/%s%s-%s',figdir,choose(fsaverage0,'fsaverage-',''),surftype0,viewname0);
