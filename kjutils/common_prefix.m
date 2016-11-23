@@ -18,6 +18,6 @@ strfmt = ['%-' num2str(maxlen) 's'] ;
 padded_str = cellfun(@(x)(sprintf(strfmt,x)),str,'uniformoutput',false);
 eq_str = cell2mat(cellfun(@(x)(x==padded_str{1}),padded_str,'uniformoutput',false));
 
-v = min(find(~all(eq_str,1)));
+v = find(~all(eq_str,1),1,'first'); %use 'first' for speed
 
 prefix = strtrim(padded_str{1}(1:v-1));
