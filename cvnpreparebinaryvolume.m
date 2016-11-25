@@ -23,7 +23,7 @@ if ~exist([dir 'binaryvolume.mgz'],'file')
     copyfile([dir 'aseg.mgz'],[dir 'binaryvolume.mgz']);
     fprintf('Copy aseg.mgz to binaryolume.mgz\n');
 else
-    error('aseg.mgz already exists. You can delete the existed binaryvolume.mgz and rerun this function\n');
+    error('binaryvolume.mgz already exists. You can delete the existed binaryvolume.mgz and rerun this function');
 end
 
 
