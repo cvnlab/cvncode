@@ -12,6 +12,7 @@ function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncat
 % anatomical and atlas-related quantities.
 %
 % history:
+% - 2016/11/28 - add support for new volumes: DIM1-3, BVOL, MAXEDIT
 % - 2016/11/22 - omit a few of these for the fsaverage case
 
 %%%%% PREP
@@ -178,14 +179,14 @@ for zz=1:length(allviews)
   rgbimg=drawroinames(roiimg,rgbimg,L,1:numel(fslabels),cleantext(fslabels));
   imwrite(rgbimg,sprintf('%s/%s',outputdir,'aparc_names.png'));
 
-  %%%%% T1/T2/FMAP/SINUSBW stuff:
+  %%%%% anatomical data stuff:
 
   % calc
   infilenames =  [cellfun(@(x) sprintf('layer%s%d',layerprefix,x),num2cell(1:numlayers),'UniformOutput',0) {'white' 'pial'}];
   outfilenames = [cellfun(@(x) sprintf('layer%d',x),num2cell(1:numlayers),'UniformOutput',0) {sprintf('layer%d',numlayers+1) 'layer0'}];
 
   % process quantities for each layer
-  todos = {'T1' 'T2' 'FMAP' 'SINUSBW'};
+  todos = {'T1' 'T2' 'FMAP' 'DIM1' 'DIM2' 'DIM3' 'BVOL' 'MAXEDIT' 'SINUSBW'};
   for q=1:length(todos)
     for p=1:length(infilenames)
       file0 = matchfiles(sprintf('%s/surf/*.%s_%s_DENSETRUNC%s.mgz',fsdir,todos{q},infilenames{p},fstruncate));
@@ -193,14 +194,31 @@ for zz=1:length(allviews)
         continue;
       end
       temp = cvnloadmgz(file0);
-      if ismember(todos{q},{'T1' 'T2' 'FMAP'}) && p==1
-        rng = [0 mean(temp)*3];  % WEIRD HEURISTIC!
+      thresh0 = [];  % default
+      alpha0 = [];   % default
+      if ismember(todos{q},{'T1' 'T2' 'FMAP'})
+        if p==1
+          rng = [0 mean(temp)*3];  % WEIRD HEURISTIC!
+        end
         cmap0 = 'gray';
+      elseif ismember(todos{q},{'DIM1' 'DIM2' 'DIM3'})
+        rng = [1 320];
+        cmap0 = 'jet';
+      elseif isequal(todos{q},'BVOL')
+        rng = [0 2];  % values are 0, 1, 2; 2 indicates weird parts
+        cmap0 = 'jet';
+        thresh0 = 1.5;
+        alpha0 = 0.6;
+      elseif isequal(todos{q},'MAXEDIT')
+        rng = [0 1];
+        cmap0 = 'gray';
+        thresh0 = 0.5;
+        alpha0 = 0.6;
       elseif isequal(todos{q},'SINUSBW')
         rng = [0 10];
         cmap0 = 'hot';
       end
-      writefun(temp,sprintf('%s_%s.png',todos{q},outfilenames{p}),cmap0,rng,[],[]);
+      writefun(temp,sprintf('%s_%s.png',todos{q},outfilenames{p}),cmap0,rng,thresh0,alpha0);
     end
   end
 
