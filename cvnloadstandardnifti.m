@@ -3,19 +3,37 @@ function data = cvnloadstandardnifti(volfiles)
 % function data = cvnloadstandardnifti(volfiles)
 %
 % <volfiles> is a path or wildcard matching one or more NIFTI volume files.
-%   Each volume is presumed to be in FreeSurfer's space and to have
-%   the same spatial dimensions (e.g. the 256 or 320 space).
+%   Can also mix-and-match raw matrices with paths. Each volume is presumed to 
+%   be in FreeSurfer's space and to have the same spatial dimensions
+%   (e.g. the 256 or 320 space).
 %
 % Return the volumes as X x Y x Z x N where N corresponds to different volumes.
-% We use fstoint.m to bring the volumes to our internal MATLAB space.
-% We ensure that the data are returned in double format.
+% In the case of NIFTI files, we use fstoint.m to bring the volumes to our
+% internal MATLAB space. We ensure that the data are returned in double format.
+%
+% history:
+% - 2016/11/28 - allow mix-and-match with raw matrices
 
 % match the files
-volfiles = matchfiles(volfiles);
+if ~iscell(volfiles)
+  volfiles = {volfiles};
+end
+newfiles = {};
+for p=1:length(volfiles)
+  if ischar(volfiles{p})
+    newfiles = [newfiles matchfiles(volfiles{p})];
+  else
+    newfiles{end+1} = volfiles{p};
+  end
+end
 
 % load them
 data = [];
-for p=1:length(volfiles)
-  a1 = load_untouch_nii(gunziptemp(volfiles{p}));
-  data(:,:,:,p) = fstoint(double(a1.img));
+for p=1:length(newfiles)
+  if ischar(newfiles{p})
+    a1 = load_untouch_nii(gunziptemp(newfiles{p}));
+    data(:,:,:,p) = fstoint(double(a1.img));
+  else
+    data(:,:,:,p) = double(newfiles{p});
+  end
 end
