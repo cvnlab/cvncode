@@ -1,6 +1,6 @@
-function f = cvnmapsurfacetovolume(subjectid,numlayers,layerprefix,fstruncate,data,emptyval,outputprefix,datafun)
+function f = cvnmapsurfacetovolume(subjectid,numlayers,layerprefix,fstruncate,data,emptyval,outputprefix,datafun,specialmode)
 
-% function f = cvnmapsurfacetovolume(subjectid,numlayers,layerprefix,fstruncate,data,emptyval,outputprefix,datafun)
+% function f = cvnmapsurfacetovolume(subjectid,numlayers,layerprefix,fstruncate,data,emptyval,outputprefix,datafun,specialmode)
 %
 % <subjectid> is like 'C0051'
 % <numlayers> is like 6
@@ -16,6 +16,11 @@ function f = cvnmapsurfacetovolume(subjectid,numlayers,layerprefix,fstruncate,da
 %   Note that if provided, there should be a 1-to-1 correspondence between the number
 %   of datasets in <data> and the number of elements in <outputprefix>.
 % <datafun> (optional) is a function to use to transform the data (D x 6 x V) after loading
+% <specialmode> (optional) is:
+%   0 means do the usual thing
+%   N means treat the data as positive integers from 1 through N and perform a
+%     winner-take-all voting mechanism. in this case, D must be 1.
+%   Default: 0.
 %
 % Take the dense layer trunc data in <data> and convert these data into volumes,
 % where these volumes are in our standard FreeSurfer 320 x 320 x 320 0.8-mm space.
@@ -35,6 +40,18 @@ function f = cvnmapsurfacetovolume(subjectid,numlayers,layerprefix,fstruncate,da
 % - Each voxel is interpreted as performing a weighted average of the contributing 
 %   vertices. Thus, we are really just locally averaging the surface data.
 % - If no weights are given to a voxel, that voxel gets assigned <emptyval>.
+%
+% Notes on <specialmode>:
+% - Our strategy is to split the data into separate channels (e.g. data==1, data==2, etc.)
+%   and sum up the weights from each channel at each voxel.  The channel with the 
+%   biggest sum of weights wins.
+% - Voxels that have no vertices mapping to them get <emptyval>.
+% - Note that this implicitly means that all voxels within 0.8 mm of any vertex with a 
+%   label will get a label.  This is arbitrary, and there are other things we can do,
+%   such as enforcing minimum distances and/or using only gray-matter voxels from FS, etc.
+%
+% History:
+% - 2016/11/29 - add <specialmode>
 
 % input
 if ~exist('outputprefix','var') || isempty(outputprefix)
@@ -42,6 +59,9 @@ if ~exist('outputprefix','var') || isempty(outputprefix)
 end
 if ~exist('datafun','var') || isempty(datafun)
   datafun = [];
+end
+if ~exist('specialmode','var') || isempty(specialmode)
+  specialmode = 0;
 end
 if ~isempty(outputprefix) && ischar(outputprefix)
   outputprefix = {outputprefix};
@@ -141,16 +161,43 @@ for x=[-1 1]
 end
 clear Xold;
 
-% each voxel is assigned a weighted sum of vertex values.
-% this should be done as a weighted average. thus, need to divide by sum of weights.
-% let's compute that now.
-wtssum = ones(1,m)*X;  % 1 x voxels
+% do it
+if specialmode==0
 
-% take the vertex data and map to voxels
-f = data*X;      % d x voxels
+  % each voxel is assigned a weighted sum of vertex values.
+  % this should be done as a weighted average. thus, need to divide by sum of weights.
+  % let's compute that now.
+  wtssum = ones(1,m)*X;  % 1 x voxels
 
-% do the normalization [if a voxel has no vertex contribution, it gets <emptyval>]
-f = zerodiv(f,repmat(wtssum,[d 1]),emptyval);
+  % take the vertex data and map to voxels
+  f = data*X;      % d x voxels
+
+  % do the normalization [if a voxel has no vertex contribution, it gets <emptyval>]
+  f = zerodiv(f,repmat(wtssum,[d 1]),emptyval);
+
+else
+
+  % expand data into separate channels
+  datanew = zeros(specialmode,size(data,2));
+  for p=1:specialmode
+    datanew(p,:) = double(data==p);
+  end
+  data = datanew;
+  clear datanew;
+    
+  % take the vertex data and map to voxels
+  f = data*X;      % d x voxels
+  
+  % which voxels have no vertex contribution?
+  bad = sum(f,1)==0;
+  
+  % perform winner-take-all (f becomes the index!)
+  [mx,f] = max(f,[],1);
+  
+  % put in <emptyval>
+  f(bad) = emptyval;
+
+end
 
 % prepare the results
 f = reshape(f',[newres newres newres d]);
