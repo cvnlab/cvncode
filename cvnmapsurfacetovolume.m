@@ -51,7 +51,7 @@ function f = cvnmapsurfacetovolume(subjectid,numlayers,layerprefix,fstruncate,da
 %   such as enforcing minimum distances and/or using only gray-matter voxels from FS, etc.
 %
 % History:
-% - 2016/11/29 - add <specialmode>
+% - 2016/11/29 - add <specialmode>; load from T1 and explicitly cast to 'single'
 
 % input
 if ~exist('outputprefix','var') || isempty(outputprefix)
@@ -204,9 +204,11 @@ f = reshape(f',[newres newres newres d]);
 
 % save files?
 if ~isempty(outputprefix)
-  vol1orig = load_untouch_nii(gunziptemp(sprintf('%s/mri/T2alignedtoT1.nii.gz',fsdir)));  % NOTE: hard-coded
+  vol1orig = load_untouch_nii(gunziptemp(sprintf('%s/mri/T1.nii.gz',fsdir)));  % NOTE: hard-coded!
   for p=1:size(f,4)
-    vol1orig.img = inttofs(cast(f(:,:,:,p),class(vol1orig.img)));  % should be 'single'
+    vol1orig.img = inttofs(cast(f(:,:,:,p),'single'));
+    vol1orig.hdr.dime.datatype = 16;  % single (float) format
+    vol1orig.hdr.dime.bitpix = 16;
     file0 = [outputprefix{p} '.nii'];
     save_untouch_nii(vol1orig,file0); gzip(file0); delete(file0);
   end
