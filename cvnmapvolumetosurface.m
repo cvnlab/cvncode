@@ -1,6 +1,8 @@
-function cvnmapvolumetosurface(subjectid,numlayers,layerprefix,fstruncate,volfiles,names,datafun,specialmm,interptype)
+function cvnmapvolumetosurface(subjectid,numlayers,layerprefix,fstruncate, ...
+  volfiles,names,datafun,specialmm,interptype,alignfile,outputdir)
 
-% function cvnmapvolumetosurface(subjectid,numlayers,layerprefix,fstruncate,volfiles,names,datafun,specialmm,interptype)
+% function cvnmapvolumetosurface(subjectid,numlayers,layerprefix,fstruncate, ...
+%   volfiles,names,datafun,specialmm,interptype,alignfile,outputdir)
 %
 % <subjectid> is like 'C0051'
 % <numlayers> is like 6
@@ -19,18 +21,28 @@ function cvnmapvolumetosurface(subjectid,numlayers,layerprefix,fstruncate,volfil
 %     <volfiles> should be a matrix or cell vector of matrices.
 %   Default: 0.
 % <interptype> (optional) is 'nearest' | 'linear' | 'cubic'.  default: 'cubic'.
+% <alignfile> (optional) is an alignment.mat file that indicates the positioning 
+%   of the volume. if this case is used, <specialmm> should be a single scalar N
+%   and should be consistent with the 'tr' variable in <alignfile>.
+%   Default is to do the usual thing.
+% <outputdir> (optional) is the directory to write the .mgz files to.
+%   Default is cvnpath('freesurfer')/<subjectid>/surf/
 %
 % Use interpolation to transfer the volume data in <volfiles> onto the layer 
 % surfaces (e.g. layerA1-A6) as well as the white and pial surfaces.
 % Save the results as .mgz files.
 %
-% The volumes in <volfiles> are assumed to be in our standard FreeSurfer 
-% 320 x 320 x 320 0.8-mm space.  An exception is when the <specialmm>
-% mechanism is used; in this case, the user sets the voxel size and 
-% matrix size and we create the volumes that share the same center
-% location as the standard FreeSurfer space.
+% There are three cases:
+% (1) The usual case is that the volumes in <volfiles> are assumed to 
+%     be in our standard FreeSurfer 320 x 320 x 320 0.8-mm space.
+% (2) A different case is when the <specialmm> mechanism is used; in this 
+%     case, the user sets the voxel size and matrix size and we create 
+%     volumes that share the same center location as the standard FreeSurfer space.
+% (3) A third case is when the <specialmm> mechanism is used in conjunction
+%     with <alignfile>. This allows the volumes to be placed in arbitrary locations.
 %
 % history:
+% - 2016/11/30 - add <alignfile> and <outputdir> inputs
 % - 2016/11/29 - add <specialmm> and <interptype> inputs
 
 % internal constants [NOTE!!!]
@@ -47,6 +59,12 @@ end
 if ~exist('interptype','var') || isempty(interptype)
   interptype = 'cubic';
 end
+if ~exist('alignfile','var') || isempty(alignfile)
+  alignfile = [];
+end
+if ~exist('outputdir','var') || isempty(outputdir)
+  outputdir = [];
+end
 if ~iscell(names)
   names = {names};
 end
@@ -54,6 +72,11 @@ end
 % calc
 fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
 hemis = {'lh' 'rh'};
+
+% load
+if ~isempty(alignfile)
+  a1 = load(alignfile);
+end
 
 % figure out surface names
 surfs = {}; surfsB = {};
@@ -111,7 +134,7 @@ for p=1:nd
       for r=1:length(surfs)
         coord = (vertices{q,r}(1:3,:) - .5)/fsres * newres + .5;  % DEAL WITH DIFFERENT RESOLUTION
         temp = ba_interp3_wrapper(tempdata,coord,interptype);
-        cvnwritemgz(subjectid,sprintf('%s_%s',names{p},surfsB{r}),temp,hemis{q});
+        cvnwritemgz(subjectid,sprintf('%s_%s',names{p},surfsB{r}),temp,hemis{q},outputdir);
       end
     end
 
@@ -120,9 +143,23 @@ for p=1:nd
     tempdata = feval(datafun{p},data{p});
     for q=1:length(hemis)
       for r=1:length(surfs)
-        coord = bsxfun(@plus,(vertices{q,r}(1:3,:) - (1+fsres)/2) * (1/specialmm(p)),vflatten((1+sizefull(data{p},3))/2));
+      
+        % in this case, the user specifies the alignment
+        if ~isempty(alignfile)
+          coord = volumetoslices(vertices{q,r},a1.tr);
+          coord = coord(1:3,:);
+          
+        % in this case, we assume the center of the slab is matched
+        else
+          coord = bsxfun(@plus,(vertices{q,r}(1:3,:) - (1+fsres)/2) * (1/specialmm(p)),vflatten((1+sizefull(data{p},3))/2));
+        end
+        
+        % do the interpolation
         temp = ba_interp3_wrapper(tempdata,coord,interptype);
-        cvnwritemgz(subjectid,sprintf('%s_%s',names{p},surfsB{r}),temp,hemis{q});
+        
+        % write out the file
+        cvnwritemgz(subjectid,sprintf('%s_%s',names{p},surfsB{r}),temp,hemis{q},outputdir);
+
       end
     end
   end
