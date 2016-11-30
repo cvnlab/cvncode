@@ -12,6 +12,7 @@ function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncat
 % anatomical and atlas-related quantities.
 %
 % history:
+% - 2016/11/29 - add support for SURFVOX
 % - 2016/11/28 - add support for new volumes: DIM1-3, BVOL, MAXEDIT
 % - 2016/11/22 - omit a few of these for the fsaverage case
 
@@ -185,8 +186,14 @@ for zz=1:length(allviews)
   infilenames =  [cellfun(@(x) sprintf('layer%s%d',layerprefix,x),num2cell(1:numlayers),'UniformOutput',0) {'white' 'pial'}];
   outfilenames = [cellfun(@(x) sprintf('layer%d',x),num2cell(1:numlayers),'UniformOutput',0) {sprintf('layer%d',numlayers+1) 'layer0'}];
 
+  % special SURFVOX stuff
+  mms = [0.5 0.8 1 1.5 2 2.5 3];
+  volnames = arrayfun(@(x) sprintf('SURFVOX%.1f',x),mms,'UniformOutput',0);
+
   % process quantities for each layer
-  todos = {'T1' 'T2' 'FMAP' 'DIM1' 'DIM2' 'DIM3' 'BVOL' 'MAXEDIT' 'SINUSBW'};
+    prev = warning('query');
+    warning off;
+  todos = [{'T1' 'T2' 'FMAP' 'DIM1' 'DIM2' 'DIM3' 'BVOL' 'MAXEDIT' 'SINUSBW'} volnames];
   for q=1:length(todos)
     for p=1:length(infilenames)
       file0 = matchfiles(sprintf('%s/surf/*.%s_%s_DENSETRUNC%s.mgz',fsdir,todos{q},infilenames{p},fstruncate));
@@ -217,10 +224,14 @@ for zz=1:length(allviews)
       elseif isequal(todos{q},'SINUSBW')
         rng = [0 10];
         cmap0 = 'hot';
+      elseif isequal(todos{q}(1:7),'SURFVOX')
+        rng = [0 7];
+        cmap0 = 'jet';
       end
       writefun(temp,sprintf('%s_%s.png',todos{q},outfilenames{p}),cmap0,rng,thresh0,alpha0);
     end
   end
+    warning(prev);
 
 end
 
