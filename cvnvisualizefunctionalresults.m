@@ -11,7 +11,11 @@ function cvnvisualizefunctionalresults(subjectid,numlayers,layerprefix,fstruncat
 %
 % For a number of different views, write out figures showing a variety of quantities related
 % to the functional dataset in <ppdir>. These figures pertain to raw and bias-corrected
-% signal intensities, the 'valid' vertices, the 'dark' (<.5) vertices, mad, and tSNR.
+% signal intensities, the 'valid' vertices, the 'dark' (<.5) vertices, mad, tSNR,
+% and volume slicing.
+%
+% history:
+% - 2016/11/30 - add support for STRIPE1-3
 
 %%%%%%%%% setup
 
@@ -163,174 +167,34 @@ for zz=1:length(allviews)
         sprintf('tsnr_layer%d.png',pp),'jet',[0 10],[],[]);
     end
   end
+
+  %%%%% more:
+
+  % calc
+  infilenames =  [cellfun(@(x) sprintf('layer%s%d',layerprefix,x),num2cell(1:numlayers),'UniformOutput',0) {'white' 'pial'}];
+  outfilenames = [cellfun(@(x) sprintf('layer%d',x),num2cell(1:numlayers),'UniformOutput',0) {sprintf('layer%d',numlayers+1) 'layer0'}];
+
+  % process quantities for each layer
+    prev = warning('query');
+    warning off;
+  todos = {'STRIPE1' 'STRIPE2' 'STRIPE3'};
+  for q=1:length(todos)
+    for p=1:length(infilenames)
+      file0 = matchfiles(sprintf('%s/surf/*.%s_%s_DENSETRUNC%s.mgz',ppdir,todos{q},infilenames{p},fstruncate));
+      if isempty(file0)
+        continue;
+      end
+      temp = cvnloadmgz(file0);
+      thresh0 = [];  % default
+      alpha0 = [];   % default
+      if isequal(todos{q}(1:6),'STRIPE')
+        rng = [0.5 max(temp)+.5];  % colors will range from 1, 2, ..., max
+        cmap0 = jet(max(temp));    % get a jet colormap tailored to this
+        thresh0 = 0.9;             % we allow the 0 values to show the curvature underneath
+      end
+      writefun(temp,sprintf('%s_%s.png',todos{q},outfilenames{p}),cmap0,rng,thresh0,alpha0);
+    end
+  end
+    warning(prev);
   
-%   %%%%% surfacevoxels stuff  
-%   
-%   % load mean volume
-%   meanvol = double(getfield(load_untouch_nii(sprintf('%s/mean.nii',ppdir)),'img'));
-% 
-%   % load alignment
-%   alignfile = load(sprintf('%s/freesurferalignment/alignment.mat',stripfile(ppdir)));
-% 
-%   % loop over layers
-%   for s=1:numlayers
-% 
-%     % calc
-%     surfname = sprintf('layer%s%d',layerprefix,s);
-% 
-%     % load in the surface
-%     [surfL,surfR] = cvnreadsurface(subjectid,hemis,surfname,sprintf('DENSETRUNC%s',fstruncate));
-%     
-%     % transform to EPI space
-%     [surfLR,epiverts] = surface_verts_to_volume(surfL,surfR,alignfile.tr);
-% 
-% 
-% 
-%     % save surface image of mean volume with every Nth slice = 0 along this dimension
-%     surfdata = sample_vol_to_surf(samplevol, epiverts);
-%     VIEW.data=surfdata;
-%     [img,lookup,rgbimg]=cvnlookupimages(subjectid,VIEW,hemis,...
-%         ####view_az_el_tilt,[],'xyextent',[1 1],'surfsuffix',sprintf('DENSETRUNC%s',fstruncate),...
-%         'roiname','*_kj2','roicolor','k','cmap','gray','text',upper(hemis));
-%     imwrite(rgbimg,sprintf('surface_voxels_meanepi_%s_ax%d.png',surfname,ax));
-% 
-%     % with respect to the raw measured dimensions, 0.8-mm
-% 
-%     % show 1 through 84 slices (rainbow and black). good for slice planning.
-% 
-%     % and repeat for each individual dimension
-% 
-%     % show with underlay the mean, every 5 slices or so using white or something
-% 
-%     % unique modulations using simple jet
-% 
-%     % and volume view too?
-% 
-%     
-
 end
-
-
-
-
-
-
-% %%%%%%%%%%%%%%%%%%%%%%
-% 
-% function [surfLR, epiverts] = surface_verts_to_volume(surfL,surfR,tr)
-% 
-% % <surfLR> is a struct
-% % <epiverts> is V x 3 where V refers to the concatenation of left and right hemisphere vertices.
-% %   the three columns are coordinates in EPI space (e.g. 1 is the middle of the first voxel).
-% 
-% % construct concatenated LR surface
-% surfLR=struct('vertices',[surfL.vertices; surfR.vertices],...
-%               'faces',[surfL.faces; surfR.faces+size(surfL.vertices,1)]);
-% 
-% % adjust for FS convention
-% surfLR.vertices=bsxfun(@plus,surfLR.vertices,[128 129 128]);  % NOTICE THIS!!!
-% 
-% % add some fields
-% surfLR.numvertsL=size(surfL.vertices,1);
-% surfLR.numvertsR=size(surfR.vertices,1);
-% surfLR.numverts=surfLR.numvertsL+surfLR.numvertsR;
-% surfLR.vertidxL=reshape(1:surfLR.numvertsL,[],1);
-% surfLR.vertidxR=reshape((1:surfLR.numvertsR)+surfLR.numvertsL,[],1);
-% 
-% % transform from volume space to EPI space
-% epiverts4d = volumetoslices([surfLR.vertices ones(surfLR.numverts,1)].',tr);
-% epiverts=epiverts4d(1:3,:).';
-% 
-% %%%%%%%%%%%%%%%%%%%%%%
-% 
-% 
-% 
-% 
-% 
-% function surfdata = sample_vol_to_surf(voldata, epiverts,interptype)
-% if(nargin < 3)
-%     interptype='cubic';
-% end
-% 
-% epiverts(:,4)=1;
-% surfdata = reshape(ba_interp3_wrapper(voldata,epiverts.',interptype),[],1);
-% surfdata(isnan(surfdata))=0;
-% 
-% 
-% 
-% 
-% 
-% 
-% 
-%     
-%         %% save surface image for voxels alternating along this dimension
-%     
-%         samplevol=voxvol;
-%     
-%         surfdata = sample_vol_to_surf(samplevol, epiverts,'nearest');
-%     
-%     
-%         VIEW.data=surfdata;
-%         [img,lookup,rgbimg]=cvnlookupimages(subjectid,VIEW,hemis,...
-%             ####view_az_el_tilt,[],'xyextent',[1 1],'surfsuffix',sprintf('DENSETRUNC%s',fstruncate),...
-%             'roiname','*_kj2','roicolor','k','cmap','jet','clim',[-.5 2],'text',upper(hemis));
-%     
-%         imwrite(rgbimg,sprintf('surface_voxels_nearest_%s_ax%d.png',surfname,ax));
-%     
-%     end
-% 
-% 
-%     % save surface image for voxels alternating along all dimensions
-%     
-%     
-%     vox1=zeros(size(samplevol));
-%     vox2=zeros(size(samplevol));
-%     vox3=zeros(size(samplevol));
-% 
-%     vox1(2:2:end,:,:) = 1;
-%     vox2(:,2:2:end,:) = 1;
-%     vox3(:,:,2:2:end) = 1;
-%     samplevol=vox1 + 2*vox2 + 4*vox3;
-% 
-%     surfdata = sample_vol_to_surf(samplevol, epiverts,'nearest');
-% 
-%     VIEW.data=surfdata;
-%     [img,lookup,rgbimg]=cvnlookupimages(subjectid,VIEW,hemis,...
-%         #####view_az_el_tilt,[],'xyextent',[1 1],'surfsuffix',sprintf('DENSETRUNC%s',fstruncate),...
-%         'roiname','*_kj2','roicolor','k','cmap','jet','clim',[-.5 7.5],'text',upper(hemis));
-% 
-%     imwrite(rgbimg,sprintf('surface_voxels_nearest_%s.png',surfname));
-%   end
-% 
-% 
-% 
-%     valstruct=struct('data',[],'numlh',surfLR.numvertsL,'numrh',surfLR.numvertsR);
-% 
-% 
-% 
-% 
-% 
-% 
-% 
-%     for ax = 1:3
-%         samplevol=meanvol;
-%         voxvol=zeros(size(samplevol));
-%     
-%         linespacing=4;
-%     
-%         if(ax==1)
-%             samplevol(1:linespacing:end,:,:)=0;
-%             voxvol(1:2:end,:,:)=1;
-%         elseif(ax==2)
-%             samplevol(:,1:linespacing:end,:)=0;
-%             voxvol(:,1:2:end,:)=1;
-%         elseif(ax==3)
-%             samplevol(:,:,1:linespacing:end)=0;
-%             voxvol(:,:,1:2:end)=1;
-%         end
-%     
-%         % save mean volume stack with every Nth slice = 0 along this dimension
-%         volimg=makeimagestack(samplevol,prctile(samplevol(:),[0 99]));
-%         imwrite(volimg,sprintf('surface_voxels_meanepi_vol_ax%d.png',ax));
-%     
-%     
