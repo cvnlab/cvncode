@@ -12,6 +12,7 @@ function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncat
 % anatomical and atlas-related quantities.
 %
 % history:
+% - 2016/11/30 - add support for aparc2009
 % - 2016/11/29 - add support for SURFVOX
 % - 2016/11/28 - add support for new volumes: DIM1-3, BVOL, MAXEDIT
 % - 2016/11/22 - omit a few of these for the fsaverage case
@@ -162,8 +163,12 @@ for zz=1:length(allviews)
   rgbimg=drawroinames(roiimg,rgbimg,L,1:numel(roinames),cleantext(roinames));
   imwrite(rgbimg,sprintf('%s/%s',outputdir,'kastner_names.png'));
  
-  % FreeSurfer aparc (without names) [see one-offs/freesurfer aparc colormap]
+  %%%%% aparc stuff:
+  
+  % setup
   fsconstants;
+
+  % FreeSurfer aparc (without names) [see one-offs/freesurfer aparc colormap]
   vals = [];
   for p=1:length(hemis)  % NOTE: must be hemis (same LH first convention)
     roimask = cvnroimask(subjectid,hemis{p},'aparc',[],sprintf('DENSETRUNC%s',fstruncate),'vals');  % column vector
@@ -179,6 +184,30 @@ for zz=1:length(allviews)
   % FreeSurfer aparc (with names)
   rgbimg=drawroinames(roiimg,rgbimg,L,1:numel(fslabels),cleantext(fslabels));
   imwrite(rgbimg,sprintf('%s/%s',outputdir,'aparc_names.png'));
+
+  % FreeSurfer aparc.a2009s (without names) [see one-offs/freesurfer aparc colormap]
+  vals = [];
+  for p=1:length(hemis)  % NOTE: must be hemis (same LH first convention)
+    roimask = cvnroimask(subjectid,hemis{p},'aparc.a2009s',[],sprintf('DENSETRUNC%s',fstruncate),'vals');  % column vector
+    bad = find(roimask==0);
+    roimask(bad) = 15386;  % just a random valid entry
+      % super ugly hack so that we can use calcposition (the 0s were causing problems)
+      temp = fscolortable2009(:,end)';
+      assert(temp(1)==0);
+      temp(1) = 1;
+      temp2 = roimask';
+      assert(all(temp2~=1));
+      temp2(temp2==0) = 1;
+    roimask = calcposition(temp,temp2);
+    roimask(bad) = 0;     % 0 is preserved. other entries are indices relative to fscolortable2009.
+    vals = [vals; roimask(:)];
+  end
+  [roiimg,~,rgbimg]=writefun(vals, ...
+    sprintf('aparc2009.png'), jet(76),      [0.5 76.5], 0.5,0.75);
+
+  % FreeSurfer aparc.a2009s (with names)
+  rgbimg=drawroinames(roiimg,rgbimg,L,1:numel(fslabels2009),cleantext(fslabels2009));
+  imwrite(rgbimg,sprintf('%s/%s',outputdir,'aparc2009_names.png'));
 
   %%%%% anatomical data stuff:
 
@@ -238,5 +267,4 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% maybe for future:
-  %% aparc 2009?
   %% HCP
