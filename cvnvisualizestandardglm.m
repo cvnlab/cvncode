@@ -1,4 +1,4 @@
-function cvnvisualizestandardglm(subjectid,numlayers,layerprefix,fstruncate,datadir,outputdir)
+function cvnvisualizestandardglm(subjectid,numlayers,layerprefix,fstruncate,datadir,outputdir,assumedir,firdir)
 
 % function cvnvisualizestandardglm(subjectid,numlayers,layerprefix,fstruncate,datadir,outputdir)
 %
@@ -10,9 +10,11 @@ function cvnvisualizestandardglm(subjectid,numlayers,layerprefix,fstruncate,data
 %   '/home/stone-ext1/fmridata/20160628-CVNS003-fLoc_ph'
 % <outputdir> is like
 %   '/home/stone/generic/Dropbox/cvnlab/ppresults/CVNS003/glmviz/20160628-CVNS003-fLoc_ph'
+% <assumedir> is like 'GLMCS_floc_assume'
+% <firdir> is like 'GLM_FIR_Standard'
 %
 % For a number of different views, write out figures showing a variety of quantities related
-% to the GLM results in <datadir> (both 'GLMCS_floc_assume' and 'GLM_FIR_Standard').
+% to the GLM results in <datadir> (both assumedir and firdir).
 %
 % These figures pertain to:
 % (1) from the condition-split GLM: R2 values, beta weights and their errors
@@ -53,19 +55,19 @@ extnames{end+1} = 'mean';
 fprintf('loading data...');
 clear data;
 for p=1:length(filestoload)
-  data(p) = load([datadir '/GLMCS_floc_assume/results/' filestoload{p}]);
+  data(p) = load([datadir '/' assumedir '/results/' filestoload{p}]);
 end
 fprintf('done.\n');
 
 % load the visually responsive ROI
-vrroi = loadmulti([datadir '/GLMCS_floc_assume/ROIs/?h.VIS_RESP_thresh5.mat'],'R',1);  % vertices x 1
+vrroi = loadmulti([datadir '/' assumedir '/ROIs/?h.VIS_RESP_thresh5.mat'],'R',1);  % vertices x 1
 
 % load valid
 valid = loadmulti(sprintf([datadir '/preprocessVER1SURF%s/valid.mat'],subjectid),'data');  % 1 x 6 x vertices
 valid = logical(squish(permute(valid,[3 2 1]),2));  % vertices*6 x 1
 
 % load PCA results
-a1 = load([datadir '/GLM_FIR_Standard/results/pca.mat']);
+a1 = load([datadir '/' firdir '/results/pca.mat']);
 
 % prep peaktime
 peaktime = reshape(copymatrix(zeros(size(valid)),valid,a1.peaktime),[],numlayers);  % vertices x 6
