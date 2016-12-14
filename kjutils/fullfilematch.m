@@ -25,6 +25,7 @@ function files = fullfilematch(filestrings,case_sensitive,sorttype)
 
 % KJ Update 10/18/2016: Overhaul to allow wildcards in middle of path, and
 %   to add sorting options (for use with cvnlab code)
+% KJ Update 12/14/2016: Assume default directory='.' (pwd)
 
 if(nargin < 2 || ~exist('case_sensitive','var') || isempty(case_sensitive))
     case_sensitive = true;
@@ -73,11 +74,23 @@ for f = 1:numel(filestrings)
     else
         fparts=regexp(filestr,fsep,'split');
 
+        if(numel(fparts)==1)
+            %if no directory separators in input, pass directly to next
+            %step (eg: input is '*' or '*.mat')
+            files_tmp=fparts;
+            filestrings0=[filestrings0; files_tmp(:)];
+            continue;
+        end
+        
+        %if first character is '/', keep a '/' at the beginning of the new
+        %string
         if(~isempty(regexp(filestr(1),fsep))) %#ok<RGXP1>
             files_tmp={'/'};
         else
             files_tmp={''};
         end
+
+        
         %loop through DIRECTORIES in path.  whenever we encounter a 
         % wildcard, call fullfilematch on the parent directory to find 
         % matching subdirectories, possibly returning multiple new
@@ -164,6 +177,11 @@ fpattern = strrep(fpattern,'(','\(');
 fpattern = strrep(fpattern,')','\)');
 fpattern = ['^' fpattern '$'];
 
+removeprefix='';
+if(isempty(filedir))
+    filedir='.';
+    removeprefix='./';
+end
 filestruct = dir(filedir);
 if(numel(filestruct) == 1 && filestruct(1).isdir)
     [filedir2,~,~] = fileparts(filedir);
@@ -209,7 +227,11 @@ end
 if(filedir(end)~='/')
     filedir=[filedir '/'];
 end
-files_tmp = strcat(filedir,filenames);
+if(~isempty(removeprefix) && strcmp(removeprefix,filedir))
+    files_tmp=filenames;
+else
+    files_tmp = strcat(filedir,filenames);
+end
 files_tmp = files_tmp(:);
 
 files=files_tmp(:);
