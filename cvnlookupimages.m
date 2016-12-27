@@ -506,6 +506,10 @@ if(isstruct(vals) && isfield(vals,'numlh'))
         for i = 1:numel(hemi)
             if(numel(hemitext)==numel(hemi))
                 hemi_options.text=hemitext{min(i,numel(hemitext))};
+            elseif(numel(hemitext)==1 && i==1)
+                hemi_options.text=hemitext;
+            else
+                hemi_options.text=[];
             end
             rgbimghemi{i}=add_hemi_text(rgbimghemi{i},hemi_options.text,options.textsize,options.textcolor);
         end
@@ -574,6 +578,12 @@ end
 
 if(numel(vals)>1 && size(vals,1)==1)
     vals=vals.';
+end
+
+if(isequal(options.surftype,'sphere'))
+    %for sphere lookups, always lookup full DENSE to avoid annoying TRUNC
+    %extrapolation artifacts around edges
+    options.surfsuffix=regexprep(options.surfsuffix,'^DENSE.+','DENSE');
 end
 
 if(isequal(options.surfsuffix,'orig'))
@@ -934,10 +944,16 @@ if(~isempty(options.roimask))
             end
             rgbimg=bsxfun(@plus,bsxfun(@times,rgbimg,(1-mappedroi)),bsxfun(@times,roiimg,mappedroi));
         end
-        if(do_drawroinames && ~isempty(rval) && numel(roiname) >= numel(rval))
-            tmplookup=Lookup;
-            tmplookup.imgsize=size(tmplookup.imglookup);
-            rgbimg=drawroinames(mappedroi_orig,rgbimg,tmplookup,rval,cleantext(roiname(rval)));
+        if(do_drawroinames && ~isempty(rval))
+            if(iscell(roiname) && numel(roiname) >= numel(rval))
+                tmplookup=Lookup;
+                tmplookup.imgsize=size(tmplookup.imglookup);
+                rgbimg=drawroinames(mappedroi_orig,rgbimg,tmplookup,rval,cleantext(roiname(rval)));
+            elseif(ischar(roiname) && numel(rval)==1)
+                tmplookup=Lookup;
+                tmplookup.imgsize=size(tmplookup.imglookup);
+                rgbimg=drawroinames(mappedroi_orig,rgbimg,tmplookup,rval,cleantext(roiname));
+            end
         end
 
     end

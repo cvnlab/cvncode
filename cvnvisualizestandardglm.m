@@ -60,7 +60,7 @@ end
 fprintf('done.\n');
 
 % load the visually responsive ROI
-vrroi = loadmulti([datadir '/' assumedir '/ROIs/?h.VIS_RESP_thresh5.mat'],'R',1);  % vertices x 1
+vrroi = loadmulti([datadir '/' assumedir '/ROIs/?h.VIS_RESP_thresh10.mat'],'R',1);  % vertices x 1
 
 % load valid
 valid = loadmulti(sprintf([datadir '/preprocessVER1SURF%s/valid.mat'],subjectid),'data');  % 1 x 6 x vertices
