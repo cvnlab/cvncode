@@ -26,7 +26,7 @@ for p=1:length(subjids)
   
     % define
     dir0 = sessions{p}{q};
-    ppdir = sprintf('/home/stone-ext1/fmridata/%s/preprocessVER1SURF%s',dir0,subjids{p});
+    ppdir = sprintf('/home/stone-ext1/fmridata/%s/%s%s',dir0,ppname,subjids{p});
 
     % load
     V = load(sprintf('%s/valid.mat',ppdir));  % load in valid mask
