@@ -241,7 +241,7 @@ for zz=1:length(allviews)
         rng = [1 320];
         cmap0 = 'jet';
       elseif isequal(todos{q},'BVOL')
-        rng = [0 2];  % values are 0, 1, 2; 2 indicates weird parts
+        rng = [0 3];  % values are 0, 1, 2, 3
         cmap0 = 'jet';
         thresh0 = 1.5;
         alpha0 = 0.6;
