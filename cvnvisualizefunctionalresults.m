@@ -1,12 +1,14 @@
-function cvnvisualizefunctionalresults(subjectid,numlayers,layerprefix,fstruncate,ppdir,outputdir)
+function cvnvisualizefunctionalresults(subjectid,numlayers,layerprefix,fstruncate,ppdir,ppdirvol,outputdir)
 
-% function cvnvisualizefunctionalresults(subjectid,numlayers,layerprefix,fstruncate,ppdir,outputdir)
+% function cvnvisualizefunctionalresults(subjectid,numlayers,layerprefix,fstruncate,ppdir,ppdirvol,outputdir)
 %
 % <subjectid> is like 'C0001'
 % <numlayers> is like 6
 % <layerprefix> is like 'A'
 % <fstruncate> is like 'pt'
-% <ppdir> is like '/home/stone-ext1/fmridata/20151008-ST001-kk,test/preprocessSURF'
+% <ppdir> is like     '/home/stone-ext1/fmridata/20151008-ST001-kk,test/preprocessVER1SURFC1051'
+% <ppdirvol> is like  '/home/stone-ext1/fmridata/20151008-ST001-kk,test/preprocessVER1'
+%   this is for the low-res-related stuff; if that doesn't exist, this input can be [].
 % <outputdir> is like '/home/stone/generic/Dropbox/cvnlab/ppresults/C0041/funcviz/session/'
 %
 % For a number of different views, write out figures showing a variety of quantities related
@@ -14,13 +16,17 @@ function cvnvisualizefunctionalresults(subjectid,numlayers,layerprefix,fstruncat
 % signal intensities, the 'valid' vertices, the 'dark' (<.5) vertices, mad, tSNR,
 % and volume slicing.
 %
+% If <ppdirvol> is provided, also write out figures pertaining to low-res versions
+% of bias-corrected signal intensities and the 'dark' (<.5) vertices.
+%
 % history:
+% - 2016/12/29 - add support for low-res-related stuff
 % - 2016/11/30 - add support for STRIPE1-3
 
 %%%%%%%%% setup
 
 % constants
-polydeg = 4;   % we just use this poly deg when inspecting the bias-correction results
+polydeg = 4;   % we just use this poly deg when inspecting the bias-corrected results
 
 % make output directory
 mkdirquiet(outputdir);
@@ -56,6 +62,16 @@ tsnrfile = sprintf('%s/tsnr.mat',ppdir);
 if exist(madfile,'file') && exist(tsnrfile,'file')  % some sessions don't have this...  so we omit that figure in these cases...
   D = load(madfile);
   T = load(tsnrfile);
+end
+
+% load in low-res-related stuff
+if ~isempty(ppdirvol)
+  files0 = matchfiles(sprintf('%s/mean_*_biascorrected.mat',ppdirvol));
+  prefixes = cellfun(@(x) subscript(regexp(x,'.*?mean_(\S+)_biascorrected.mat','tokens'),1,1),files0);
+  clear S;
+  for p=1:length(files0)
+    S(p) = load(files0{p});
+  end
 end
 
 %%%%%%%%% proceed
@@ -166,6 +182,26 @@ for zz=1:length(allviews)
       writefun(double(vflatten(T.data(1,pp,:))), ...
         sprintf('tsnr_layer%d.png',pp),'jet',[0 10],[],[]);
     end
+  end
+  
+  % lowres-related stuff
+  if ~isempty(ppdirvol)
+  
+    % for each smoothed version
+    for zz=1:length(prefixes)
+      for pp=1:numlayers
+
+        % bias-corrected intensity for each layer
+        writefun(double(vflatten(S(zz).data(1,pp,:))), ...
+          sprintf('lowres_%s_biascorrected_layer%d.png',prefixes{zz},pp),'gray',[0 2],[],[]);
+        
+        % dark (<0.5) for each layer
+        writefun(double(vflatten(S(zz).data(1,pp,:))) < 0.5, ...
+          sprintf('lowres_%s_dark_layer%d.png',         prefixes{zz},pp),'gray',[0 1],[],[]);
+
+      end
+    end
+
   end
 
   %%%%% more:
