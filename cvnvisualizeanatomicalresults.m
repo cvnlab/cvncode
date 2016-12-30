@@ -12,6 +12,7 @@ function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncat
 % anatomical and atlas-related quantities.
 %
 % history:
+% - 2016/12/29 - add support for visualsulc
 % - 2016/11/30 - add support for aparc2009
 % - 2016/11/29 - add support for SURFVOX
 % - 2016/11/28 - add support for new volumes: DIM1-3, BVOL, MAXEDIT
@@ -162,6 +163,16 @@ for zz=1:length(allviews)
   roinames=regexprep(roinames{1},'@.+','');
   rgbimg=drawroinames(roiimg,rgbimg,L,1:numel(roinames),cleantext(roinames));
   imwrite(rgbimg,sprintf('%s/%s',outputdir,'kastner_names.png'));
+
+  % visualsulc atlas stuff (without names)
+  [roiimg,~,rgbimg]=writefun(cvnloadmgz(sprintf('%s/label/*DENSETRUNC%s*visualsulc*.mgz',fsdir,fstruncate)), ...
+    sprintf('visualsulc.png'),  'jet',      [0 9],      0.5,0.85);
+
+  % visualsulc atlas stuff (with names)
+  [~,roinames,~]=cvnroimask(subjectid,hemis,'visualsulc*',[],sprintf('DENSETRUNC%s',fstruncate),'cell');
+  roinames=regexprep(roinames{1},'@.+','');
+  rgbimg=drawroinames(roiimg,rgbimg,L,1:numel(roinames),cleantext(roinames));
+  imwrite(rgbimg,sprintf('%s/%s',outputdir,'visualsulc_names.png'));
  
   %%%%% aparc stuff:
   
