@@ -32,6 +32,7 @@ function cvnalignEPItoT2(subjectid,outputdir,meanfunctional,mcmask,wantaffine,tr
 %   (and saved using the mean functional as a template).
 %
 % history:
+% - 2017/01/31 - add "epimatchedtoT1" png inspections
 % - 2016/11/04 - round mn and sd to 6 significant digits
 % - 2016/09/02 - implement wantmanual; fix the gzipping
 
@@ -144,12 +145,13 @@ save(sprintf('%s/alignment.mat',outputdir),'tr','T','mcmask');
 anatmatch1 = extractslices(vol1,vol1size,vol2,vol2size,tr);
 anatmatch3 = extractslices(vol3,vol3size,vol2,vol2size,tr);
 
-% inspect the alignment
-makeimagestack3dfiles(vol2,      sprintf('%s/epi', outputdir),[2 2 2],[0 0 -1],[],1);
-makeimagestack3dfiles(anatmatch1,sprintf('%s/anat',outputdir),[2 2 2],[0 0 -1],[],1);
+% get slices from EPI to match T1 (and T2)
+epimatch =   extractslices(vol1,vol1size,vol2,vol2size,tr,1);
 
-% get slices from EPI to match T2
-epimatch = extractslices(vol1,vol1size,vol2,vol2size,tr,1);
+% inspect the alignment
+makeimagestack3dfiles(vol2,              sprintf('%s/epi', outputdir),[2 2 2],[0 0 -1],[],1);
+makeimagestack3dfiles(anatmatch1,        sprintf('%s/anat',outputdir),[2 2 2],[0 0 -1],[],1);
+makeimagestack3dfiles(inttofs(epimatch), sprintf('%s/epimatchedtoT1',outputdir),[5 5 5],[-1 1 0],[],1);
 
 % save NIFTI file (EPI matched to the T2)
 vol1orig.img = inttofs(cast(epimatch,class(vol1orig.img)));
