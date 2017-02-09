@@ -1,4 +1,4 @@
-function [z]=logposrectratio(x,y,avgmetric,nboot)
+function [z,btx,bty]=logposrectratio(x,y,avgmetric,nboot)
 %[z]=logposrectratio(x,y,avgmetric,nboot)
 %computes the log posrect function of x over y of bootstrapped versions of x
 %and y.
@@ -30,6 +30,11 @@ function [z]=logposrectratio(x,y,avgmetric,nboot)
 %2. btx(j,i)>0 && bty(j,i)<=0, z(j,i) is set to 1000
 %3. btx(j,i)<=0 && bty(j,i)>0, z(j,i) is set to -1000
 %4. btx(j,i)<=0 && bty(j,i)<=0, z(j,i) is set to 0 (i.e. log (1))
+%
+%example: 
+%x=rand(10,20);
+%y=rand(10,30);
+%[z,btx,bty]=logposrectratio(x,y,'median',10000);
 
 if ~exist('avgmetric','var') || isempty(avgmetric)
     avgmetric='mean';
@@ -62,24 +67,17 @@ end
 tmpratio=posrect(btx)./posrect(bty);
 
 %find cases in which x>0 && y=0
-[r1,c1]=find(isinf(tmpratio));
+l1=isinf(tmpratio);
 %find cases in which x=0 and y=0
-[r2,c2]=find(isnan(tmpratio));
+l2=isnan(tmpratio);
 %find cases in which x=0 && y>0
-[r3,c3]=find(tmpratio==0);
+l3=tmpratio==0;
 
 %computing log of ratio
 z=log(tmpratio);
-
 %replacing log ratio for cases in which x>0 && y=0 with 1000
-for i=1:length(r1)
-    z(r1(i),c1(i))=1000;
-end
+z(l1)=1000;
 %replacing log ratio for cases in which x=0 && y=0 with 0 (i.e. log(1))
-for i=1:length(r2)
-    z(r2(i),c2(i))=0;
-end
+z(l2)=0;
 %replacing log ratio for cases in which x=0 && y>0 with -1000
-for i=1:length(r3)
-    z(r3(i),c3(i))=-1000;
-end
+z(l3)=-1000;
