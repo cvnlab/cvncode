@@ -80,7 +80,7 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 %   overlayrange:   overlayalpha = vals>range(1) & vals<range(2)
 %   inclusive:      true or false.  Include thresholds? (default=false)
 %                   ie: >=threshold instead of >threshold
-
+%
 %   background:     'curv' (default), Vx1, 1x3 RGB
 %   bg_cmap:        Colormap for background underlay (default = gray)
 %   bg_clim:        Colormap limits for underlay (default = [-1 2])

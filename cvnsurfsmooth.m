@@ -1,4 +1,4 @@
-function surfvals = cvnsurfsmooth(subject,surfvals,fwhm,hemi,surftype,surfsuffix,algorithm)
+function [surfvals A] = cvnsurfsmooth(subject,surfvals,fwhm,hemi,surftype,surfsuffix,algorithm)
 % surfvals = cvnsurfsmooth(subject,surfvals,fwhm,hemi,surftype,surfsuffix,algorithm)
 %
 % Smooth vertex data along the surface using either iterative vertex-neighbor
@@ -38,7 +38,8 @@ function surfvals = cvnsurfsmooth(subject,surfvals,fwhm,hemi,surftype,surfsuffix
 
 % KJ 2016-03-04 add 'workbench' option to wrap wb_command -metric-smoothing
 % KJ 2016-03-22 fix bug when data is a struct with both hemispheres
-
+% KJ 2017-02-21 for iterative mode, if fwhm<0, iter=abs(fwhm).  also add 
+%               optional second output (sparse mesh adjacency matrix)
 if(~exist('algorithm','var') || isempty('algorithm'))
     algorithm='iterative';
 end
@@ -60,12 +61,16 @@ if(isstruct(surfvals))
     return;
 end
 
-
+A=[];
 surf=cvnreadsurface(subject,hemi,surftype,surfsuffix);
 switch lower(algorithm)
     case {'iter','iterative'}
-        iter=mesh_fwhm2iter_cvn(surf.faces,surf.vertices,fwhm);
-        surfvals=mesh_diffuse_fast(surfvals,surf.faces,iter);
+        if(fwhm<=0)
+            iter=abs(fwhm);
+        else
+            iter=mesh_fwhm2iter_cvn(surf.faces,surf.vertices,fwhm);
+        end
+        [surfvals,A]=mesh_diffuse_fast(surfvals,surf.faces,iter);
     case 'workbench'
         wb_command=sprintf('%s/wb_command',cvnpath('workbench'));
         surfvals=mesh_smooth_workbench(surf,surfvals,fwhm,wb_command);

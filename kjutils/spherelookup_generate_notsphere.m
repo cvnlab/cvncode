@@ -14,6 +14,10 @@ function lookup = spherelookup_generate_notsphere(vertices,faces,azimuth,elevati
 % Output: lookup = same as spherelookup_generate, but also:
 %   .shading    MxN image overlay to apply shading on subsequent images
 
+% KJ 2017-02-21 Improvement to reverse lookup (for drawing ROIs on
+%               nonsphere views).  It significantly increases the time to
+%               generate a new lookup though.
+
 if(~exist('imgheight','var') || isempty(imgheight))
     imgheight=[];
 end
@@ -217,12 +221,34 @@ is_extrapolated=true;
 imgN=imgsz;
 vertsN=size(surf.vertices,1);
 xyextent=[1 1];
-reverselookup=zeros(vertsN,1);
+
 %%
+reverselookup=zeros(vertsN,1);
 pixidx=(1:numel(imgx))';
 reverselookup(imglookup)=pixidx;
 
+
+missingverts=reverselookup==0;
+viewmask=true(size(missingverts));
+
+tic
+S=scatteredInterpolant(viewvert(viewmask & ~missingverts,1), viewvert(viewmask & ~missingverts,2), ...
+    viewvert(viewmask & ~missingverts,3),vertidx(viewmask & ~missingverts),'nearest');
+missinglookup=S(viewvert(missingverts,1), viewvert(missingverts,2), viewvert(missingverts,3));
+toc
+
+%%%%%%
+D=inf(size(missingverts));
+D(missingverts)=sqrt(sum((viewvert(missingverts,:)-viewvert(missinglookup,:)).^2,2));
+
+
+visiblemissing=find(missingverts & D<1);
+missing2=zeros(size(missingverts));
+missing2(missingverts)=missinglookup;
+
+reverselookup(visiblemissing)=reverselookup(missing2(visiblemissing));
 %%
+
 lookup=fillstruct(imglookup,vertmasks,lookupmasks,reverselookup,extrapmask,is_extrapolated,azimuth,elevation,tilt,imgN,vertsN,TXview,xyextent);
 
 lookup.shading=imgshading;
