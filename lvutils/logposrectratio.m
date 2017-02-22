@@ -25,6 +25,10 @@ function [z,btx,bty]=logposrectratio(x,y,avgmetric,nboot)
 %positively rectified btx and bty, where btx and bty are boostrapped
 %version of x and y.
 %
+%<btx> is the bootstrapped version of x. Its size is size(x,1), nboot.
+%
+%<bty> is the bootstrapped version of y. Its size is size(y,1), nboot.
+%
 %NOTE: when computing the ratio, this function handles 4 different cases:
 %1. btx(j,i)>0 && bty(j,i)>0, z(j,i) is the log ratio between the 2 values
 %2. btx(j,i)>0 && bty(j,i)<=0, z(j,i) is set to 1000
