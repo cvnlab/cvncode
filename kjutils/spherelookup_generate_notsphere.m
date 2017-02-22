@@ -17,6 +17,8 @@ function lookup = spherelookup_generate_notsphere(vertices,faces,azimuth,elevati
 % KJ 2017-02-21 Improvement to reverse lookup (for drawing ROIs on
 %               nonsphere views).  It significantly increases the time to
 %               generate a new lookup though.
+% KJ 2017-02-22 Use mesh adjacency for much faster reverse lookup creation
+%               (to prune before costly nn interp step)
 
 if(~exist('imgheight','var') || isempty(imgheight))
     imgheight=[];
@@ -114,10 +116,12 @@ vmax=max(viewvert,[],1);
 vmid=(vmin+vmax)/2;
 vsize=vmax-vmin;
 
+vxlim=vmid(1)+max(vsize)*[-.5 .5]*1.1;
+vylim=vmid(2)+max(vsize)*[-.5 .5]*1.1;
 
 set(gca,'units','normalized','position',[0 0 1 1]);
 %set(gca,'xlim',[vmin(1) vmax(1)],'ylim',[vmin(2) vmax(2)]);
-set(gca,'xlim',vmid(1)+max(vsize)*[-.5 .5]*1.1,'ylim',vmid(2)+max(vsize)*[-.5 .5]*1.1);
+set(gca,'xlim',vxlim,'ylim',vylim);
 
 scalestr=sprintf('-m%d',scalefactor);
 
@@ -222,31 +226,97 @@ imgN=imgsz;
 vertsN=size(surf.vertices,1);
 xyextent=[1 1];
 
-%%
+%% create reverse lookup
+
+% first map all vertices that show up in the lookup
 reverselookup=zeros(vertsN,1);
 pixidx=(1:numel(imgx))';
-reverselookup(imglookup)=pixidx;
+reverselookup(imglookup(~extrapmask))=pixidx(~extrapmask);
 
-
+%%%%%%%%%
+% now find the missing vertices that are NOT occluded
+%%%%%%%%
 missingverts=reverselookup==0;
-viewmask=true(size(missingverts));
+notmissing=~missingverts;
 
-tic
-S=scatteredInterpolant(viewvert(viewmask & ~missingverts,1), viewvert(viewmask & ~missingverts,2), ...
-    viewvert(viewmask & ~missingverts,3),vertidx(viewmask & ~missingverts),'nearest');
-missinglookup=S(viewvert(missingverts,1), viewvert(missingverts,2), viewvert(missingverts,3));
-toc
+% start by transforming vertices to pixel space
+pixvert=bsxfun(@minus,viewvert,min(viewvert(notmissing,:),[],1));
 
-%%%%%%
-D=inf(size(missingverts));
-D(missingverts)=sqrt(sum((viewvert(missingverts,:)-viewvert(missinglookup,:)).^2,2));
+[yp,xp]=ind2sub(size(imglookup),reverselookup(notmissing));
+yp=size(imglookup,1)-yp+1;
+
+xt=[pixvert(notmissing,1) ones(size(xp))]\xp;
+yt=[pixvert(notmissing,2) ones(size(xp))]\yp;
+zt=(xt+yt)/2;
+
+pixvert(:,1)=[pixvert(:,1) ones(vertsN,1)]*xt;
+pixvert(:,2)=[pixvert(:,2) ones(vertsN,1)]*yt;
+pixvert(:,3)=[pixvert(:,3) ones(vertsN,1)]*zt;
+
+% maximum number of dilations to try
+imax=100;
+
+dimdist=3; %use 2D or 3D distance to assign non-occluded missing reverselookup?
+reverse_maxdist=2; %in pixels
+
+missingnn=zeros(vertsN,1); % index of nearest "visible" vert
+missingiter=zeros(vertsN,1); % # of dilations for "visible" to reach each vert
+missingdist=zeros(vertsN,1); % # 2D or 3D (dimdist) pixel space distance to nearest visible vert
+
+missingnn(notmissing)=find(notmissing);
+missingiter(missingverts)=inf;
+missingdist(missingverts)=inf;
+
+%just using mesh_diffuse_fast to create the sparse adjacency matrix
+[~,Adj]=mesh_diffuse_fast(vertsN,surf.faces);
+
+notmissing0=notmissing;
 
 
-visiblemissing=find(missingverts & D<1);
-missing2=zeros(size(missingverts));
-missing2(missingverts)=missinglookup;
+for i = 1:imax
+    notmissing=(Adj*double(notmissing0))>0;
+    newidx=notmissing0==0 & notmissing>0;
 
-reverselookup(visiblemissing)=reverselookup(missing2(visiblemissing));
+    [a,b]=find(Adj(newidx,:));
+    %which neighbors are already in our missingnn list?
+    nntmp=missingnn(b);
+    a=a(nntmp>0);
+    b=b(nntmp>0);
+    %copy missingnn from first neighbor
+    %NOTE: neigbor order is arbitrary, but all neighbors should be
+    %close-ish so this likely won't matter.  final missingnn is done after
+    %this loop using euclidian distance
+    newnn=zeros(sum(newidx),1);
+    newnn(a)=b;
+    
+    missingiter(newidx)=i;
+    missingnn(newidx)=missingnn(newnn);
+    missingdist(newidx)=sqrt(sum((pixvert(newidx,1:dimdist)-pixvert(missingnn(newnn),1:dimdist)).^2,2));
+    
+    if(min(missingdist(newidx))>(2*reverse_maxdist))
+        %if all new verts are > 2*maxdist pixels from their closest "pixel visible"
+        %neighbour, we are done finding the "lookup visible" missing, and 
+        %the rest are occluded
+        imax=i;
+        break;
+    end
+    notmissing0=notmissing>0;
+end
+
+notmissing=missingiter==0;
+visiblemissing=find(missingdist>0 & missingdist<=(2*reverse_maxdist));
+%reverselookup(visiblemissing)=reverselookup(missingnn(visiblemissing));
+
+%Now do euclidian distance to find nearest lookup-visible vertex to each
+%putative not-occluded vertex.  Prune list to only those with 
+%euclidian distance <= 2 pixels)
+S=scatteredInterpolant(pixvert(notmissing,1:dimdist),find(notmissing),'nearest');
+newnn=S(pixvert(visiblemissing,1:dimdist));
+distnn=sqrt(sum((pixvert(visiblemissing,1:dimdist)-pixvert(newnn,1:dimdist)).^2,2));
+
+visiblemissing=visiblemissing(distnn<=reverse_maxdist);
+newnn=newnn(distnn<=reverse_maxdist);
+reverselookup(visiblemissing)=reverselookup(newnn);
 %%
 
 lookup=fillstruct(imglookup,vertmasks,lookupmasks,reverselookup,extrapmask,is_extrapolated,azimuth,elevation,tilt,imgN,vertsN,TXview,xyextent);
