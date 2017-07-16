@@ -99,3 +99,22 @@ end
 
 % save
 save(sprintf('%s/%s/tfun.mat',cvnpath('anatomicals'),subjectid),'tfunFSSSlh','tfunFSSSrh','tfunSSFSlh','tfunSSFSrh');
+
+%%%%% write out some useful mgz files (inherited from cvnmakelayers.m)
+
+% calc
+hemis = {'lh' 'rh'};
+
+% do it
+for p=1:length(hemis)
+
+  % load
+  a1 = load(sprintf('%s/%smidgray.mat',dir0,hemis{p}));
+  a3 = read_curv(sprintf('%s/surf/%s.sulc',fsdir,hemis{p}));
+
+  % write mgz
+  cvnwritemgz(subjectid,'thickness',a1.thickness,hemis{p});
+  cvnwritemgz(subjectid,'curvature',a1.curvature,hemis{p});
+  cvnwritemgz(subjectid,'sulc',     a3,          hemis{p});
+
+end
