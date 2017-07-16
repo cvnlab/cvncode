@@ -3,15 +3,16 @@ function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncat
 % function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncate,figdir)
 %
 % <subjectid> is like 'C0001'
-% <numlayers> is like 6
-% <layerprefix> is like 'A'
-% <fstruncate> is like 'pt'
+% <numlayers> is like 6          or [] when non-dense processing
+% <layerprefix> is like 'A'      or [] when non-dense processing
+% <fstruncate> is like 'pt'      or [] when non-dense processing
 % <figdir> is directory to write figures to.
 %
 % For a number of different views, write out figures showing a variety of different
 % anatomical and atlas-related quantities.
 %
 % history:
+% - 2017/07/16 - add support for non-dense processing
 % - 2016/12/29 - add support for visualsulc
 % - 2016/11/30 - add support for aparc2009
 % - 2016/11/29 - add support for SURFVOX
@@ -25,8 +26,15 @@ hemis = {'lh' 'rh'};
 hemitexts = {'L' 'R'};
 
 % calc
+if isempty(numlayers)
+  surfsuffix = 'orig';
+  surfsuffix2 = '';
+else
+  surfsuffix = sprintf('DENSETRUNC%s',fstruncate);
+  surfsuffix2 = sprintf('DENSETRUNC%s',fstruncate);
+end
 fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
-[numlh,numrh] = cvnreadsurface(subjectid,hemis,'sphere',sprintf('DENSETRUNC%s',fstruncate),'justcount',true);
+[numlh,numrh] = cvnreadsurface(subjectid,hemis,'sphere',surfsuffix,'justcount',true);
 
 % init some stuff
 V = struct('data',zeros(numlh+numrh,1),'numlh',numlh,'numrh',numrh);
@@ -80,96 +88,100 @@ for zz=1:length(allviews)
   L = [];
   [mappedvals,L,rgbimg] = cvnlookupimages(subjectid,V,hemistouse,viewpt,L, ...
     'xyextent',[1 1],'text',hemitextstouse,'surftype',surftype0,'imageres',imageres0, ...
-    'surfsuffix',choose(fsaverage0,sprintf('fsaverageDENSETRUNC%s',fstruncate),[]));
+    'surfsuffix',choose(fsaverage0,sprintf('fsaverage%s',surfsuffix),surfsuffix));
 
   % make helper functions
   writefun = @(vals,filename,cmap,rng,thresh,alpha) ...
     cvnlookupimages(subjectid,setfield(V,'data',double(vals)),hemistouse,viewpt,L, ...  % NOTE: double
     'xyextent',[1 1],'text',hemitextstouse,'surftype',surftype0,'imageres',imageres0, ...
-    'surfsuffix',choose(fsaverage0,sprintf('fsaverageDENSETRUNC%s',fstruncate),[]), ...
+    'surfsuffix',choose(fsaverage0,sprintf('fsaverage%s',surfsuffix),surfsuffix), ...
     'colormap',cmap,'clim',rng,'filename',sprintf('%s/%s',outputdir,filename), ...
     'threshold',thresh,'overlayalpha',alpha);     % circulartype
 
   %%%%% WRITE MAPS
 
-  % SAPV for each layer
-  if ~isequal(subjectid,'fsaverage')
-    for p=1:numlayers
-      writefun(cvnloadmgz(sprintf('%s/surf/*.sapv_layer%s%d_DENSETRUNC%s.mgz',fsdir,layerprefix,p,fstruncate)), ...
-        sprintf('sapv_layer%d.png',p),'jet',[0 .25],[],[]);
-    end
-  end
+  if ~isempty(numlayers)
 
-  % SAPV for the sphere
-  writefun(cvnloadmgz(sprintf('%s/surf/*.sapv_sphere_DENSETRUNC%s.mgz',fsdir,fstruncate)), ...
-    sprintf('sapv_sphere.png'),     'jet',[0 .25],[],[]);
-
-  % distortion map for each layer
-  %   log2(sapv_sphere/sapv_layer)
-  %   0 means no distortion. + means sphere is enlarged. - means sphere is shrunken.
-  if ~isequal(subjectid,'fsaverage')
-    for p=1:numlayers
-      writefun( ...
-        log2(cvnloadmgz(sprintf('%s/surf/*.sapv_sphere_DENSETRUNC%s.mgz',fsdir,fstruncate)) ./ ...
-             cvnloadmgz(sprintf('%s/surf/*.sapv_layer%s%d_DENSETRUNC%s.mgz',fsdir,layerprefix,p,fstruncate))), ...
-        sprintf('distortion_layer%d.png',p),'cmapsign4',[-2 2],[],[]);
+    % SAPV for each layer
+    if ~isequal(subjectid,'fsaverage')
+      for p=1:numlayers
+        writefun(cvnloadmgz(sprintf('%s/surf/*.sapv_layer%s%d_DENSETRUNC%s.mgz',fsdir,layerprefix,p,fstruncate)), ...
+          sprintf('sapv_layer%d.png',p),'jet',[0 .25],[],[]);
+      end
     end
-  end
 
-  % AEL for each layer (probably very very similar to SAPV)
-  if ~isequal(subjectid,'fsaverage')
-    for p=1:numlayers
-      writefun(cvnloadmgz(sprintf('%s/surf/*.ael_layer%s%d_DENSETRUNC%s.mgz',fsdir,layerprefix,p,fstruncate)), ...
-        sprintf('ael_layer%d.png',p),'jet',[0 1],[],[]);
+    % SAPV for the sphere
+    writefun(cvnloadmgz(sprintf('%s/surf/*.sapv_sphere_DENSETRUNC%s.mgz',fsdir,fstruncate)), ...
+      sprintf('sapv_sphere.png'),     'jet',[0 .25],[],[]);
+
+    % distortion map for each layer
+    %   log2(sapv_sphere/sapv_layer)
+    %   0 means no distortion. + means sphere is enlarged. - means sphere is shrunken.
+    if ~isequal(subjectid,'fsaverage')
+      for p=1:numlayers
+        writefun( ...
+          log2(cvnloadmgz(sprintf('%s/surf/*.sapv_sphere_DENSETRUNC%s.mgz',fsdir,fstruncate)) ./ ...
+               cvnloadmgz(sprintf('%s/surf/*.sapv_layer%s%d_DENSETRUNC%s.mgz',fsdir,layerprefix,p,fstruncate))), ...
+          sprintf('distortion_layer%d.png',p),'cmapsign4',[-2 2],[],[]);
+      end
     end
+
+    % AEL for each layer (probably very very similar to SAPV)
+    if ~isequal(subjectid,'fsaverage')
+      for p=1:numlayers
+        writefun(cvnloadmgz(sprintf('%s/surf/*.ael_layer%s%d_DENSETRUNC%s.mgz',fsdir,layerprefix,p,fstruncate)), ...
+          sprintf('ael_layer%d.png',p),'jet',[0 1],[],[]);
+      end
+    end
+
   end
 
   % curvature
   %   + (red) means sulci
   %   - (blue) means gyri
-  writefun(cvnloadmgz(sprintf('%s/surf/*.curvatureDENSETRUNC%s.mgz',fsdir,fstruncate)), ...
+  writefun(cvnloadmgz(sprintf('%s/surf/*.curvature%s.mgz',fsdir,surfsuffix2)), ...
     sprintf('curvatureraw.png'),'cmapsign4',[-1 1],[],[]);
 
   % curvature thresholded
   %   dark gray is 0  (curvature value is > 0)
   %   light gray is 1 (curvature value is < 0)
-  writefun(cvnloadmgz(sprintf('%s/surf/*.curvatureDENSETRUNC%s.mgz',fsdir,fstruncate)) < 0, ...
+  writefun(cvnloadmgz(sprintf('%s/surf/*.curvature%s.mgz',fsdir,surfsuffix2)) < 0, ...
     sprintf('curvature.png'),   'gray',     [-1 2],[],[]);
 
   % thickness
   %   red means thick
   %   blue means thin
-  writefun(cvnloadmgz(sprintf('%s/surf/*.thicknessDENSETRUNC%s.mgz',fsdir,fstruncate)), ...
+  writefun(cvnloadmgz(sprintf('%s/surf/*.thickness%s.mgz',fsdir,surfsuffix2)), ...
     sprintf('thickness.png'),   'jet',      [0 4],[],[]);
 
   % sulc
   %   + (red) means sulci (far from brain boundary)
   %   - (blue) means gyri (close to brain boundary)
-  writefun(cvnloadmgz(sprintf('%s/surf/*.sulcDENSETRUNC%s.mgz',fsdir,fstruncate)), ...
+  writefun(cvnloadmgz(sprintf('%s/surf/*.sulc%s.mgz',fsdir,surfsuffix2)), ...
     sprintf('sulcraw.png'),     'cmapsign4',[-1.5 1.5],[],[]);
 
   % sulc thresholded
   %   dark gray is 0  (sulc value is > 0)
   %   light gray is 1 (sulc value is < 0)
-  writefun(cvnloadmgz(sprintf('%s/surf/*.sulcDENSETRUNC%s.mgz',fsdir,fstruncate)) < 0, ...
+  writefun(cvnloadmgz(sprintf('%s/surf/*.sulc%s.mgz',fsdir,surfsuffix2)) < 0, ...
     sprintf('sulc.png'),        'gray',     [-1 2],[],[]);
 
   % Kastner atlas stuff (without names)
-  [roiimg,~,rgbimg]=writefun(cvnloadmgz(sprintf('%s/label/*DENSETRUNC%s*Kastner2015Labels*.mgz',fsdir,fstruncate)), ...
+  [roiimg,~,rgbimg]=writefun(cvnloadmgz(sprintf('%s/label/?h%s.Kastner2015Labels.mgz',fsdir,surfsuffix2)), ...
     sprintf('kastner.png'),     'jet',      [0 25],     0.5,0.85);
 
   % Kastner atlas stuff (with names)
-  [~,roinames,~]=cvnroimask(subjectid,hemis,'Kastner*',[],sprintf('DENSETRUNC%s',fstruncate),'cell');
+  [~,roinames,~]=cvnroimask(subjectid,hemis,'Kastner*',[],surfsuffix,'cell');
   roinames=regexprep(roinames{1},'@.+','');
   rgbimg=drawroinames(roiimg,rgbimg,L,1:numel(roinames),cleantext(roinames));
   imwrite(rgbimg,sprintf('%s/%s',outputdir,'kastner_names.png'));
 
   % visualsulc atlas stuff (without names)
-  [roiimg,~,rgbimg]=writefun(cvnloadmgz(sprintf('%s/label/*DENSETRUNC%s*visualsulc*.mgz',fsdir,fstruncate)), ...
+  [roiimg,~,rgbimg]=writefun(cvnloadmgz(sprintf('%s/label/?h%s.visualsulc.mgz',fsdir,surfsuffix2)), ...
     sprintf('visualsulc.png'),  'jet',      [0 9],      0.5,0.85);
 
   % visualsulc atlas stuff (with names)
-  [~,roinames,~]=cvnroimask(subjectid,hemis,'visualsulc*',[],sprintf('DENSETRUNC%s',fstruncate),'cell');
+  [~,roinames,~]=cvnroimask(subjectid,hemis,'visualsulc*',[],surfsuffix,'cell');
   roinames=regexprep(roinames{1},'@.+','');
   rgbimg=drawroinames(roiimg,rgbimg,L,1:numel(roinames),cleantext(roinames));
   imwrite(rgbimg,sprintf('%s/%s',outputdir,'visualsulc_names.png'));
@@ -182,7 +194,7 @@ for zz=1:length(allviews)
   % FreeSurfer aparc (without names) [see one-offs/freesurfer aparc colormap]
   vals = [];
   for p=1:length(hemis)  % NOTE: must be hemis (same LH first convention)
-    roimask = cvnroimask(subjectid,hemis{p},'aparc',[],sprintf('DENSETRUNC%s',fstruncate),'vals');  % column vector
+    roimask = cvnroimask(subjectid,hemis{p},'aparc',[],surfsuffix,'vals');  % column vector
     bad = find(roimask==0);
     roimask(bad) = 6500;  % just a random valid entry
     roimask = calcposition(fscolortable(:,end)',roimask');
@@ -199,7 +211,7 @@ for zz=1:length(allviews)
   % FreeSurfer aparc.a2009s (without names) [see one-offs/freesurfer aparc colormap]
   vals = [];
   for p=1:length(hemis)  % NOTE: must be hemis (same LH first convention)
-    roimask = cvnroimask(subjectid,hemis{p},'aparc.a2009s',[],sprintf('DENSETRUNC%s',fstruncate),'vals');  % column vector
+    roimask = cvnroimask(subjectid,hemis{p},'aparc.a2009s',[],surfsuffix,'vals');  % column vector
     bad = find(roimask==0);
     roimask(bad) = 15386;  % just a random valid entry
       % super ugly hack so that we can use calcposition (the 0s were causing problems)
@@ -221,57 +233,61 @@ for zz=1:length(allviews)
   imwrite(rgbimg,sprintf('%s/%s',outputdir,'aparc2009_names.png'));
 
   %%%%% anatomical data stuff:
+  
+  if ~isempty(numlayers)
 
-  % calc
-  infilenames =  [cellfun(@(x) sprintf('layer%s%d',layerprefix,x),num2cell(1:numlayers),'UniformOutput',0) {'white' 'pial'}];
-  outfilenames = [cellfun(@(x) sprintf('layer%d',x),num2cell(1:numlayers),'UniformOutput',0) {sprintf('layer%d',numlayers+1) 'layer0'}];
+    % calc
+    infilenames =  [cellfun(@(x) sprintf('layer%s%d',layerprefix,x),num2cell(1:numlayers),'UniformOutput',0) {'white' 'pial'}];
+    outfilenames = [cellfun(@(x) sprintf('layer%d',x),num2cell(1:numlayers),'UniformOutput',0) {sprintf('layer%d',numlayers+1) 'layer0'}];
 
-  % special SURFVOX stuff
-  mms = [0.5 0.8 1 1.5 2 2.5 3];
-  volnames = arrayfun(@(x) sprintf('SURFVOX%.1f',x),mms,'UniformOutput',0);
+    % special SURFVOX stuff
+    mms = [0.5 0.8 1 1.5 2 2.5 3];
+    volnames = arrayfun(@(x) sprintf('SURFVOX%.1f',x),mms,'UniformOutput',0);
 
-  % process quantities for each layer
-    prev = warning('query');
-    warning off;
-  todos = [{'T1' 'T2' 'FMAP' 'DIM1' 'DIM2' 'DIM3' 'BVOL' 'MAXEDIT' 'SINUSBW'} volnames];
-  for q=1:length(todos)
-    for p=1:length(infilenames)
-      file0 = matchfiles(sprintf('%s/surf/*.%s_%s_DENSETRUNC%s.mgz',fsdir,todos{q},infilenames{p},fstruncate));
-      if isempty(file0)
-        continue;
-      end
-      temp = cvnloadmgz(file0);
-      thresh0 = [];  % default
-      alpha0 = [];   % default
-      if ismember(todos{q},{'T1' 'T2' 'FMAP'})
-        if p==1
-          rng = [0 mean(temp)*3];  % WEIRD HEURISTIC!
+    % process quantities for each layer
+      prev = warning('query');
+      warning off;
+    todos = [{'T1' 'T2' 'FMAP' 'DIM1' 'DIM2' 'DIM3' 'BVOL' 'MAXEDIT' 'SINUSBW'} volnames];
+    for q=1:length(todos)
+      for p=1:length(infilenames)
+        file0 = matchfiles(sprintf('%s/surf/*.%s_%s_DENSETRUNC%s.mgz',fsdir,todos{q},infilenames{p},fstruncate));
+        if isempty(file0)
+          continue;
         end
-        cmap0 = 'gray';
-      elseif ismember(todos{q},{'DIM1' 'DIM2' 'DIM3'})
-        rng = [1 320];
-        cmap0 = 'jet';
-      elseif isequal(todos{q},'BVOL')
-        rng = [0 3];  % values are 0, 1, 2, 3
-        cmap0 = 'jet';
-        thresh0 = 1.5;
-        alpha0 = 0.6;
-      elseif isequal(todos{q},'MAXEDIT')
-        rng = [0 1];
-        cmap0 = 'gray';
-        thresh0 = 0.5;
-        alpha0 = 0.6;
-      elseif isequal(todos{q},'SINUSBW')
-        rng = [0 10];
-        cmap0 = 'hot';
-      elseif isequal(todos{q}(1:7),'SURFVOX')
-        rng = [0 7];
-        cmap0 = 'jet';
+        temp = cvnloadmgz(file0);
+        thresh0 = [];  % default
+        alpha0 = [];   % default
+        if ismember(todos{q},{'T1' 'T2' 'FMAP'})
+          if p==1
+            rng = [0 mean(temp)*3];  % WEIRD HEURISTIC!
+          end
+          cmap0 = 'gray';
+        elseif ismember(todos{q},{'DIM1' 'DIM2' 'DIM3'})
+          rng = [1 320];
+          cmap0 = 'jet';
+        elseif isequal(todos{q},'BVOL')
+          rng = [0 3];  % values are 0, 1, 2, 3
+          cmap0 = 'jet';
+          thresh0 = 1.5;
+          alpha0 = 0.6;
+        elseif isequal(todos{q},'MAXEDIT')
+          rng = [0 1];
+          cmap0 = 'gray';
+          thresh0 = 0.5;
+          alpha0 = 0.6;
+        elseif isequal(todos{q},'SINUSBW')
+          rng = [0 10];
+          cmap0 = 'hot';
+        elseif isequal(todos{q}(1:7),'SURFVOX')
+          rng = [0 7];
+          cmap0 = 'jet';
+        end
+        writefun(temp,sprintf('%s_%s.png',todos{q},outfilenames{p}),cmap0,rng,thresh0,alpha0);
       end
-      writefun(temp,sprintf('%s_%s.png',todos{q},outfilenames{p}),cmap0,rng,thresh0,alpha0);
     end
+      warning(prev);
+
   end
-    warning(prev);
 
 end
 
