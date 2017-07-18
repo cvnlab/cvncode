@@ -11,7 +11,8 @@
 
 function tf = using_hg2(fig)
 try
-    tf = ~graphicsversion(fig, 'handlegraphics');
+    %tf = ~graphicsversion(fig, 'handlegraphics');
+    tf = ~verLessThan('matlab','8.4.0');
 catch
     tf = false;
 end
