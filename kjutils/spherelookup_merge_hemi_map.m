@@ -1,4 +1,12 @@
 function mapLR = spherelookup_merge_hemi_map(Lookup,field,dim)
+% mapLR = spherelookup_merge_hemi_map(Lookup,field,dim)
+%
+% Concatenate an image/matrix field from two or more lookup structs
+%
+% Example:
+%  [~,Lookup,~]=cvnlookupimages(...,'surftype','inflated','shading',true)
+%  > Lookup
+%  shadmap=spherelookup_merge_hemi_map(Lookup,'shading');
 if(~exist('dim','var') || isempty(dim))
     dim=2;
 end

@@ -477,7 +477,7 @@ if(isstruct(vals) && isfield(vals,'numlh'))
                 rgbimghemi{i}=pimg(rgbimghemi{i},options.rgbnan);
                 lookuphemi{i}.imglookup=pimg(lookuphemi{i}.imglookup,1);
                 lookuphemi{i}.extrapmask=pimg(lookuphemi{i}.extrapmask,true);
-                lookuphemi{i}.shading=pimg(lookuphemi{i}.shading,0);
+                lookuphemi{i}.shading=pimg(lookuphemi{i}.shading,1); %no shading elsewhere
                 %lookuphemi{i}.imgsize=size(lookuphemi{i}.imglookup);
                 %lookuphemi{i}.imgN=size(lookuphemi{i}.imglookup,2); %questionable
                 
