@@ -4,9 +4,9 @@ function f = cvngetlayersinEPI(subjectid,datadir,numlayers,layerprefix,fstruncat
 %
 % <subjectid> is like 'C0001'
 % <datadir> is like '/home/stone-ext1/fmridata/20151008-ST001-kk,test'
-% <numlayers> is like 6
-% <layerprefix> is like 'A'
-% <fstruncate' is like 'pt'
+% <numlayers> is like 6       or [] (indicating graymid)
+% <layerprefix> is like 'A'   or [] (indicating graymid)
+% <fstruncate' is like 'pt'   or [] (indicating graymid)
 %
 % Based on an existing EPI alignment (freesurferalignment/alignment.mat),
 % return the locations of the vertices (4 x V) in the EPI space.
@@ -17,13 +17,20 @@ function f = cvngetlayersinEPI(subjectid,datadir,numlayers,layerprefix,fstruncat
 %   lh.layerA2DENSETRUNCpt
 %   rh.layerA2DENSETRUNCpt
 %     etc.
+% OR
+%   lh.graymid
+%   rh.graymid
 
 % calc
 fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
 prefixes = {'lh' 'rh'};
-surfs = {};
-for p=1:numlayers
-  surfs{p} = sprintf('layer%s%dDENSETRUNC%s',layerprefix,p,fstruncate);  % six layers, dense, truncated
+if isempty(numlayers)
+  surfs = {'graymid'};
+else
+  surfs = {};
+  for p=1:numlayers
+    surfs{p} = sprintf('layer%s%dDENSETRUNC%s',layerprefix,p,fstruncate);  % six layers, dense, truncated
+  end
 end
 
 % load transformation
