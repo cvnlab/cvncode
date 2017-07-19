@@ -26,6 +26,10 @@ if(isstruct(Lookup))
     Lookup={Lookup};
 end
 
+if(~isempty(roinames) && ischar(roinames))
+    roinames={roinames};
+end
+
 if(~exist('textargs','var') || isempty(textargs))
     textargs={};
 end

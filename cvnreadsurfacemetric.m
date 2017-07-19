@@ -34,7 +34,8 @@ function [result,metricfiles] = cvnreadsurfacemetric(subject, hemi, metricname, 
 %%%%%%%%%%%%%%%%%%%%
 %default options
 options=struct(...
-    'surfdir',[]);
+    'surfdir',[],...
+    'verbose',false);
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%
@@ -58,7 +59,7 @@ else
     surfdir=sprintf('%s/%s/surf',freesurfdir,subject);
 end
 
-assert(exist(surfdir,'dir')>0);
+assert(exist(surfdir,'dir')>0,'Missing surf directory: %s',surfdir);
 
 if(isempty(hemi))
     hemi={'lh','rh'};
@@ -105,7 +106,17 @@ result=[];
 metricfiles={};
 
 if(isempty(metricpattern))
-    %error('No metric file found: %s/*%s*',surfdir,metricname);
+    if(~isempty(surftype))
+        %if no file was found, try with blank surftype (many such as curv,
+        % sulc, don't have a specific surftype)
+        [result,metricfiles] = cvnreadsurfacemetric(subject, hemi, metricname, '', surfsuffix, varargin{:},'verbose',false);
+        return;
+    end
+    
+    if(options.verbose)
+        wstr=repmat('\n%s',1,numel(metricpattern_all));
+        warning(['No metric file found: ' wstr],metricpattern_all{:});
+    end
     return;
 else
     hvert={};

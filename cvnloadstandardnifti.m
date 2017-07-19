@@ -13,6 +13,7 @@ function data = cvnloadstandardnifti(volfiles)
 %
 % history:
 % - 2016/11/28 - allow mix-and-match with raw matrices
+% - 2016/12/05 - allow loading of 4D nifti
 
 % match the files
 if ~iscell(volfiles)
@@ -21,7 +22,7 @@ end
 newfiles = {};
 for p=1:length(volfiles)
   if ischar(volfiles{p})
-    newfiles = [newfiles matchfiles(volfiles{p})];
+    newfiles = [newfiles fullfilematch(volfiles{p})];
   else
     newfiles{end+1} = volfiles{p};
   end
@@ -32,8 +33,9 @@ data = [];
 for p=1:length(newfiles)
   if ischar(newfiles{p})
     a1 = load_untouch_nii(gunziptemp(newfiles{p}));
-    data(:,:,:,p) = fstoint(double(a1.img));
+    vol = fstoint(double(a1.img));
   else
-    data(:,:,:,p) = double(newfiles{p});
+    vol = double(newfiles{p});
   end
+  data=cat(4,data,vol);
 end

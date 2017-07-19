@@ -40,6 +40,10 @@ elseif(numel(varargin) > 1 && numel(varargin{1}) == 1 && ishghandle(varargin{1})
             if(numel(cl) == 1)
                 cl = [0 cl];
             end
+            D = getappdata(hfig,'data');
+            if(isfield(D,'V') && ~isempty(D.V))
+            	cl=aux_set_clim(D.V,cl);
+            end
             M.colormap_clim = cl;
             set([M.ax M.axmip],'clim',cl);
             setappdata(hfig,'guidata',M);
@@ -188,6 +192,9 @@ p.addParamValue('clim',[]);
 p.addParamValue('interp',[]);
 p.addParamValue('cursorgap',2);
 p.addParamValue('surfslices',[]);
+p.addParamValue('surfcolor',[]);
+p.addParamValue('surfmarkertype',[]);
+p.addParamValue('surfmarkersize',[]);
 
 p.parse(varargin{:});
 r = p.Results;
@@ -249,22 +256,25 @@ elseif(ischar(bgfile))
     [Vbg xyz_bg] = spm_read_vols(bgstruct);
 elseif(isstruct(bgfile))
     [Vbg xyz_bg] = spm_read_vols(bgfile);
-elseif(isnumeric(bgfile))
+elseif(isnumeric(bgfile) || islogical(bgfile))
     if(numel(bgfile) == 1)
         Vbg = bgfile*ones(size(V));
     else
         Vbg = bgfile;
     end
-elseif(iscell(bgfile) && isnumeric(bgfile{1}))
+elseif(iscell(bgfile) && (isnumeric(bgfile{1}) || islogical(bgfile{1})))
     Vbg=bgfile;
 else
 end
 
-if(isnumeric(Vbg))
+if(~iscell(Vbg))
     Vbg={Vbg};
 end
 Vbg_count=numel(Vbg);
-    
+for b = 1:Vbg_count
+    Vbg{b}=double(Vbg{b});
+end
+
 if(isempty(bgpermute))
     bgpermute = dimpermute;
 end
@@ -518,9 +528,19 @@ colormap(cmap);
 hold on;
 %[hcurV(3) hcurH(3)] = splitvars(plot([cx cx; 0 sz(2)]',[0 sz(1); cy cy]','w'));
 [hcurV{3} hcurH{3}] = plotcursor(ax(3),cx,cy,[0 sz(2)],[0 sz(1)],cursorgap,'w');
+    
+surfslicestyle={'x','color','r','markersize',1,'hittest','off'};
+if(~isempty(r.surfcolor))
+    surfslicestyle=[surfslicestyle,'color',r.surfcolor];
+end
+if(~isempty(r.surfmarkertype))
+    surfslicestyle=[surfslicestyle,'marker',r.surfmarkertype];
+end
+if(~isempty(r.surfmarkersize))
+    surfslicestyle=[surfslicestyle,'markersize',r.surfmarkersize];
+end
 
 if(~isempty(surfslices))
-    surfslicestyle={'x','color','r','markersize',1,'hittest','off'};
     hsurfslice(1)=plot(ax(1),nan,nan,surfslicestyle{:});
     hsurfslice(2)=plot(ax(2),nan,nan,surfslicestyle{:});
     hsurfslice(3)=plot(ax(3),nan,nan,surfslicestyle{:});
@@ -592,37 +612,23 @@ else
     axhist_pos = [0 0 1 .9];
 end
 
-if(~isempty(colormap_clim) || all(isnan(V(:))))
-    cl = colormap_clim;
-else
-    cl = [nanmin(V(:)) nanmax(V(:))];
-    if(all(cl >= 0))
-        cl = [0 max(cl)];
-    else
-        cl = max(abs(cl))*[-1 1];
-    end
-end
-if(~isfinite(cl(1)))
-    cl(1)=nanmin(V(:));
-end
-if(~isfinite(cl(2)))
-    cl(2)=nanmax(V(:));
-end
-if(cl(1) == cl(2))
-    cl(2)=cl(1)+1;
-end
+cl = aux_set_clim(V,colormap_clim);
 colormap_clim = cl;
 
 axhist = axes('parent',hpanel,'outerposition',axhist_pos,'color',[1 1 1]);
 histx=linspace(cl(1),cl(2),100);
 [hx xi] = hist(V(V(:) ~= 0 & ~isnan(V(:))),histx);
-hhistfill = fill(xi([1 end end 1]),[0 0 max(hx) max(hx)],'k','linestyle','none','facealpha',.1);
+hhistfill = fill(xi([1 end end 1]),[0 0 max(hx) max(hx)],'k','facecolor',[.75 .75 .75],'linestyle','none','facealpha',0);
 hold on;
-hbar = bar(xi,hx,1,'k');
-
+hbar = bar(xi,hx,1,'k','facecolor','k');
 
 %set(axhist, 'yscale','log');
-yl = get(gca,'ylim');
+yl = get(axhist,'ylim');
+hmax=1.1*max(hx(2:end-1));
+if(hmax<yl(2) && hmax>0)
+    yl(2)=hmax;
+    set(axhist,'ylim',yl);
+end
 
 hcurhist = plot([0 0],yl,'r');
 set(hhistfill,'ydata',yl([1 1 2 2]));
@@ -856,15 +862,16 @@ if(~isempty(D.surfslices))
         dslice=[2 1 3];
         for i = 1:3
             s=cslice(i);
-            d=dslice(i);
+            d=dslice(i);            
             vs=D.surfslices{d}{s};
+
             if(isempty(vs))
                 set(hsurfslice(i),'xdata',nan,'ydata',nan);
                 continue;
             end
             set(hsurfslice(i),'xdata',vs(:,1),'ydata',vs(:,2));
         end
-        set(hsurfslice,'visible','on','color','g');
+        set(hsurfslice,'visible','on');%,'color','g');
     else
         set(hsurfslice,'visible','off');
     end
@@ -1323,6 +1330,34 @@ if(~isempty(cbfunc))
         cbfunc{i}(disp2orig([cx cy cz],dimpermute,origsize));
     end
 end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function colormap_clim = aux_set_clim(V,colormap_clim)
+
+vmin=nanmin(V(:));
+vmax=nanmax(V(:));
+if(~isempty(colormap_clim) || all(isnan(V(:))))
+    cl = colormap_clim;
+else
+    cl = [vmin vmax];
+    if(all(cl >= 0))
+        cl = [0 max(cl)];
+    else
+        cl = max(abs(cl))*[-1 1];
+    end
+end
+if(~isfinite(cl(1)))
+    cl(1)=vmin;
+end
+if(~isfinite(cl(2)))
+    cl(2)=vmax;
+end
+if(cl(1) == cl(2))
+    cl(2)=cl(1)+1;
+end
+colormap_clim = cl;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
