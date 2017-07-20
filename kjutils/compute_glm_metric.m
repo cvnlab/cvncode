@@ -1,4 +1,4 @@
-function vals = compute_glm_metric(beta,se_or_mean,con1,con2,metricname,cdim)
+function vals = compute_glm_metric(beta,se_or_mean,con1,con2,metricname,cdim,numsplit)
 % vals = compute_glm_metric(beta,se_or_mean,con1,con2,metricname,cdim)
 %
 % Return beta or contrast metrics for GLMdenoise results
@@ -16,6 +16,7 @@ function vals = compute_glm_metric(beta,se_or_mean,con1,con2,metricname,cdim)
 %   con1:       indices of positive condition(s) in <beta>
 %   con2:       indices of negative condition(s) in <beta> (default: all
 %               conditions EXCEPT those in con1
+%				(If con2=0, tstat does not perform a contrast)
 %   metricname: beta, betadiff, poscon, atan, betanorm, betanormL1, 
 %               secommon, tstat
 %   cdim:       category or condition dimension in <beta>
@@ -42,6 +43,11 @@ sesize=size(se_or_mean);
 if(isempty(beta))
     betasize=sesize;
 end
+
+if(~exist('numsplit','var') || isempty(numsplit))
+    numsplit=0;
+end
+
 % 
 % if(~isequal(betasize,sesize))
 %     [s,d]=setdiff(betasize,sesize);
@@ -54,6 +60,9 @@ end
 
 
 numcond=betasize(cdim);
+if(numsplit>0)
+    numcond=numcond/numsplit;
+end
 
 pdim=1:numel(betasize);
 pdim_inv=[];
@@ -83,7 +92,12 @@ if(isempty(con2))
 end
 
 if(~isempty(se_or_mean) && size(se_or_mean,1) > 1)
-    secommon=sqrt(mean(se_or_mean.^2,1));
+	if(isequal(con2,0))
+		con_all=con1;
+	elses
+		con_all=unique([con1(:); con2(:)]);
+	end
+    secommon=sqrt(mean(se_or_mean(con_all,:).^2,1));
 else
     secommon=se_or_mean;
 end
@@ -100,7 +114,11 @@ switch metricname
     case 'betadiff'
         vals=mean(beta(con1,:),1)-mean(beta(con2,:),1);
     case 'tstat'
-        vals=(mean(beta(con1,:),1)-mean(beta(con2,:),1))./secommon;
+		if(isequal(con2,0))
+			vals=mean(beta(con1,:),1)./secommon;
+		else
+        	vals=(mean(beta(con1,:),1)-mean(beta(con2,:),1))./secommon;
+		end
     case 'poscon'
         b1=posrect(mean(beta(con1,:),1));
         b2=posrect(mean(beta(con2,:),1));
