@@ -94,7 +94,7 @@ end
 if(~isempty(se_or_mean) && size(se_or_mean,1) > 1)
 	if(isequal(con2,0))
 		con_all=con1;
-	elses
+    else
 		con_all=unique([con1(:); con2(:)]);
 	end
     secommon=sqrt(mean(se_or_mean(con_all,:).^2,1));
