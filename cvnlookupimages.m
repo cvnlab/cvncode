@@ -85,6 +85,7 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 %   bg_cmap:        Colormap for background underlay (default = gray)
 %   bg_clim:        Colormap limits for underlay (default = [-1 2])
 %   hemiborder:     Width of border between hemi images (default=2 pixels)
+%   hemibordercolor (single value, [r g b] triplet, or ColorSpec (Eg: 'k')
 %   text:           string to display in top left corner of RGB image 
 %               OR  cell array of strings if multiple hemis 
 %                   eg: 'LAYER1' or {'LEFT','RIGHT'}
@@ -255,6 +256,7 @@ options=struct(...
     'bg_cmap',gray(64),...
     'rgbnan',0,...
     'hemiborder',2,...
+    'hemibordercolor',0,...
     'surfdir',[],...
     'roiname',[],...
     'roimask',[],...
@@ -474,7 +476,7 @@ if(isstruct(vals) && isfield(vals,'numlh'))
                 end
                 
                 imghemi{i}=pimg(imghemi{i},nan);
-                rgbimghemi{i}=pimg(rgbimghemi{i},options.rgbnan);
+                rgbimghemi{i}=pimg(rgbimghemi{i},nan);
                 lookuphemi{i}.imglookup=pimg(lookuphemi{i}.imglookup,1);
                 lookuphemi{i}.extrapmask=pimg(lookuphemi{i}.extrapmask,true);
                 lookuphemi{i}.shading=pimg(lookuphemi{i}.shading,1); %no shading elsewhere
@@ -514,10 +516,33 @@ if(isstruct(vals) && isfield(vals,'numlh'))
             rgbimghemi{i}=add_hemi_text(rgbimghemi{i},hemi_options.text,options.textsize,options.textcolor);
         end
     end
-    for i = 2:numel(rgbimghemi)
-        rgbimghemi{i}(:,1:options.hemiborder,:)=options.rgbnan;
+    if(options.hemiborder>0)
+        if(ischar(options.hemibordercolor))
+            options.hemibordercolor=colorspec2rgb(options.hemibordercolor);
+        elseif(numel(options.hemibordercolor)==1)
+            options.hemibordercolor=options.hemibordercolor*[1 1 1];
+        end
+        
+        for i = 2:numel(rgbimghemi)
+            rgbsz=sizefull(rgbimghemi{i},6);
+            rgbsz(2)=options.hemiborder;
+            rgbimghemi{i}(:,1:options.hemiborder,:)=rep2size(reshape(options.hemibordercolor(:),[1 1 3]),rgbsz);
+        end
     end
-   
+    
+    for i = 1:numel(rgbimghemi)
+        if(ischar(options.rgbnan))
+            options.rgbnan=colorspec2rgb(options.rgbnan);
+        end
+        if(numel(options.rgbnan)==1)
+            rgbimghemi{i}(isnan(rgbimghemi{i}))=options.rgbnan;
+        elseif(numel(options.rgbnan)==3)
+            tmpnanmask=rep2size(any(isnan(rgbimghemi{i}),3),size(rgbimghemi{i}));
+            tmpnanrgb=rep2size(reshape(options.rgbnan(:),[1 1 3]),size(rgbimghemi{i}));
+            rgbimghemi{i}(tmpnanmask)=tmpnanrgb(tmpnanmask);
+        end
+    end
+    
     rgbimg=cat(2,rgbimghemi{:});
     if(numel(lookuphemi)==1)
         Lookup=lookuphemi{1};
@@ -699,6 +724,7 @@ else
         Lookup.surffile=sphfile;
         Lookup.hemi=hemi;
         Lookup.version=lookup_version;
+        Lookup.imgsize=size(Lookup.imglookup);
         if(options.savelookup)
             fprintf('Saving lookup structure: %s\n',cachename);
             save(cachename,'-struct','Lookup');
@@ -1015,6 +1041,15 @@ if(isempty(c))
 elseif(~iscell(c))
     c={c};
 end
+
+%%
+function imgrep = rep2size(img1,sz2)
+sz=sizefull(img1,numel(sz2));
+szr=sz2./sz;
+if(any(szr~=floor(szr)))
+    error('Must be an integer multiple of image size');
+end
+imgrep=repmat(img1,szr);
 
 %%
 function rgbimg=add_hemi_text(rgbimg,text,textsize,textcolor)

@@ -202,8 +202,16 @@ rgbback(isnan(rgbback))=0;
 %blend image and background to form final image
 rgbimg=rgbimg.*imgalpha+rgbback.*(1-imgalpha);
 
-rgbimg(isnan(rgbimg)) = options.rgbnan;
-rgbimg(rep2size(isnan(imgvals),rgbsz))=options.rgbnan;
+if(ischar(options.rgbnan))
+    options.rgbnan=colorspec2rgb(options.rgbnan);
+end
+if(numel(options.rgbnan)==1)
+    rgbimg(rep2size(isnan(imgvals),rgbsz))=options.rgbnan;
+elseif(numel(options.rgbnan)==3)
+    tmprgb=rep2size(reshape(options.rgbnan(:),[1 1 3]),rgbsz);
+    tmpnan=rep2size(isnan(imgvals),rgbsz);
+    rgbimg(tmpnan)=tmprgb(tmpnan);
+end
 %rgbimg(repmat(isnan(imgvals),[1 1 3]))=options.rgbnan;
 
 %%
