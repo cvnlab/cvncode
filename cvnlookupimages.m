@@ -408,6 +408,12 @@ if(isstruct(vals) && isfield(vals,'numlh'))
     Lookup=cellify(Lookup);
 
     options.roimask=cellify(options.roimask);
+    for i=1:numel(options.roimask)
+        %If pass in roimask as valstruct, we just want the .data field
+        if(isstruct(options.roimask{i}) && isfield(options.roimask{i},'numlh'))
+            options.roimask{i}=options.roimask{i}.data;
+        end
+    end
     
     imghemi={};
     rgbimghemi={};

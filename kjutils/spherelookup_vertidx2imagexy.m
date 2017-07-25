@@ -37,8 +37,12 @@ end
 
 
 if(~isempty(Lookup.input2surf))
-    [~,ia,ib]=intersect(Lookup.input2surf,vertidx);
+	%intersect() implicitly performs unique(), so do this
+	%explicitly and maintain 1-to-1 vertex->imgagexy mapping
+    [vu,~,v0]=unique(vertidx);
+    [~,ia,ib]=intersect(Lookup.input2surf,vu);
     idx=ia(ib);
+    idx=idx(v0);
 else
     idx=vertidx;
 end

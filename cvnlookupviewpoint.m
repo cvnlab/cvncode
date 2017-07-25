@@ -1,5 +1,5 @@
-function [viewpt fliphemi] = cvnlookupviewpoint(subject,hemi,viewname,surftype)
-% viewpt = cvnlookupviewpoint(subject,hemi,viewname,surftype)
+function [viewpt, fliphemi, viewhemi] = cvnlookupviewpoint(subject,hemi,viewname,surftype)
+% [viewpt,fliphemi,viewhemi] = cvnlookupviewpoint(subject,hemi,viewname,surftype)
 %
 % Return predefined viewpoints for spherical or nonspherical lookups
 %
@@ -14,6 +14,8 @@ function [viewpt fliphemi] = cvnlookupviewpoint(subject,hemi,viewname,surftype)
 %                or {[azL elL tiltL], [azR elR tiltR]} if hemi={'lh','rh'}
 %   fliphemi:    true|false if recommend swapping LH/RH for display (eg:
 %                   inflated ventral)
+%   viewhemi:    if single hemi, viewhemi=hemi, otherwise 
+%                   {'lh','rh'} (fliphemi=false) or {'rh','lh'} (fliphemi=true)
 %
 % Current viewpoints:
 %  sphere: occip, ventral
@@ -22,7 +24,10 @@ function [viewpt fliphemi] = cvnlookupviewpoint(subject,hemi,viewname,surftype)
 %
 % Note: subject input is not currently used, but may be useful in the future
 
+% Update KJ 2017-07-25: Add viewhemi to simplify viewing fliphemi views
+
 fliphemi=false;
+viewhemi=hemi;
 
 if(isequal(surftype,'sphere') || isequal(surftype,'sphere.reg'))
     switch(viewname)
@@ -71,6 +76,22 @@ for i = 1:numel(hemi)
     end
 end
 
+if(numel(hemi)>1)
+    viewhemi={'lh','rh'};
+    if(fliphemi)
+        viewhemi=viewhemi([2 1]);
+    end
+end
+
 if(~inputcell)
     viewpt=viewpt{1};
+    viewhemi=hemi{1};
+end
+
+if(nargout==1)
+    varargout={viewpt};
+elseif(nargout==2)
+    varargout={viewpt,fliphemi};
+elseif(nargout==3)
+    varargout={viewpt,fliphemi,viewhemi};
 end

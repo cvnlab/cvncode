@@ -1,77 +1,89 @@
-function [R,Rimg] = drawroipoly(img,L)
-R=[];
+function [Rmask,Rimg] = drawroipoly(img,Lookup)
+%[Rmask,Rimg] = drawroipoly(himg,Lookup)
+%
+%Interface for drawing ROI and converting to surface vertex mask
 
-if(~iscell(L))
-    L={L};
+Rmask=[];
+
+if(~iscell(Lookup))
+    Lookup={Lookup};
 end
 
 numlh=0;
 numrh=0;
-for h = 1:numel(L)
-    if(isequal(L{h}.hemi,'lh'))
-        numlh=L{h}.vertsN;
-    elseif(isequal(L{h}.hemi,'rh'))
-        numrh=L{h}.vertsN;
+for h = 1:numel(Lookup)
+    if(isequal(Lookup{h}.hemi,'lh'))
+        numlh=Lookup{h}.vertsN;
+    elseif(isequal(Lookup{h}.hemi,'rh'))
+        numrh=Lookup{h}.vertsN;
     end
 end
+
 if(isempty(img))
-    img=findobj(gca,'type','image');
+    himg=findobj(gca,'type','image');
 end
 
 if(ishandle(img))
-    if(~isequal(get(img,'type'),'image'))
-        img=findobj(img,'type','image');
+    himg=img;
+    if(~isequal(get(himg,'type'),'image'))
+        himg=findobj(himg,'type','image');
     end
-    rgbimg=get(img,'cdata');
+    rgbimg=get(himg,'cdata');
 else
     rgbimg=img;
     figure;
-    imshow(rgbimg);
+    himg=imshow(rgbimg);
 end
 
 imgroi=[];
-%press Escape to erase and start again
+%Press Escape to erase and start again
 %double click on final vertex to close polygon
-%right click on first vertex, and click "Create mask" to view the result
+%or right click on first vertex, and click "Create mask" to view the result
 %Keep going until user closes the window
-while(ishandle(img))
-    [r,rx,ry]=roipoly();
-    if(isempty(r))
+fprintf('Press Escape to erase and start again\n');
+fprintf('Double click on final vertex to close polygon\n');
+fprintf('Right click on first vertex, and click "Create mask" to view the result\n');
+fprintf('When finished, close window to continue\n');
+while(ishandle(himg))
+    [rimg,rx,ry]=roipoly();
+    if(isempty(rimg))
         continue;
     end
-    %r=im(:,:,1)==0;
-    if(any(rx>L{1}.imgN))
+    
+    %Which hemisphere did we draw on?
+    if(any(rx>Lookup{1}.imgsize(2)))
         h=2;
-        r=r(:,L{1}.imgN+1:end);
+        rimg=rimg(:,Lookup{1}.imgsize(2)+1:end);
     else
         h=1;
-        r=r(:,1:L{1}.imgN);
+        rimg=rimg(:,1:Lookup{1}.imgsize(2));
     end
-    R=spherelookup_image2vert(r,L{h})>0;
     
-    imgroi=spherelookup_vert2image(R,L{h},0);
-    if(numel(L)>1)
+    % Rmask = (hemi vertices)x1 binary vector for a single hemisphere
+    Rmask=spherelookup_image2vert(rimg,Lookup{h})>0;
+    
+    imgroi=spherelookup_vert2image(Rmask,Lookup{h},0);
+    if(numel(Lookup)>1)
         if(h==1)
-            imgroi=[imgroi 0*imgroi];
+            imgroi=[imgroi zeros(Lookup{2}.imgsize)];
         else
-            imgroi=[0*imgroi imgroi];
+            imgroi=[zeros(Lookup{1}.imgsize) imgroi];
         end
     end
     
     %quick way to merge rgbimg background with roi mask
     tmprgb=bsxfun(@times,rgbimg,.75*imgroi + .25);
-    set(img,'cdata',tmprgb);
-    
+    set(himg,'cdata',tmprgb);
 end
 
-if(~isempty(L{h}.input2surf))
-    vertidx=L{h}.input2surf(R);
+if(~isempty(Lookup{h}.input2surf))
+    vertidx=Lookup{h}.input2surf(Rmask);
 end
-if(isequal(L{h}.hemi,'rh'))
+if(isequal(Lookup{h}.hemi,'rh'))
     vertidx=vertidx+numlh;
 end
     
-R=zeros(numlh+numrh,1);
-R(vertidx)=1;
+Rmask=zeros(numlh+numrh,1);
+Rmask(vertidx)=1;
 
 Rimg=imgroi;

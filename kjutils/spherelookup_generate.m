@@ -41,6 +41,7 @@ function [lookup] = spherelookup_generate(vertsph,azimuth,elevation,tilt,xyexten
 % Update 2016-01-26 KJ: Add reverselookup for ROI drawing
 % Update 2016-02-11 KJ: Add option to use different verts for reverselookup
 %                           (eg: inflated)
+% Update 2017-07-25 KJ: Minor change to simplify scatteredInterpolant() call
 
 %default options
 options=struct(...
@@ -198,15 +199,15 @@ for i = 1:viewN
         if(isempty(vertrev))
             %if using viewverts for reverse lookup, just use X-Y
             %coordinates since those are rotated correctly and planar
-            S=scatteredInterpolant(viewvert(viewmask & ~missingverts,1), viewvert(viewmask & ~missingverts,2), ...
+            S=scatteredInterpolant(viewvert(viewmask & ~missingverts,1:2), ...
                vertidx(viewmask & ~missingverts),'nearest');
-            missinglookup=S(viewvert(missingverts,1), viewvert(missingverts,2));
+            missinglookup=S(viewvert(missingverts,1:2));
         else
             %if using other verts (eg: inflated) for reverse lookup, 
             % need to use full just use XYZ for lookup.  This takes longer
-            S=scatteredInterpolant(vertrev(viewmask & ~missingverts,1), vertrev(viewmask & ~missingverts,2), ...
-                vertrev(viewmask & ~missingverts,3),vertidx(viewmask & ~missingverts),'nearest');
-            missinglookup=S(vertrev(missingverts,1), vertrev(missingverts,2), vertrev(missingverts,3));
+            S=scatteredInterpolant(vertrev(viewmask & ~missingverts,1:3), ...
+                vertidx(viewmask & ~missingverts),'nearest');
+            missinglookup=S(vertrev(missingverts,1:3));
         end
         reverselookup(missingverts,i)=reverselookup(missinglookup);
         
