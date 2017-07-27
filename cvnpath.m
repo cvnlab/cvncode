@@ -25,6 +25,10 @@ switch(lower(whichpath))
         testpaths={
             '/home/stone/generic/Dropbox/cvnlab/code'
             };
+    case 'commonmatlab'
+        testpaths={
+            '/home/stone/software/commonmatlabcode'
+            };
     case 'ppresults'
         testpaths={
             '/home/stone/generic/Dropbox/cvnlab/ppresults'
