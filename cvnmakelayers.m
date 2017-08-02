@@ -33,6 +33,7 @@ function cvnmakelayers(subjectid,layerdepths,layerprefix,fstruncate)
 %  lh.sapv_sphere_DENSETRUNCpt.mgz
 %
 % history:
+% - 2017/08/02 - added support for smoothwm
 % - 2016/11/04 - added transfer functions for the fsaverage dense surfaces
 % - 2016/04/29 - add saving of sulc, sapv, and ael; start using unix_wrapper
 
@@ -60,7 +61,7 @@ end
 %%%%%%%%%% subdivide layer and other surfaces (creating dense surfaces)
 
 % calc a list of surfaces
-surfs = {'inflated' 'sphere' 'sphere.reg','white','pial'};
+surfs = {'inflated' 'sphere' 'sphere.reg' 'white' 'pial' 'smoothwm'};
 for p=1:length(layerdepths)
   surfs{end+1} = sprintf('layer%s%d',layerprefix,p);  % e.g. 'layerA1'
 end
