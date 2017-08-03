@@ -41,6 +41,8 @@ function varargout = cvnreadsurface(subject, hemi, surftype, surfsuffix, varargi
 %         faces: [937086x3 double]
 %
 
+% Update KJ 2017-08-03: Allow patch surface types
+
 %%%%%%%%%%%%%%%%%%%%
 %default options
 options=struct(...
@@ -86,14 +88,38 @@ end
 result={};
 
 for h = 1:numel(hemi)
-    surffile=sprintf('%s/%s.%s%s',surfdir,hemi{h},surftype,suffix_file);
+
+    
+    patchfile=[];
+    if(regexpmatch(surftype,'\.patch\.'))
+        suffix2=suffix_file;
+        if(~isempty(suffix_file))
+            suffix2=[suffix2 '.'];
+        end
+
+        patchfile=sprintf('%s/%s.%s%s',surfdir,hemi{h},suffix2,surftype);
+        assert(exist(patchfile,'file')>0,'file not found: %s',patchfile);
+        
+        surffile=sprintf('%s/%s.%s%s',surfdir,hemi{h},'inflated',suffix_file);
+    else
+        surffile=sprintf('%s/%s.%s%s',surfdir,hemi{h},surftype,suffix_file);
+    end
+    
     assert(exist(surffile,'file')>0,'file not found: %s',surffile);
+    
     
     if(options.justcount)
         vertsN = freesurfer_read_surf_kj(surffile,'justcount',true);
         result{h}=vertsN;
     else
         [verts,faces] = freesurfer_read_surf_kj(surffile);
+        if(~isempty(patchfile))
+            patch=fast_read_patch_kj(patchfile);
+            patchmask=zeros(size(verts,1),1);
+            patchmask(patch.vno)=1;
+            verts(patch.vno,:)=[patch.x(:) patch.y(:) patch.z(:)];
+            faces=faces(sum(patchmask(faces),2)==3,:);
+        end
         result{h}=struct('vertices',verts,'faces',faces);
     end
 end

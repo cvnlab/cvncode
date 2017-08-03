@@ -696,8 +696,10 @@ else
         else
             sphfile=sprintf('%s/%s.%s%s',surfdir,hemi,options.surftype,options.surfsuffix_file);
 
-            [vertsph,facesph,~] = freesurfer_read_surf_kj(sphfile);
-            %vertsph=bsxfun(@minus,vertsph,c.')/r;
+            %[vertsph,facesph,~] = freesurfer_read_surf_kj(sphfile);
+            surfsph=cvnreadsurface([],hemi,options.surftype,options.surfsuffix_file,'surfdir',surfdir);
+            vertsph=surfsph.vertices;
+            facesph=surfsph.faces;
         end
         
 
