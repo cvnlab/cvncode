@@ -12,6 +12,7 @@ function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncat
 % anatomical and atlas-related quantities.
 %
 % history:
+% - 2017/08/04 - update for visualsulc new range (0 through 14)
 % - 2017/07/16 - add support for non-dense processing
 % - 2016/12/29 - add support for visualsulc
 % - 2016/11/30 - add support for aparc2009
@@ -178,7 +179,7 @@ for zz=1:length(allviews)
 
   % visualsulc atlas stuff (without names)
   [roiimg,~,rgbimg]=writefun(cvnloadmgz(sprintf('%s/label/?h%s.visualsulc.mgz',fsdir,surfsuffix2)), ...
-    sprintf('visualsulc.png'),  'jet',      [0 9],      0.5,0.85);
+    sprintf('visualsulc.png'),  'jet',      [0 14],      0.5,0.85);
 
   % visualsulc atlas stuff (with names)
   [~,roinames,~]=cvnroimask(subjectid,hemis,'visualsulc*',[],surfsuffix,'cell');
