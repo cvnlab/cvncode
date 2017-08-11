@@ -100,7 +100,7 @@ for h = 1:numel(hemi)
         patchfile=sprintf('%s/%s.%s%s',surfdir,hemi{h},suffix2,surftype);
         assert(exist(patchfile,'file')>0,'file not found: %s',patchfile);
         
-        surffile=sprintf('%s/%s.%s%s',surfdir,hemi{h},'inflated',suffix_file);
+        surffile=sprintf('%s/%s.%s%s',surfdir,hemi{h},'white',suffix_file);
     else
         surffile=sprintf('%s/%s.%s%s',surfdir,hemi{h},surftype,suffix_file);
     end
@@ -114,11 +114,39 @@ for h = 1:numel(hemi)
     else
         [verts,faces] = freesurfer_read_surf_kj(surffile);
         if(~isempty(patchfile))
-            patch=fast_read_patch_kj(patchfile);
-            patchmask=zeros(size(verts,1),1);
-            patchmask(patch.vno)=1;
-            verts(patch.vno,:)=[patch.x(:) patch.y(:) patch.z(:)];
+            origverts=verts;
+        
+            %1. read in patch file
+            %2. identify faces that contain 3 patch
+            %3. insert patch vertex locations into full surface vertices
+            pstruct=fast_read_patch_kj(patchfile);
+            patchmask=false(size(verts,1),1);
+            patchmask(pstruct.vno)=true;
             faces=faces(sum(patchmask(faces),2)==3,:);
+            verts(pstruct.vno,:)=[pstruct.x(:) pstruct.y(:) pstruct.z(:)];
+            
+
+            if(regexpmatch(surftype,'\.flat\.'))
+                % If *.flat.patch.*, do extra 2D polygon-based cleanup to
+                % detect funny outlier edge vertices and remove faces that
+                % contain those bad vertices
+                [faces,patchmask] = cleanflatpatch(faces,verts);
+            end
+            
+            %%%%% rescale patch vertices to match anatomical surface size
+            
+            %1. compute patch surface area on ?h.white ("true anatomical area")
+            Aorig=sum(facearea(faces,origverts));
+
+            %2. compute patch surface area on flat (which should be close
+            %   to area on smoothwm, ie smaller than true anatomical surface)
+            Aflat=sum(facearea(faces,verts));
+
+            %scale patch vertices so that final surface area matches the ?h.white surface area
+            flatverts=verts(patchmask,:);
+            flatverts_mean=mean(flatverts,1);
+            verts(patchmask,:)=bsxfun(@plus,bsxfun(@minus,flatverts,flatverts_mean)*sqrt(Aorig/Aflat),flatverts_mean);
+            
         end
         result{h}=struct('vertices',verts,'faces',faces);
     end

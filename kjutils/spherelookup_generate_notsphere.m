@@ -26,8 +26,11 @@ end
 
 exportheight=1000;
 
-scalefactor=1;
-
+if(~isempty(imgheight) && imgheight~=exportheight)
+    scalefactor=round(100*imgheight/exportheight)/100;
+else
+    scalefactor=1;
+end
 surf=struct('faces',faces,'vertices',vertices);
 
 val=(1:size(surf.faces,1)).';

@@ -271,7 +271,11 @@ options=struct(...
     'mosaicborder',2,...
     'mosaicbordercolor','w',...
     'surfshading',true,...
-    'padalign','top');
+    'padalign','top',...
+    'drawscalebar',true,...
+    'scalebarmm',10,...
+    'scalebarcolor','w',...
+    'scalebartext','');
 
 
 if(~exist('Lookup','var') || isempty(Lookup))
@@ -454,6 +458,7 @@ if(isstruct(vals) && isfield(vals,'numlh'))
                 hemi_options.roimask{r}=options.roimask{r}(idx);
             end
         end
+
         hemi_options.text=[];
         hemi_options.filename=[];
         optargs=struct2args(hemi_options);
@@ -462,6 +467,20 @@ if(isstruct(vals) && isfield(vals,'numlh'))
         % copy clim from first hemi so both hemis have same colormap
         options.clim=return_options.clim;
         options.bg_clim=return_options.bg_clim;
+
+        if(regexpmatch(options.surftype,'\.flat\.patch\.') && isequal(options.xyextent,[1 1]))
+            %for flat patches, if input xyextent was useless default [1 1],
+            %we automatically calculate a new xyextent on the first
+            %hemisphere to include the entire patch, and store that in
+            %lookup field xyextent_mm.  For the second hemisphere, we could
+            %use this returned xyextent_mm to feed into the second hemi and
+            %the pixels_per_mm would then be consistenet between hemis
+            
+            %except don't do this because 
+            %1. the cache filenames have already been computed and dont
+            %include this information... maybe another way
+            %options.xyextent=lookuphemi{i}.xyextent;
+        end
     end
     
      %[mappedvals,Lookup,rgbimg,options]
@@ -669,7 +688,7 @@ else
         mkdirquiet(lookupdir);
         system(['chmod -R g+rwx ' lookupdir]);
     end
-    cachename=sprintf('%s/%s.mat',lookupdir,makefilename(hemi,az,el,tilt,xyextent(1),xyextent(2),imgN,options.surfsuffix,options.surftype));
+    cachename=sprintf('%s/%s.mat',lookupdir,makefilename(hemi,az,el,tilt,xyextent(1),xyextent(2),imgN,options.surfsuffix,options.surftype))
     
     cacheversion='0';
     if(exist(cachename,'file') && ~options.reset)
@@ -718,6 +737,9 @@ else
         fprintf('Building new lookup structure...\n');
         if(isequal(options.surftype,'sphere'))
             Lookup=spherelookup_generate(vertsph,az,el,tilt,options.xyextent,imgN,...
+                'reversevert',vertinf,'verbose',true);
+        elseif(regexpmatch(options.surftype,'\.flat\.patch\.'))
+            Lookup=spherelookup_generate_flat(vertsph,facesph,az,el,tilt,options.xyextent,imgN,...
                 'reversevert',vertinf,'verbose',true);
         else
             tic
@@ -1002,6 +1024,41 @@ if(isfield(Lookup,'shading') && options.surfshading==true)
     end
 end
 
+%% Add scale bar to flat maps
+
+
+if(isfield(Lookup,'pixels_per_mm') && options.drawscalebar && options.scalebarmm > 0)
+    scalebarmm=options.scalebarmm;
+    scalebarpix=round(Lookup.pixels_per_mm*scalebarmm);
+    
+    scalebar_padding=10;
+    scalebar_width=scalebarpix;
+    scalebar_aspect=0.1;
+    
+    scalebar_height=max(5,round(scalebarpix*scalebar_aspect));
+
+    
+    scalebar_left=size(rgbimg,2)-scalebar_width-scalebar_padding;
+    scalebar_top=scalebar_padding;
+
+    scalebar_rgbcolor=colorspec2rgb(options.scalebarcolor);
+    
+    scalebar_mask=false(size(rgbimg,1),size(rgbimg,2));
+    scalebar_mask(scalebar_top+(1:scalebar_height)-1,scalebar_left+(1:scalebar_width)-1)=true;
+    scalebar_rgb=repmat(reshape(scalebar_rgbcolor,[1 1 3]),size(rgbimg,1),size(rgbimg,2),1);
+    
+    %%%%%%%%!!!!!!!!!!! TODO: handle 4D rgbimg cases
+    
+    rgbimg(repmat(scalebar_mask,[1 1 3]))=scalebar_rgb(repmat(scalebar_mask,[1 1 3]));
+    
+    if(~isempty(options.scalebartext))
+        textsize=10;
+        textcolor=options.scalebarcolor;
+        txtargs={scalebar_left,scalebar_top+scalebar_height,options.scalebartext,'VerticalAlignment','top','fontsize',textsize,'color',textcolor};
+        rgbimg=addtext2img(rgbimg,txtargs,1);
+    end
+
+end
 %% If 'text' argument provided, add text to output image(s)
 if(~isempty(options.text))
     rgbimg=add_hemi_text(rgbimg,options.text,options.textsize,options.textcolor);
@@ -1100,11 +1157,17 @@ if(~exist('surftype','var') || isempty(surftype))
     surftype='sphere';
 end
 
-az=mod(round(az),360);
-el=round(el);
-if(el~=90)
-    el=mod(el+90,180)-90;
+if(regexpmatch(surftype,'\.flat\.patch\.'))
+    az=round(az);
+    el=round(el);
+else
+    az=mod(round(az),360);
+    el=round(el);
+    if(el~=90)
+        el=mod(el+90,180)-90;
+    end
 end
+
 tilt=mod(round(tilt),360);
 
 azstr=strrep(sprintf('%d',az),'-','n');

@@ -25,6 +25,7 @@ function [viewpt, fliphemi, viewhemi] = cvnlookupviewpoint(subject,hemi,viewname
 % Note: subject input is not currently used, but may be useful in the future
 
 % Update KJ 2017-07-25: Add viewhemi to simplify viewing fliphemi views
+% Update KJ 2017-08-11: Set views to [0 0 0] for flat patches 
 
 fliphemi=false;
 viewhemi=hemi;
@@ -37,9 +38,15 @@ if(isequal(surftype,'sphere') || isequal(surftype,'sphere.reg'))
             viewpt_LR = {[10 -70 0],[-10 -70 0]};
         otherwise
     end
-    
-%elseif(~isempty(regexp(surftype,'inflated'))) %#ok<RGXP1>
-elseif(isempty(regexp(surftype,'sphere'))) %#ok<RGXP1>
+elseif(~isempty(regexp(surftype,'\.flat\.patch\.'))) %#ok<*RGXP1>
+    viewpt_LR={[0 0 0],[0 0 0]};
+    switch(viewname)
+        case 'ventral'
+            fliphemi=true;
+        otherwise
+    end
+%elseif(~isempty(regexp(surftype,'inflated')))
+elseif(isempty(regexp(surftype,'sphere')))
     switch(viewname)
         case 'dorsal'
             viewpt_LR={[0 90 90],[0 90 90]};
