@@ -12,6 +12,8 @@ function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncat
 % anatomical and atlas-related quantities.
 %
 % history:
+% - 2017/08/14 - add support for flat.patch (for flat.patch, we skip T1 T2 FMAP);
+%                drop DIM, sapv; reduce SURFVOX to just 0.8 and 2
 % - 2017/08/04 - update for visualsulc new range (0 through 14)
 % - 2017/07/16 - add support for non-dense processing
 % - 2016/12/29 - add support for visualsulc
@@ -42,16 +44,18 @@ V = struct('data',zeros(numlh+numrh,1),'numlh',numlh,'numrh',numrh);
 
 % define
 allviews = { ...
-  {'ventral'        'sphere'     0 1000    0} ...
-  {'occip'          'sphere'     0 1000    0} ...
-  {'occip'          'inflated'   0  500    0} ...
-  {'ventral'        'inflated'   1  500    0} ...
-  {'parietal'       'inflated'   0  500    0} ...
-  {'medial'         'inflated'   0  500    0} ...
-  {'lateral'        'inflated'   0  500    0} ...
-  {'medial-ventral' 'inflated'   0  500    0} ...
-  {'occip'          'sphere'     0 1000    1} ...
-  {'ventral'        'inflated'   1  500    1} ...
+  {'ventral'        'sphere'                   0 1000    0         [1 1]} ...
+  {'occip'          'sphere'                   0 1000    0         [1 1]} ...
+  {'occip'          'inflated'                 0  500    0         [1 1]} ...
+  {'ventral'        'inflated'                 1  500    0         [1 1]} ...
+  {'parietal'       'inflated'                 0  500    0         [1 1]} ...
+  {'medial'         'inflated'                 0  500    0         [1 1]} ...
+  {'lateral'        'inflated'                 0  500    0         [1 1]} ...
+  {'medial-ventral' 'inflated'                 0  500    0         [1 1]} ...
+  {'occip'          'sphere'                   0 1000    1         [1 1]} ...
+  {'ventral'        'inflated'                 1  500    1         [1 1]} ...
+  {'ventral'        'gVTC.flat.patch.3d'       1 2000    0         [160 0]} ...   % 12.5 pixels per mm
+  {''               'gEVC.flat.patch.3d'       0 1500    0         [120 0]} ...   % 12.5 pixels per mm
 };
 
 % loop over views
@@ -61,6 +65,7 @@ for zz=1:length(allviews)
   hemiflip0 = allviews{zz}{3};
   imageres0 = allviews{zz}{4};
   fsaverage0 = allviews{zz}{5};
+  xyextent0 = allviews{zz}{6};
   
   % get out early
   if isequal(subjectid,'fsaverage') && fsaverage0
@@ -88,13 +93,13 @@ for zz=1:length(allviews)
   viewpt = cvnlookupviewpoint(subjectid,hemistouse,viewname0,surftype0);
   L = [];
   [mappedvals,L,rgbimg] = cvnlookupimages(subjectid,V,hemistouse,viewpt,L, ...
-    'xyextent',[1 1],'text',hemitextstouse,'surftype',surftype0,'imageres',imageres0, ...
+    'xyextent',xyextent0,'text',hemitextstouse,'surftype',surftype0,'imageres',imageres0, ...
     'surfsuffix',choose(fsaverage0,sprintf('fsaverage%s',surfsuffix2),surfsuffix));
 
   % make helper functions
   writefun = @(vals,filename,cmap,rng,thresh,alpha) ...
     cvnlookupimages(subjectid,setfield(V,'data',double(vals)),hemistouse,viewpt,L, ...  % NOTE: double
-    'xyextent',[1 1],'text',hemitextstouse,'surftype',surftype0,'imageres',imageres0, ...
+    'xyextent',xyextent0,'text',hemitextstouse,'surftype',surftype0,'imageres',imageres0, ...
     'surfsuffix',choose(fsaverage0,sprintf('fsaverage%s',surfsuffix2),surfsuffix), ...
     'colormap',cmap,'clim',rng,'filename',sprintf('%s/%s',outputdir,filename), ...
     'threshold',thresh,'overlayalpha',alpha);     % circulartype
@@ -103,17 +108,18 @@ for zz=1:length(allviews)
 
   if ~isempty(numlayers)
 
-    % SAPV for each layer
-    if ~isequal(subjectid,'fsaverage')
-      for p=1:numlayers
-        writefun(cvnloadmgz(sprintf('%s/surf/*.sapv_layer%s%d_DENSETRUNC%s.mgz',fsdir,layerprefix,p,fstruncate)), ...
-          sprintf('sapv_layer%d.png',p),'jet',[0 .25],[],[]);
-      end
-    end
-
-    % SAPV for the sphere
-    writefun(cvnloadmgz(sprintf('%s/surf/*.sapv_sphere_DENSETRUNC%s.mgz',fsdir,fstruncate)), ...
-      sprintf('sapv_sphere.png'),     'jet',[0 .25],[],[]);
+% Aug 14 2017 - just drop these.
+%     % SAPV for each layer
+%     if ~isequal(subjectid,'fsaverage')
+%       for p=1:numlayers
+%         writefun(cvnloadmgz(sprintf('%s/surf/*.sapv_layer%s%d_DENSETRUNC%s.mgz',fsdir,layerprefix,p,fstruncate)), ...
+%           sprintf('sapv_layer%d.png',p),'jet',[0 .25],[],[]);
+%       end
+%     end
+% 
+%     % SAPV for the sphere
+%     writefun(cvnloadmgz(sprintf('%s/surf/*.sapv_sphere_DENSETRUNC%s.mgz',fsdir,fstruncate)), ...
+%       sprintf('sapv_sphere.png'),     'jet',[0 .25],[],[]);
 
     % distortion map for each layer
     %   log2(sapv_sphere/sapv_layer)
@@ -242,13 +248,15 @@ for zz=1:length(allviews)
     outfilenames = [cellfun(@(x) sprintf('layer%d',x),num2cell(1:numlayers),'UniformOutput',0) {sprintf('layer%d',numlayers+1) 'layer0'}];
 
     % special SURFVOX stuff
-    mms = [0.5 0.8 1 1.5 2 2.5 3];
+% Aug 14 2017: drop these and reduce the list
+%    mms = [0.5 0.8 1 1.5 2 2.5 3];
+    mms = [0.8 2];
     volnames = arrayfun(@(x) sprintf('SURFVOX%.1f',x),mms,'UniformOutput',0);
 
     % process quantities for each layer
       prev = warning('query');
       warning off;
-    todos = [{'T1' 'T2' 'FMAP' 'DIM1' 'DIM2' 'DIM3' 'BVOL' 'MAXEDIT' 'SINUSBW'} volnames];
+    todos = [{'T1' 'T2' 'FMAP' 'BVOL' 'MAXEDIT' 'SINUSBW'} volnames];   % Aug 14 2017 - drop: 'DIM1' 'DIM2' 'DIM3' 
     for q=1:length(todos)
       for p=1:length(infilenames)
         file0 = matchfiles(sprintf('%s/surf/*.%s_%s_DENSETRUNC%s.mgz',fsdir,todos{q},infilenames{p},fstruncate));
@@ -259,6 +267,9 @@ for zz=1:length(allviews)
         thresh0 = [];  % default
         alpha0 = [];   % default
         if ismember(todos{q},{'T1' 'T2' 'FMAP'})
+          if ~isempty(regexp(surftype0,'flat.patch'))
+            continue;
+          end
           if p==1
             rng = [0 mean(temp)*3];  % WEIRD HEURISTIC!
           end
@@ -288,6 +299,13 @@ for zz=1:length(allviews)
     end
       warning(prev);
 
+  end
+
+  %%%%% flatgrid stuff:
+
+  if ~isempty(regexp(surftype0,'flat.patch'))
+    writefun(cvnloadmgz(sprintf('%s/label/?h%s.%s.badness.mgz',fsdir,surfsuffix2,surftype0)), ...
+      sprintf('badness.png'),  'hot',  [-1 2],[],[]);
   end
 
 end
