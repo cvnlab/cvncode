@@ -332,6 +332,10 @@ if(isfield(options,'bg_colormap'))
 end
 
 
+if(isfield(options,'xyextent') && numel(options.xyextent)==1)
+    %Add a second value when only a single one was input
+    options.xyextent=[options.xyextent options.xyextent];
+end
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if(~isempty(options.surfdir) && exist(options.surfdir,'dir'))
@@ -688,7 +692,7 @@ else
         mkdirquiet(lookupdir);
         system(['chmod -R g+rwx ' lookupdir]);
     end
-    cachename=sprintf('%s/%s.mat',lookupdir,makefilename(hemi,az,el,tilt,xyextent(1),xyextent(2),imgN,options.surfsuffix,options.surftype))
+    cachename=sprintf('%s/%s.mat',lookupdir,makefilename(hemi,az,el,tilt,xyextent(1),xyextent(2),imgN,options.surfsuffix,options.surftype));
     
     cacheversion='0';
     if(exist(cachename,'file') && ~options.reset)

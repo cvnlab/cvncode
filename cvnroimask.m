@@ -178,6 +178,7 @@ for s = 1:numel(suffixes)
                 %[roiidx,b]=ismember(ctab.table(:,end),roival);
                 [b,roiidx]=ismember(roival,ctab.table(:,end));
                 roiidx=roiidx(b);
+                roival=roival(b); %needed for annot files so taht roival and roidesc match
                 roidesc=ctab.struct_names(roiidx);
                 roirgb=ctab.table(roiidx,[1 2 3]);
             end

@@ -11,10 +11,14 @@ function varargout = cvnreadsurface(subject, hemi, surftype, surfsuffix, varargi
 %
 % Outputs:
 %   surface_or_count:   a struct for each hemisphere, containing
-%                       Nx3 'vertices' and Fx3 'faces'
+%                       'vertices': Nx3 vertex xyz coords
+%                       'faces': Fx3 vertex indices
+%        (for patches): 'patchmask': Nx1 logical if vertex belongs to patch
 %
 % Optional inputs:  'paramname','value',...
 %   justcount:          true or false.  If true, return vertex count only  (default=false)
+%   surfdir:            (default = <cvnpath('freesurfer')>/<subject>/surf)
+%   noscale:            true or false. If true, no patch rescaling from orig->white (default=false)
 %
 % Examples:
 %   >> leftN=cvnreadsurface('C0041', 'lh', 'sphere', 'DENSETRUNCpt','justcount',true)
@@ -47,6 +51,7 @@ function varargout = cvnreadsurface(subject, hemi, surftype, surfsuffix, varargi
 %default options
 options=struct(...
     'justcount',false,...
+    'noscale',false,...
     'surfdir',[]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%
@@ -113,6 +118,7 @@ for h = 1:numel(hemi)
         result{h}=vertsN;
     else
         [verts,faces] = freesurfer_read_surf_kj(surffile);
+        patchmask=[];
         if(~isempty(patchfile))
             origverts=verts;
         
@@ -134,21 +140,24 @@ for h = 1:numel(hemi)
             end
             
             %%%%% rescale patch vertices to match anatomical surface size
-            
-            %1. compute patch surface area on ?h.white ("true anatomical area")
-            Aorig=sum(facearea(faces,origverts));
+            if(~options.noscale)
+                %1. compute patch surface area on ?h.white ("true anatomical area")
+                Aorig=sum(facearea(faces,origverts));
 
-            %2. compute patch surface area on flat (which should be close
-            %   to area on smoothwm, ie smaller than true anatomical surface)
-            Aflat=sum(facearea(faces,verts));
+                %2. compute patch surface area on flat (which should be close
+                %   to area on smoothwm, ie smaller than true anatomical surface)
+                Aflat=sum(facearea(faces,verts));
 
-            %scale patch vertices so that final surface area matches the ?h.white surface area
-            flatverts=verts(patchmask,:);
-            flatverts_mean=mean(flatverts,1);
-            verts(patchmask,:)=bsxfun(@plus,bsxfun(@minus,flatverts,flatverts_mean)*sqrt(Aorig/Aflat),flatverts_mean);
-            
+                %scale patch vertices so that final surface area matches the ?h.white surface area
+                flatverts=verts(patchmask,:);
+                flatverts_mean=mean(flatverts,1);
+                verts(patchmask,:)=bsxfun(@plus,bsxfun(@minus,flatverts,flatverts_mean)*sqrt(Aorig/Aflat),flatverts_mean);
+            end
         end
         result{h}=struct('vertices',verts,'faces',faces);
+        if(~isempty(patchmask))
+            result{h}.patchmask=patchmask;
+        end
     end
 end
 
