@@ -12,6 +12,7 @@ function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncat
 % anatomical and atlas-related quantities.
 %
 % history:
+% - 2017/08/24 - add support for gVTC, gEVC
 % - 2017/08/14 - add support for flat.patch (for flat.patch, we skip T1 T2 FMAP);
 %                drop DIM, sapv; reduce SURFVOX to just 0.8 and 2
 % - 2017/08/04 - update for visualsulc new range (0 through 14)
@@ -93,13 +94,13 @@ for zz=1:length(allviews)
   viewpt = cvnlookupviewpoint(subjectid,hemistouse,viewname0,surftype0);
   L = [];
   [mappedvals,L,rgbimg] = cvnlookupimages(subjectid,V,hemistouse,viewpt,L, ...
-    'xyextent',xyextent0,'text',hemitextstouse,'surftype',surftype0,'imageres',imageres0, ...
+    'xyextent',xyextent0,'rgbnan',1,'text',hemitextstouse,'surftype',surftype0,'imageres',imageres0, ...
     'surfsuffix',choose(fsaverage0,sprintf('fsaverage%s',surfsuffix2),surfsuffix));
 
   % make helper functions
   writefun = @(vals,filename,cmap,rng,thresh,alpha) ...
     cvnlookupimages(subjectid,setfield(V,'data',double(vals)),hemistouse,viewpt,L, ...  % NOTE: double
-    'xyextent',xyextent0,'text',hemitextstouse,'surftype',surftype0,'imageres',imageres0, ...
+    'xyextent',xyextent0,'rgbnan',1,'text',hemitextstouse,'surftype',surftype0,'imageres',imageres0, ...
     'surfsuffix',choose(fsaverage0,sprintf('fsaverage%s',surfsuffix2),surfsuffix), ...
     'colormap',cmap,'clim',rng,'filename',sprintf('%s/%s',outputdir,filename), ...
     'threshold',thresh,'overlayalpha',alpha);     % circulartype
@@ -192,6 +193,14 @@ for zz=1:length(allviews)
   roinames=regexprep(roinames{1},'@.+','');
   rgbimg=drawroinames(roiimg,rgbimg,L,1:numel(roinames),cleantext(roinames));
   imwrite(rgbimg,sprintf('%s/%s',outputdir,'visualsulc_names.png'));
+
+  % gVTC (without names)
+  [roiimg,~,rgbimg]=writefun(cvnloadmgz(sprintf('%s/label/?h%s.gVTC.mgz',fsdir,surfsuffix2)), ...
+    sprintf('gVTC.png'),        'copper',      [0 1],      0.5,[]);
+
+  % gEVC (without names)
+  [roiimg,~,rgbimg]=writefun(cvnloadmgz(sprintf('%s/label/?h%s.gEVC.mgz',fsdir,surfsuffix2)), ...
+    sprintf('gEVC.png'),        'copper',      [0 1],      0.5,[]);
  
   %%%%% aparc stuff:
   
