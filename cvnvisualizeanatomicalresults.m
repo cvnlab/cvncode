@@ -12,6 +12,7 @@ function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncat
 % anatomical and atlas-related quantities.
 %
 % history:
+% - 2017/08/25 - add support for HCP_MMP1
 % - 2017/08/25 - add new images (rand, curvature no shading, curvature bordered, flocgeneral);
 %                change to black text, black scale bar
 % - 2017/08/24 - add support for gVTC, gEVC
@@ -199,7 +200,7 @@ for zz=1:length(allviews)
     sprintf('kastner.png'),     'jet',      [0 25],     0.5,0.85,{});
 
   % Kastner atlas stuff (with names)
-  [~,roinames,~]=cvnroimask(subjectid,hemis,'Kastner*',[],surfsuffix,'cell');
+  [~,roinames,~]=cvnroimask(subjectid,hemis,'Kastner*',[],'orig','cell');
   roinames=regexprep(roinames{1},'@.+','');
   rgbimg=drawroinames(roiimg,rgbimg,L,1:numel(roinames),cleantext(roinames));
   imwrite(rgbimg,sprintf('%s/%s',outputdir,'kastner_names.png'));
@@ -209,10 +210,21 @@ for zz=1:length(allviews)
     sprintf('visualsulc.png'),  'jet',      [0 14],      0.5,0.85,{});
 
   % visualsulc atlas stuff (with names)
-  [~,roinames,~]=cvnroimask(subjectid,hemis,'visualsulc*',[],surfsuffix,'cell');
+  [~,roinames,~]=cvnroimask(subjectid,hemis,'visualsulc*',[],'orig','cell');
   roinames=regexprep(roinames{1},'@.+','');
   rgbimg=drawroinames(roiimg,rgbimg,L,1:numel(roinames),cleantext(roinames));
   imwrite(rgbimg,sprintf('%s/%s',outputdir,'visualsulc_names.png'));
+
+  % HCP_MMP1 atlas stuff (without names)
+  vals0 = cvnloadmgz(sprintf('%s/label/?h%s.HCP_MMP1.mgz',fsdir,surfsuffix2));
+  [roiimg,~,rgbimg]=writefun(vals0, ...
+    sprintf('mmp.png'),  colormap_hcp_mmp(),[-.5 180.5], 0.5,0.85,{'roimask',vals0,'roicolor','w'});
+
+  % HCP_MMP1 atlas stuff (with names)
+  [~,roinames,~]=cvnroimask(subjectid,hemis,'HCP_MMP1*',[],'orig','cell');
+  roinames=regexprep(roinames{1},'@.+','');
+  rgbimg=drawroinames(roiimg,rgbimg,L,1:numel(roinames),cleantext(roinames));
+  imwrite(rgbimg,sprintf('%s/%s',outputdir,'mmp_names.png'));
 
   % gVTC (without names)
   [roiimg,~,rgbimg]=writefun(cvnloadmgz(sprintf('%s/label/?h%s.gVTC.mgz',fsdir,surfsuffix2)), ...
