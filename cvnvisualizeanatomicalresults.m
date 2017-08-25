@@ -12,6 +12,8 @@ function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncat
 % anatomical and atlas-related quantities.
 %
 % history:
+% - 2017/08/25 - add new images (rand, curvature no shading, curvature bordered, flocgeneral);
+%                change to black text, black scale bar
 % - 2017/08/24 - add support for gVTC, gEVC
 % - 2017/08/14 - add support for flat.patch (for flat.patch, we skip T1 T2 FMAP);
 %                drop DIM, sapv; reduce SURFVOX to just 0.8 and 2
@@ -94,16 +96,18 @@ for zz=1:length(allviews)
   viewpt = cvnlookupviewpoint(subjectid,hemistouse,viewname0,surftype0);
   L = [];
   [mappedvals,L,rgbimg] = cvnlookupimages(subjectid,V,hemistouse,viewpt,L, ...
-    'xyextent',xyextent0,'rgbnan',1,'text',hemitextstouse,'surftype',surftype0,'imageres',imageres0, ...
+    'xyextent',xyextent0,'rgbnan',1,'text',hemitextstouse, ...
+    'textcolor','k','scalebarcolor','k','surftype',surftype0,'imageres',imageres0, ...
     'surfsuffix',choose(fsaverage0,sprintf('fsaverage%s',surfsuffix2),surfsuffix));
 
   % make helper functions
-  writefun = @(vals,filename,cmap,rng,thresh,alpha) ...
+  writefun = @(vals,filename,cmap,rng,thresh,alpha,others) ...
     cvnlookupimages(subjectid,setfield(V,'data',double(vals)),hemistouse,viewpt,L, ...  % NOTE: double
-    'xyextent',xyextent0,'rgbnan',1,'text',hemitextstouse,'surftype',surftype0,'imageres',imageres0, ...
+    'xyextent',xyextent0,'rgbnan',1,'text',hemitextstouse, ...
+    'textcolor','k','scalebarcolor','k','surftype',surftype0,'imageres',imageres0, ...
     'surfsuffix',choose(fsaverage0,sprintf('fsaverage%s',surfsuffix2),surfsuffix), ...
     'colormap',cmap,'clim',rng,'filename',sprintf('%s/%s',outputdir,filename), ...
-    'threshold',thresh,'overlayalpha',alpha);     % circulartype
+    'threshold',thresh,'overlayalpha',alpha,others{:});     % circulartype
 
   %%%%% WRITE MAPS
 
@@ -130,7 +134,7 @@ for zz=1:length(allviews)
         writefun( ...
           log2(cvnloadmgz(sprintf('%s/surf/*.sapv_sphere_DENSETRUNC%s.mgz',fsdir,fstruncate)) ./ ...
                cvnloadmgz(sprintf('%s/surf/*.sapv_layer%s%d_DENSETRUNC%s.mgz',fsdir,layerprefix,p,fstruncate))), ...
-          sprintf('distortion_layer%d.png',p),'cmapsign4',[-2 2],[],[]);
+          sprintf('distortion_layer%d.png',p),'cmapsign4',[-2 2],[],[],{});
       end
     end
 
@@ -138,45 +142,61 @@ for zz=1:length(allviews)
     if ~isequal(subjectid,'fsaverage')
       for p=1:numlayers
         writefun(cvnloadmgz(sprintf('%s/surf/*.ael_layer%s%d_DENSETRUNC%s.mgz',fsdir,layerprefix,p,fstruncate)), ...
-          sprintf('ael_layer%d.png',p),'jet',[0 1],[],[]);
+          sprintf('ael_layer%d.png',p),'jet',[0 1],[],[],{});
       end
     end
 
   end
 
+  % rand values
+  writefun(rand(size(V.data)), ...
+    sprintf('rand.png'),'jet',[0 1],[],[],{});
+  
+  % load curvature
+  curvval = cvnloadmgz(sprintf('%s/surf/*.curvature%s.mgz',fsdir,surfsuffix2));
+
   % curvature
   %   + (red) means sulci
   %   - (blue) means gyri
-  writefun(cvnloadmgz(sprintf('%s/surf/*.curvature%s.mgz',fsdir,surfsuffix2)), ...
-    sprintf('curvatureraw.png'),'cmapsign4',[-1 1],[],[]);
+  writefun(curvval, ...
+    sprintf('curvatureraw.png'),'cmapsign4',[-1 1],[],[],{});
 
   % curvature thresholded
   %   dark gray is 0  (curvature value is > 0)
   %   light gray is 1 (curvature value is < 0)
-  writefun(cvnloadmgz(sprintf('%s/surf/*.curvature%s.mgz',fsdir,surfsuffix2)) < 0, ...
-    sprintf('curvature.png'),   'gray',     [-1 2],[],[]);
+  writefun(curvval < 0, ...
+    sprintf('curvature.png'),   'gray',     [-1 2],[],[],{});
+
+  % curvature thresholded and no shading
+  writefun(curvval < 0, ...
+    sprintf('curvaturenoshade.png'),'gray',     [-1 2],[],[],{'surfshading' false});
+
+  % curvature bordered (and no shading)
+  writefun(ones(size(V.data)), ...
+    sprintf('curvatureborder.png'),'gray',  [0 1],[],[], ...
+    {'roimask',curvval < 0,'roicolor','k','roiwidth',.05,'surfshading',false});
 
   % thickness
   %   red means thick
   %   blue means thin
   writefun(cvnloadmgz(sprintf('%s/surf/*.thickness%s.mgz',fsdir,surfsuffix2)), ...
-    sprintf('thickness.png'),   'jet',      [0 4],[],[]);
+    sprintf('thickness.png'),   'jet',      [0 4],[],[],{});
 
   % sulc
   %   + (red) means sulci (far from brain boundary)
   %   - (blue) means gyri (close to brain boundary)
   writefun(cvnloadmgz(sprintf('%s/surf/*.sulc%s.mgz',fsdir,surfsuffix2)), ...
-    sprintf('sulcraw.png'),     'cmapsign4',[-1.5 1.5],[],[]);
+    sprintf('sulcraw.png'),     'cmapsign4',[-1.5 1.5],[],[],{});
 
   % sulc thresholded
   %   dark gray is 0  (sulc value is > 0)
   %   light gray is 1 (sulc value is < 0)
   writefun(cvnloadmgz(sprintf('%s/surf/*.sulc%s.mgz',fsdir,surfsuffix2)) < 0, ...
-    sprintf('sulc.png'),        'gray',     [-1 2],[],[]);
+    sprintf('sulc.png'),        'gray',     [-1 2],[],[],{});
 
   % Kastner atlas stuff (without names)
   [roiimg,~,rgbimg]=writefun(cvnloadmgz(sprintf('%s/label/?h%s.Kastner2015Labels.mgz',fsdir,surfsuffix2)), ...
-    sprintf('kastner.png'),     'jet',      [0 25],     0.5,0.85);
+    sprintf('kastner.png'),     'jet',      [0 25],     0.5,0.85,{});
 
   % Kastner atlas stuff (with names)
   [~,roinames,~]=cvnroimask(subjectid,hemis,'Kastner*',[],surfsuffix,'cell');
@@ -186,7 +206,7 @@ for zz=1:length(allviews)
 
   % visualsulc atlas stuff (without names)
   [roiimg,~,rgbimg]=writefun(cvnloadmgz(sprintf('%s/label/?h%s.visualsulc.mgz',fsdir,surfsuffix2)), ...
-    sprintf('visualsulc.png'),  'jet',      [0 14],      0.5,0.85);
+    sprintf('visualsulc.png'),  'jet',      [0 14],      0.5,0.85,{});
 
   % visualsulc atlas stuff (with names)
   [~,roinames,~]=cvnroimask(subjectid,hemis,'visualsulc*',[],surfsuffix,'cell');
@@ -196,11 +216,15 @@ for zz=1:length(allviews)
 
   % gVTC (without names)
   [roiimg,~,rgbimg]=writefun(cvnloadmgz(sprintf('%s/label/?h%s.gVTC.mgz',fsdir,surfsuffix2)), ...
-    sprintf('gVTC.png'),        'copper',      [0 1],      0.5,[]);
+    sprintf('gVTC.png'),        'copper',      [0 1],      0.5,[],{});
 
   % gEVC (without names)
   [roiimg,~,rgbimg]=writefun(cvnloadmgz(sprintf('%s/label/?h%s.gEVC.mgz',fsdir,surfsuffix2)), ...
-    sprintf('gEVC.png'),        'copper',      [0 1],      0.5,[]);
+    sprintf('gEVC.png'),        'copper',      [0 1],      0.5,[],{});
+
+  % flocgeneral (without names)
+  [roiimg,~,rgbimg]=writefun(cvnloadmgz(sprintf('%s/label/?h%s.flocgeneral.mgz',fsdir,surfsuffix2)), ...
+    sprintf('flocgeneral.png'), 'copper',      [0 1],      0.5,[],{});
  
   %%%%% aparc stuff:
   
@@ -218,7 +242,7 @@ for zz=1:length(allviews)
     vals = [vals; roimask(:)];
   end
   [roiimg,~,rgbimg]=writefun(vals, ...
-    sprintf('aparc.png'),     jet(36),      [0.5 36.5], 0.5,0.85);
+    sprintf('aparc.png'),     jet(36),      [0.5 36.5], 0.5,0.85,{});
 
   % FreeSurfer aparc (with names)
   rgbimg=drawroinames(roiimg,rgbimg,L,1:numel(fslabels),cleantext(fslabels));
@@ -242,7 +266,7 @@ for zz=1:length(allviews)
     vals = [vals; roimask(:)];
   end
   [roiimg,~,rgbimg]=writefun(vals, ...
-    sprintf('aparc2009.png'), jet(76),      [0.5 76.5], 0.5,0.75);
+    sprintf('aparc2009.png'), jet(76),      [0.5 76.5], 0.5,0.75,{});
 
   % FreeSurfer aparc.a2009s (with names)
   rgbimg=drawroinames(roiimg,rgbimg,L,1:numel(fslabels2009),cleantext(fslabels2009));
@@ -303,7 +327,7 @@ for zz=1:length(allviews)
           rng = [0 7];
           cmap0 = 'jet';
         end
-        writefun(temp,sprintf('%s_%s.png',todos{q},outfilenames{p}),cmap0,rng,thresh0,alpha0);
+        writefun(temp,sprintf('%s_%s.png',todos{q},outfilenames{p}),cmap0,rng,thresh0,alpha0,{});
       end
     end
       warning(prev);
@@ -314,12 +338,7 @@ for zz=1:length(allviews)
 
   if ~isempty(regexp(surftype0,'flat.patch'))
     writefun(cvnloadmgz(sprintf('%s/label/?h%s.%s.badness.mgz',fsdir,surfsuffix2,surftype0)), ...
-      sprintf('badness.png'),  'hot',  [-1 2],[],[]);
+      sprintf('badness.png'),  'hot',  [-1 2],[],[],{});
   end
 
 end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%% maybe for future:
-  %% HCP
