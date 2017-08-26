@@ -20,6 +20,7 @@ function cvnvisualizefunctionalresults(subjectid,numlayers,layerprefix,fstruncat
 % of bias-corrected signal intensities and the 'dark' (<.5) vertices.
 %
 % history:
+% - 2017/08/25 - change dark to 0.75 threshold and make them look black on white
 % - 2017/08/25 - change to white background, black text, black scale bar
 % - 2017/08/14 - add support for flat.patch
 % - 2016/12/29 - add support for low-res-related stuff
@@ -169,9 +170,9 @@ for zz=1:length(allviews)
       sprintf('biascorrected_layer%d.png',pp),'gray',[0 2],[],[]);
   end
 
-  % dark (<0.5) for each layer
+  % dark (>0.75) for each layer   [so, veins look black on a white background]
   for pp=1:numlayers
-    writefun(double(vflatten(H.data(1,pp,:))) < 0.5, ...
+    writefun(~(double(vflatten(H.data(1,pp,:))) < 0.75), ...
       sprintf('dark_layer%d.png',pp),'gray',[0 1],[],[]);
   end
 
@@ -202,8 +203,8 @@ for zz=1:length(allviews)
         writefun(double(vflatten(S(zz).data(1,pp,:))), ...
           sprintf('lowres_%s_biascorrected_layer%d.png',prefixes{zz},pp),'gray',[0 2],[],[]);
         
-        % dark (<0.5) for each layer
-        writefun(double(vflatten(S(zz).data(1,pp,:))) < 0.5, ...
+        % dark (>0.75) for each layer
+        writefun(~(double(vflatten(S(zz).data(1,pp,:))) < 0.75), ...
           sprintf('lowres_%s_dark_layer%d.png',         prefixes{zz},pp),'gray',[0 1],[],[]);
 
       end
