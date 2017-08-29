@@ -9,15 +9,6 @@ if(~iscell(Lookup))
     Lookup={Lookup};
 end
 
-numlh=0;
-numrh=0;
-for h = 1:numel(Lookup)
-    if(isequal(Lookup{h}.hemi,'lh'))
-        numlh=Lookup{h}.vertsN;
-    elseif(isequal(Lookup{h}.hemi,'rh'))
-        numrh=Lookup{h}.vertsN;
-    end
-end
 
 if(isempty(img))
     himg=findobj(gca,'type','image');
@@ -76,9 +67,19 @@ while(ishandle(himg))
     set(himg,'cdata',tmprgb);
 end
 
-if(~isempty(Lookup{h}.input2surf))
-    vertidx=Lookup{h}.input2surf(Rmask);
+%make sure to use inputN for numlh, numrh, since vertsN will be DENSE for
+%when input type is DENSETRUNCpt
+numlh=0;
+numrh=0;
+for hi = 1:numel(Lookup)
+    if(isequal(Lookup{hi}.hemi,'lh'))
+        numlh=Lookup{hi}.inputN;
+    elseif(isequal(Lookup{hi}.hemi,'rh'))
+        numrh=Lookup{hi}.inputN;
+    end
 end
+
+vertidx=find(Rmask);
 if(isequal(Lookup{h}.hemi,'rh'))
     vertidx=vertidx+numlh;
 end
