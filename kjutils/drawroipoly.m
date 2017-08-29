@@ -1,7 +1,17 @@
-function [Rmask,Rimg] = drawroipoly(img,Lookup)
-%[Rmask,Rimg] = drawroipoly(himg,Lookup)
+function [Rmask,Rimg,roihemi] = drawroipoly(img,Lookup)
+%[Rmask,Rimg,roihemi] = drawroipoly(himg,Lookup)
 %
 %Interface for drawing ROI and converting to surface vertex mask
+%
+%Inputs
+%   img:        MxN image to draw on, or handle to existing GUI image handle 
+%   Lookup:     cvnlookupimages Lookup struct (or cell of structs for lh,rh)
+%
+%Outputs
+%   Rmask:      Vx1 logical (If Lookup is a single hemi, V=(numlh x 1) or (numrh x 1)
+%                      If Lookup is both hemis, V=(numlh+numrh x 1)
+%   Rimg:       MxN binary image of ROI as drawn
+%   roihemi:    'lh' or 'rh' depending on which hemi user drew on
 
 Rmask=[];
 
@@ -67,24 +77,28 @@ while(ishandle(himg))
     set(himg,'cdata',tmprgb);
 end
 
-%make sure to use inputN for numlh, numrh, since vertsN will be DENSE for
-%when input type is DENSETRUNCpt
-numlh=0;
-numrh=0;
-for hi = 1:numel(Lookup)
-    if(isequal(Lookup{hi}.hemi,'lh'))
-        numlh=Lookup{hi}.inputN;
-    elseif(isequal(Lookup{hi}.hemi,'rh'))
-        numrh=Lookup{hi}.inputN;
-    end
-end
 
-vertidx=find(Rmask);
-if(isequal(Lookup{h}.hemi,'rh'))
-    vertidx=vertidx+numlh;
+if(numel(Lookup)>1)
+    %make sure to use inputN for numlh, numrh, since vertsN will be DENSE for
+    %when input type is DENSETRUNCpt
+    numlh=0;
+    numrh=0;
+    for hi = 1:numel(Lookup)
+        if(isequal(Lookup{hi}.hemi,'lh'))
+            numlh=Lookup{hi}.inputN;
+        elseif(isequal(Lookup{hi}.hemi,'rh'))
+            numrh=Lookup{hi}.inputN;
+        end
+    end
+
+    vertidx=find(Rmask);
+    if(isequal(Lookup{h}.hemi,'rh'))
+        vertidx=vertidx+numlh;
+    end
+
+    Rmask=zeros(numlh+numrh,1);
+    Rmask(vertidx)=1;
 end
-    
-Rmask=zeros(numlh+numrh,1);
-Rmask(vertidx)=1;
 
 Rimg=imgroi;
+roihemi=Lookup{h}.hemi;

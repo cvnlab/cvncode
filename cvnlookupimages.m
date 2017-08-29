@@ -701,6 +701,7 @@ else
         if(~isfield(Lookup,'version'))
             Lookup.version='0';
         end
+        Lookup.imgsize=size(Lookup.imglookup); %just in case this wasn't included (dont need to regen just for this)
         cacheversion=Lookup.version;
     end
     
