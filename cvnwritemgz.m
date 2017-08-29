@@ -1,15 +1,18 @@
-function cvnwritemgz(subjectid,name,vals,hemi,outputdir)
+function cvnwritemgz(subjectid,name,vals,hemi,outputdir,surfsuffix)
 
-% function cvnwritemgz(subjectid,name,vals,hemi,outputdir)
+% function cvnwritemgz(subjectid,name,vals,hemi,outputdir,surfsuffix)
 %
 % <subjectid> is like 'C0041' (can be 'fsaverage')
 % <name> is a string
 % <vals> is a vector of values for the surface
-% <hemi> is 'lh' or 'rh' or with some extension like 'lhDENSETRUNCpt'
+% <hemi> is 'lh' or 'rh'
 % <outputdir> (optional) is the directory to write the file to.
 %   Default is cvnpath('freesurfer')/<subjectid>/surf/
+% <surfsuffix> (optional) is a suffix to tack onto <hemi>, e.g., 'DENSETRUNCpt'.
+%   Special case is 'orig' which is equivalent to ''.
+%   Default: 'orig'.
 %
-% Write a file like <hemi>.<name>.mgz.
+% Write a file like <hemi><surfsuffix>.<name>.mgz.
 % 
 % Note that we make certain assumptions about what fields to mangle (see code).
 
@@ -19,6 +22,9 @@ fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
 % input
 if ~exist('outputdir','var') || isempty(outputdir)
   outputdir = sprintf('%s/surf',fsdir);
+end
+if ~exist('surfsuffix','var') || isempty(surfsuffix)
+  surfsuffix = 'orig';
 end
 
 % prep
@@ -32,7 +38,12 @@ end
 fsmgh = MRIread(file0);
 
 % calc
-file = sprintf('%s/%s.%s.mgz',outputdir,hemi,name);
+if isequal(surfsuffix,'orig')
+  suffstr = '';
+else
+  suffstr = surfsuffix;
+end
+file = sprintf('%s/%s%s.%s.mgz',outputdir,hemi,suffstr,name);
 n = numel(vals);
 
 % mangle
