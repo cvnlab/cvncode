@@ -153,6 +153,14 @@ yview_padded=(flatvertlim(:,2)-flatvertmid(2))*xyextent_frac(2)*1.1 + flatvertmi
 
 pixidx=(1:numel(imgx))';
 
+%%%%%%% create TXpix transform to transform straight from verts -> pixel space
+tx=-xview(1);
+ty=-yview(1);
+sx=(imgN(1)-1)/(xview(2)-xview(1));
+sy=(imgN(end)-1)/(yview(2)-yview(1));
+Mpix=[sx 0 0 sx*tx+1; 0 sy 0 sy*ty+1; 0 0 1 0; 0 0 0 1];
+TXpix=Mpix*TXview;
+
 %%%%%%%%%%%%%
     
     viewmask=           viewvert(:,1)>=xview(1) & viewvert(:,1)<=xview(2);
@@ -248,4 +256,4 @@ if(~options.silent)
 end
 
 lookup=fillstruct(imglookup,vertmasks,lookupmasks,reverselookup,extrapmask,is_extrapolated,azimuth,elevation,tilt,imgN,vertsN,TXview,xyextent, ...
-    pixels_per_mm, xyextent_mm, xview, yview, zview);
+    pixels_per_mm, xyextent_mm, xview, yview, zview, TXpix);

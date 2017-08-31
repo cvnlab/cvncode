@@ -200,6 +200,7 @@ vmax=max(viewvert(viewmask_padded,:),[],1);
 
 yview=[vmin(2) vmax(2)];
 xview=[vmin(1) vmax(1)];
+zview=[-inf inf];
 imgsz=size(lookup_faces);
 
 S=scatteredInterpolant(viewvert(viewmask_padded,1), viewvert(viewmask_padded,2), ...
@@ -209,6 +210,19 @@ S=scatteredInterpolant(viewvert(viewmask_padded,1), viewvert(viewmask_padded,2),
     linspace(yview(1),yview(2),imgsz(1)));
 imgy=flipud(imgy);
 lookup=S(imgx,imgy);
+
+%%%%%%% create TXpix transform to transform straight from verts -> pixel space
+%note: not identical to sphere and flat cases because of some hacky
+%   conventions I used... swapping x and y and flipping ydim
+tx=-xview(1);
+ty=-yview(1);
+szy=imgsz(1);
+sx=(imgsz(2)-1)/(xview(2)-xview(1));
+sy=(imgsz(1)-1)/(yview(2)-yview(1));
+Mpix=[sx 0 0 sx*tx+1; 0 -sy 0 -sy*ty+szy; 0 0 1 0; 0 0 0 1];
+Mpix=Mpix([2 1 3 4],:);
+
+TXpix=Mpix*TXview;
 % 
 % figure;
 % imagesc(lookup);
@@ -322,7 +336,7 @@ newnn=newnn(distnn<=reverse_maxdist);
 reverselookup(visiblemissing)=reverselookup(newnn);
 %%
 
-lookup=fillstruct(imglookup,vertmasks,lookupmasks,reverselookup,extrapmask,is_extrapolated,azimuth,elevation,tilt,imgN,vertsN,TXview,xyextent,xview,yview,zview);
+lookup=fillstruct(imglookup,vertmasks,lookupmasks,reverselookup,extrapmask,is_extrapolated,azimuth,elevation,tilt,imgN,vertsN,TXview,xyextent,xview,yview,zview,TXpix);
 
 lookup.shading=imgshading;
 %lookup.imgsize=imgsz;

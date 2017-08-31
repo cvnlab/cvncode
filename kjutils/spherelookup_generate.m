@@ -105,7 +105,20 @@ else
     reverselookup=[];
 end
 
+%recenter and scale to unit sphere
+[c,r]=spherefit(vertsph);
+Msph=[1/r 0 0 -c(1)/r; 0 1/r 0 -c(2)/r; 0 0 1/r -c(3)/r; 0 0 0 1];
+%vertsph=bsxfun(@minus,vertsph,c.')/r;
+            
+%%%%%%% create Mpix transform to go from viewverts->pixel coordinates
+tx=-xview(1);
+ty=-yview(1);
+sx=(imgN(1)-1)/(xview(2)-xview(1));
+sy=(imgN(end)-1)/(yview(2)-yview(1));
+Mpix=[sx 0 0 sx*tx+1; 0 sy 0 sy*ty+1; 0 0 1 0; 0 0 0 1];
+
 TXview=zeros(4,4,viewN);
+TXpix=TXview;
 
 ticstart=tic;
 for i = 1:viewN
@@ -145,7 +158,9 @@ for i = 1:viewN
     M=eye(4);
     M(1:3,1:3)=inv([v1(:) v2(:) v3(:)]);
     
-    TXview(:,:,i)=Mtilt*M;
+    TXview(:,:,i)=Mtilt*M*Msph;
+    TXpix(:,:,i)=Mpix*TXview(:,:,i);
+    
     viewvert=affine_transform(TXview(:,:,i),vertsph);
 
     viewmask=           viewvert(:,1)>=xview(1) & viewvert(:,1)<=xview(2);
@@ -241,4 +256,4 @@ if(~options.silent)
     fprintf('Lookups include %d/%d masked vertices (%d masked but not found in any lookups = %.2f%%)\n',lookup_included,view_included,lookup_missing,100*lookup_missing/view_included);
 end
 
-lookup=fillstruct(imglookup,vertmasks,lookupmasks,reverselookup,extrapmask,is_extrapolated,azimuth,elevation,tilt,imgN,vertsN,TXview,xyextent,xview,yview,zview);
+lookup=fillstruct(imglookup,vertmasks,lookupmasks,reverselookup,extrapmask,is_extrapolated,azimuth,elevation,tilt,imgN,vertsN,TXview,xyextent,xview,yview,zview,TXpix);

@@ -712,11 +712,6 @@ else
             sphfile=sprintf('%s/%s.sphere%s',surfdir,hemi,options.surfsuffix_file);
 
             [vertsph,~,~] = freesurfer_read_surf_kj(sphfile);
-
-
-            %recenter and scale to unit sphere
-            [c,r]=spherefit(vertsph);
-            vertsph=bsxfun(@minus,vertsph,c.')/r;
         else
             sphfile=sprintf('%s/%s.%s%s',surfdir,hemi,options.surftype,options.surfsuffix_file);
 
