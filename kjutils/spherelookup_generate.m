@@ -115,7 +115,8 @@ tx=-xview(1);
 ty=-yview(1);
 sx=(imgN(1)-1)/(xview(2)-xview(1));
 sy=(imgN(end)-1)/(yview(2)-yview(1));
-Mpix=[sx 0 0 sx*tx+1; 0 sy 0 sy*ty+1; 0 0 1 0; 0 0 0 1];
+sz=mean([sx sy]);
+Mpix=[sx 0 0 sx*tx+1; 0 sy 0 sy*ty+1; 0 0 sz 0; 0 0 0 1];
 
 TXview=zeros(4,4,viewN);
 TXpix=TXview;

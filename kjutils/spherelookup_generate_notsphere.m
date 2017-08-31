@@ -219,7 +219,8 @@ ty=-yview(1);
 szy=imgsz(1);
 sx=(imgsz(2)-1)/(xview(2)-xview(1));
 sy=(imgsz(1)-1)/(yview(2)-yview(1));
-Mpix=[sx 0 0 sx*tx+1; 0 -sy 0 -sy*ty+szy; 0 0 1 0; 0 0 0 1];
+sz=mean([sx sy]);
+Mpix=[sx 0 0 sx*tx+1; 0 -sy 0 -sy*ty+szy; 0 0 sz 0; 0 0 0 1];
 Mpix=Mpix([2 1 3 4],:);
 
 TXpix=Mpix*TXview;
