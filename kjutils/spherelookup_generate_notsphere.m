@@ -322,7 +322,7 @@ newnn=newnn(distnn<=reverse_maxdist);
 reverselookup(visiblemissing)=reverselookup(newnn);
 %%
 
-lookup=fillstruct(imglookup,vertmasks,lookupmasks,reverselookup,extrapmask,is_extrapolated,azimuth,elevation,tilt,imgN,vertsN,TXview,xyextent);
+lookup=fillstruct(imglookup,vertmasks,lookupmasks,reverselookup,extrapmask,is_extrapolated,azimuth,elevation,tilt,imgN,vertsN,TXview,xyextent,xview,yview,zview);
 
 lookup.shading=imgshading;
 %lookup.imgsize=imgsz;
