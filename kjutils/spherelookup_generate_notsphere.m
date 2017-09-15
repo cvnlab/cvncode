@@ -337,7 +337,8 @@ newnn=newnn(distnn<=reverse_maxdist);
 reverselookup(visiblemissing)=reverselookup(newnn);
 %%
 
-lookup=fillstruct(imglookup,vertmasks,lookupmasks,reverselookup,extrapmask,is_extrapolated,azimuth,elevation,tilt,imgN,vertsN,TXview,xyextent,xview,yview,zview,TXpix);
+input2surf=[]; %mapping between surfsuffixes. If needed, handled in cvnlookup
+lookup=fillstruct(imglookup,vertmasks,lookupmasks,reverselookup,extrapmask,is_extrapolated,azimuth,elevation,tilt,imgN,vertsN,TXview,xyextent,xview,yview,zview,TXpix,input2surf);
 
 lookup.shading=imgshading;
 %lookup.imgsize=imgsz;

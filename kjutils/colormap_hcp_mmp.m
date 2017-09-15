@@ -1,4 +1,6 @@
 function cmap = colormap_hcp_mmp
+%cmap = colormap_hcp_mmp()
+%Use clim [-.5 180.5]
 
 cmap=[    0 0 0
     63     5   255

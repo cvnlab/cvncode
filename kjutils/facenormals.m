@@ -1,6 +1,6 @@
 function N=facenormals(V, F)
 %
-%  [Nx,Ny,Nz]=patchnormals_double(Fa,Fb,Fc,Vx,Vy,Vz)
+%  N=facenormals(V, F)
 %
 
 % Get all edge vectors
