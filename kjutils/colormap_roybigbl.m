@@ -1,4 +1,12 @@
 function cmap = colormap_roybigbl(n)
+%cmap = colormap_roybigbl(n)
+%
+%A hot/cold colormap adapted from the ROYBIGBL colormap in HCP's wb_view
+%tool.
+%
+%Negative (first half) = cyan->green->purple->blue->black (most neg-->zero)
+%Positive (second half) = black->red->orange->yellow (zero-->most pos)
+
 if(~exist('n','var') || isempty(n))
     n=64;
 end

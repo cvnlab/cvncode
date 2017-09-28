@@ -1,4 +1,11 @@
 function cmap = colormap_videen(n)
+%cmap = colormap_roybigbl(n)
+%
+%Colormap adapted from the VIDEEN colormap in HCP's wb_view tool. Designed
+%to maximize visizibility of gradients.  Hard to describe but you can check
+%it out thus:
+%figure; imagesc(randn(10,10),[-1 1]); colormap(colormap_videen(128)); colorbar;
+
 if(~exist('n','var') || isempty(n))
     n=64;
 end
