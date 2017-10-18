@@ -38,6 +38,7 @@ function [destvals, lookupidx, validmask, sourcesuffix] = cvnlookupvertex(surfdi
 
 % Update KJ 1-26-2015: Add automatic detection of source type (based on size(vals))
 % Update KJ 11-2-2016: Add fsaverage options and valstruct input options
+% Update KJ 10-18-2017: Add support for generalized source and dest (eg: '.32k'->'.MSMSulc')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if(~exist('sourcevals','var') || isempty(sourcevals))
@@ -319,9 +320,12 @@ switch [sourcetype '-' desttype]
         vertmap=load(avgfile); %this is orig=fsaverage(validix)
         lookupidx=vertmap.validix;
        
-        
     otherwise
+        transferfile=sprintf('%s/%s.%s_to_%s.mat',sourcesurfdir,hemi,sourcesuffix,destsuffix);
+        assert(exist(transferfile,'file')>0);
+        vertmap=load(transferfile); %this is fsaverageDENSE=DENSE(validix)
 
+        lookupidx=vertmap.validix;
 end
 
 destvals=[];

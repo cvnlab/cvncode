@@ -302,7 +302,7 @@ end
 input_opts=mergestruct(varargin{:});
 
 %change defaults for non-sphere surfaces
-if(isfield(input_opts,'surftype') && ~isequal(input_opts.surftype,'sphere'))
+if(isfield(input_opts,'surftype') && ~regexpmatch(input_opts.surftype,'^sphere'))
     options.surfsuffix='DENSETRUNCpt';
     options.imageres=500;
 end
@@ -394,7 +394,7 @@ if(regexpmatch(options.surfsuffix,'^fsaverage'))
     if(isempty(inputsuffix_fsavg))
         inputsuffix_fsavg='orig';
     end
-    if(isequal(options.surftype,'sphere'))
+    if(regexpmatch(options.surftype,'^sphere')) % if sphere*
         surfsuffix_fsavg=regexprep(inputsuffix_fsavg,'^DENSE.+','DENSE');
     else
         surfsuffix_fsavg=inputsuffix_fsavg;
@@ -634,7 +634,7 @@ if(numel(vals)>1 && size(vals,1)==1)
     vals=vals.';
 end
 
-if(isequal(options.surftype,'sphere'))
+if(regexpmatch(options.surftype,'^sphere')) % if sphere*
     %for sphere lookups, always lookup full DENSE to avoid annoying TRUNC
     %extrapolation artifacts around edges
     options.surfsuffix=regexprep(options.surfsuffix,'^DENSE.+','DENSE');
@@ -708,8 +708,8 @@ else
     if(~exist(cachename,'file') || options.reset || ~isequal(cacheversion,lookup_version))
 
         %generate a new one and save it
-        if(isequal(options.surftype,'sphere'))
-            sphfile=sprintf('%s/%s.sphere%s',surfdir,hemi,options.surfsuffix_file);
+        if(regexpmatch(options.surftype,'^sphere')) % If sphere*
+            sphfile=sprintf('%s/%s.%s%s',surfdir,hemi,options.surftype,options.surfsuffix_file);
 
             [vertsph,~,~] = freesurfer_read_surf_kj(sphfile);
         else
@@ -735,7 +735,7 @@ else
             fprintf('No cached spherelookup found: %s\n',cachename);
         end
         fprintf('Building new lookup structure...\n');
-        if(isequal(options.surftype,'sphere'))
+        if(regexpmatch(options.surftype,'^sphere'))
             Lookup=spherelookup_generate(vertsph,az,el,tilt,options.xyextent,imgN,...
                 'reversevert',vertinf,'verbose',true);
         elseif(regexpmatch(options.surftype,'\.flat\.patch\.'))

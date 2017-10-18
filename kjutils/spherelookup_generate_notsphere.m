@@ -7,7 +7,7 @@ function lookup = spherelookup_generate_notsphere(vertices,faces,azimuth,elevati
 %   vertices:   Vx3 xyz coordinates
 %   faces:      Fx3 vertex indices for each triangular face
 %   azimuth:    Nx1 azimuth in degrees. Range=[0,360], 0 = -y
-%   elevation:  Nx1 elevation in degrees. Range=[-90,90], 90 = +z 
+%   elevation:  Nx1 elevation in degrees. Range=[-90,90], 90 = +z
 %   tilt:       Nx1 camera tilt in degrees. Range=[0,360]
 %   imgheight:  Image height (in pixels)
 %
@@ -19,6 +19,7 @@ function lookup = spherelookup_generate_notsphere(vertices,faces,azimuth,elevati
 %               generate a new lookup though.
 % KJ 2017-02-22 Use mesh adjacency for much faster reverse lookup creation
 %               (to prune before costly nn interp step)
+% KJ 2017-10-18 Catch some errors in off-screen rendering and retry
 
 if(~exist('imgheight','var') || isempty(imgheight))
     imgheight=[];
@@ -45,122 +46,136 @@ valrgb=valrgb/255;
 %        azimuth=viewpt(1);
 %        elevation=viewpt(2);
 %        tilt=viewpt(3);
-        
-        view_az=azimuth(:)*pi/180 -pi/2;
-        view_el=elevation(:)*pi/180;
-        view_tilt=tilt(:)*pi/180 + pi;
+
+view_az=azimuth(:)*pi/180 -pi/2;
+view_el=elevation(:)*pi/180;
+view_tilt=tilt(:)*pi/180 + pi;
 
 
-        [x,y,z]=sph2cart(view_az,view_el,1);
-        %viewpts=[x y z];
-        v3=[x y z];
-        
-    i=1;
-    az_tilt=pi/2;
+[x,y,z]=sph2cart(view_az,view_el,1);
+%viewpts=[x y z];
+v3=[x y z];
+
+i=1;
+az_tilt=pi/2;
+
+%v3=viewpts(i,:);
+v3=v3/norm(v3);
+if(sqrt(v3(1:2)*v3(1:2)') < 1e-3)
+    v2=cross(v3,[0 1 0]);
+    v2=v2/norm(v2);
+    v1=-cross(v3,v2);
+    v1=v1/norm(v1);
     
-    %v3=viewpts(i,:);
-    v3=v3/norm(v3);
-    if(sqrt(v3(1:2)*v3(1:2)') < 1e-3)
-        v2=cross(v3,[0 1 0]);
-        v2=v2/norm(v2);
-        v1=-cross(v3,v2);
-        v1=v1/norm(v1);
-        
-        if(v3(3)<0)
-            az_tilt=-azimuth(i)*pi/180; %%%%!!!! ugly...
-            if(abs(az_tilt)<1e-3)
-                az_tilt=az_tilt+pi;
-            end
-        else
-            az_tilt=azimuth(i)*pi/180;
+    if(v3(3)<0)
+        az_tilt=-azimuth(i)*pi/180; %%%%!!!! ugly...
+        if(abs(az_tilt)<1e-3)
+            az_tilt=az_tilt+pi;
         end
-        
-        
-
     else
-        v2=cross(v3,[0 0 1]);
-        v2=v2/norm(v2);
-        v1=cross(v2,v3);
-        v1=v1/norm(v1);
+        az_tilt=azimuth(i)*pi/180;
     end
     
-    Mtilt=eye(4);
-    Mtilt(1:2,1:2)=[cos(view_tilt(i)+az_tilt) sin(view_tilt(i)+az_tilt); 
-        -sin(view_tilt(i)+az_tilt) cos(view_tilt(i)+az_tilt)];
-
-    M=eye(4);
-    M(1:3,1:3)=inv([v1(:) v2(:) v3(:)]);
     
-    TXview(:,:,i)=Mtilt*M;
+    
+else
+    v2=cross(v3,[0 0 1]);
+    v2=v2/norm(v2);
+    v1=cross(v2,v3);
+    v1=v1/norm(v1);
+end
 
-    verts=surf.vertices;
-    %verts(:,1)=-verts(:,1);
-    viewvert=affine_transform(TXview,verts);
-        
+Mtilt=eye(4);
+Mtilt(1:2,1:2)=[cos(view_tilt(i)+az_tilt) sin(view_tilt(i)+az_tilt);
+    -sin(view_tilt(i)+az_tilt) cos(view_tilt(i)+az_tilt)];
+
+M=eye(4);
+M(1:3,1:3)=inv([v1(:) v2(:) v3(:)]);
+
+TXview(:,:,i)=Mtilt*M;
+
+verts=surf.vertices;
+%verts(:,1)=-verts(:,1);
+viewvert=affine_transform(TXview,verts);
+
 %%
-fig=figure('visible','off','color','r');
-%p=patch(surf,'facevertexcdata',valrgb,'facecolor','flat','linestyle','none');
-p=patch('faces',surf.faces,'vertices',viewvert,'facevertexcdata',valrgb,'facecolor','flat','linestyle','none');
-
-axis vis3d equal;
-
-fullscreen(gcf);
-fpos=get(gcf,'position');
-%fpos([3 4])=max(fpos([3 4]));
-fpos([3 4])=exportheight;
-set(gcf,'position',fpos);
-%axis off tight;
-axis off;
-axis manual; %don't allow any more automatic axis resizing
-
-vmin=min(viewvert,[],1);
-vmax=max(viewvert,[],1);
-
-vmid=(vmin+vmax)/2;
-vsize=vmax-vmin;
-
-vxlim=vmid(1)+max(vsize)*[-.5 .5]*1.1;
-vylim=vmid(2)+max(vsize)*[-.5 .5]*1.1;
-
-set(gca,'units','normalized','position',[0 0 1 1]);
-%set(gca,'xlim',[vmin(1) vmax(1)],'ylim',[vmin(2) vmax(2)]);
-set(gca,'xlim',vxlim,'ylim',vylim);
-
-scalestr=sprintf('-m%d',scalefactor);
-
-img=export_fig(gca,'-a1',scalestr,'-nocrop');
-
-
-
-img=double(img);
-imgval=img(:,:,1)*256*256 + img(:,:,2)*256 + img(:,:,3);
-lookup_faces=imgval;
-
-%close(fig);
-
-%% show solid green surface with lighting
-%fig=figure('visible','off','color','r');
-%patch(surf,'facecolor','g','linestyle','none');
-
-%material dull;
-%axis vis3d equal;
-
-%view(viewpt);
-%fullscreen(gcf);
-%axis off tight;
-set(p,'facecolor','g');
-material dull;
-camlight headlight
-%pixpos=getpixelposition(gca);
-img=export_fig(gca,'-a1',scalestr,'-nocrop');
-
-hsvmask=rgb2hsv(img);
-
-imgmask=hsvmask(:,:,1)>0;
-imgshading=hsvmask(:,:,3);
-
-close(fig);
-
+numbugloops=10;
+for bugloop = 1:numbugloops
+    try
+        fig=figure('visible','off','color','r');
+        %p=patch(surf,'facevertexcdata',valrgb,'facecolor','flat','linestyle','none');
+        p=patch('faces',surf.faces,'vertices',viewvert,'facevertexcdata',valrgb,'facecolor','flat','linestyle','none');
+        
+        axis vis3d equal;
+        
+        fullscreen(gcf);
+        fpos=get(gcf,'position');
+        %fpos([3 4])=max(fpos([3 4]));
+        fpos([3 4])=exportheight;
+        set(gcf,'position',fpos);
+        %axis off tight;
+        axis off;
+        axis manual; %don't allow any more automatic axis resizing
+        
+        vmin=min(viewvert,[],1);
+        vmax=max(viewvert,[],1);
+        
+        vmid=(vmin+vmax)/2;
+        vsize=vmax-vmin;
+        
+        vxlim=vmid(1)+max(vsize)*[-.5 .5]*1.1;
+        vylim=vmid(2)+max(vsize)*[-.5 .5]*1.1;
+        
+        set(gca,'units','normalized','position',[0 0 1 1]);
+        %set(gca,'xlim',[vmin(1) vmax(1)],'ylim',[vmin(2) vmax(2)]);
+        set(gca,'xlim',vxlim,'ylim',vylim);
+        
+        scalestr=sprintf('-m%d',scalefactor);
+        
+        img=export_fig(gca,'-a1',scalestr,'-nocrop');
+        
+        
+        
+        img=double(img);
+        
+        imgval=img(:,:,1)*256*256 + img(:,:,2)*256 + img(:,:,3);
+        lookup_faces=imgval;
+        
+        %close(fig);
+        
+        %% show solid green surface with lighting
+        %fig=figure('visible','off','color','r');
+        %patch(surf,'facecolor','g','linestyle','none');
+        
+        %material dull;
+        %axis vis3d equal;
+        
+        %view(viewpt);
+        %fullscreen(gcf);
+        %axis off tight;
+        set(p,'facecolor','g');
+        material dull;
+        camlight headlight
+        %pixpos=getpixelposition(gca);
+        img=export_fig(gca,'-a1',scalestr,'-nocrop');
+        
+        hsvmask=rgb2hsv(img);
+        
+        imgmask=hsvmask(:,:,1)>0;
+        imgshading=hsvmask(:,:,3);
+        
+        close(fig);
+        
+        break; %if we get to this point without error, break out of bug loop
+        
+    catch err
+        if(bugloop==numbugloops)
+            rethrow(err);
+        end
+        fprintf('Error off-screen rendering surfaces: retrying %d/%d\n',bugloop,numbugloops);
+        close(fig);
+    end
+end
 
 %% crop images
 
@@ -170,13 +185,13 @@ ycrop=any(imgmask>0,1);
 
 xcrop=[find(xcrop,1,'first') find(xcrop,1,'last')];
 ycrop=[find(ycrop,1,'first') find(ycrop,1,'last')];
-% 
+%
 % if(~isempty(imgheight) && (ycrop(2)-ycrop(1)+1)<imgheight)
 %     y0=floor((ycrop(1)+ycrop(2))/2 - imgheight/2);
 %     y0=max(y0,1);
 %     ycrop=[y0 y0+imgheight-1];
 % end
-%     
+%
 lookup_faces=lookup_faces(xcrop(1):xcrop(2),ycrop(1):ycrop(2));
 imgmask=imgmask(xcrop(1):xcrop(2),ycrop(1):ycrop(2));
 imgshading=imgshading(xcrop(1):xcrop(2),ycrop(1):ycrop(2));
@@ -224,7 +239,7 @@ Mpix=[sx 0 0 sx*tx+1; 0 -sy 0 -sy*ty+szy; 0 0 sz 0; 0 0 0 1];
 Mpix=Mpix([2 1 3 4],:);
 
 TXpix=Mpix*TXview;
-% 
+%
 % figure;
 % imagesc(lookup);
 % axis image;
@@ -294,7 +309,7 @@ notmissing0=notmissing;
 for i = 1:imax
     notmissing=(Adj*double(notmissing0))>0;
     newidx=notmissing0==0 & notmissing>0;
-
+    
     [a,b]=find(Adj(newidx,:));
     %which neighbors are already in our missingnn list?
     nntmp=missingnn(b);
@@ -313,7 +328,7 @@ for i = 1:imax
     
     if(min(missingdist(newidx))>(2*reverse_maxdist))
         %if all new verts are > 2*maxdist pixels from their closest "pixel visible"
-        %neighbour, we are done finding the "lookup visible" missing, and 
+        %neighbour, we are done finding the "lookup visible" missing, and
         %the rest are occluded
         imax=i;
         break;
@@ -326,7 +341,7 @@ visiblemissing=find(missingdist>0 & missingdist<=(2*reverse_maxdist));
 %reverselookup(visiblemissing)=reverselookup(missingnn(visiblemissing));
 
 %Now do euclidian distance to find nearest lookup-visible vertex to each
-%putative not-occluded vertex.  Prune list to only those with 
+%putative not-occluded vertex.  Prune list to only those with
 %euclidian distance <= 2 pixels)
 S=scatteredInterpolant(pixvert(notmissing,1:dimdist),find(notmissing),'nearest');
 newnn=S(pixvert(visiblemissing,1:dimdist));
