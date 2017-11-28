@@ -1,14 +1,15 @@
-function f = cvngetlayersinEPI(subjectid,datadir,numlayers,layerprefix,fstruncate)
+function f = cvngetlayersinEPI(subjectid,datadir,numlayers,layerprefix,fstruncate,alignmentdir)
 
-% function f = cvngetlayersinEPI(subjectid,datadir,numlayers,layerprefix,fstruncate)
+% function f = cvngetlayersinEPI(subjectid,datadir,numlayers,layerprefix,fstruncate,alignmentdir)
 %
 % <subjectid> is like 'C0001'
 % <datadir> is like '/home/stone-ext1/fmridata/20151008-ST001-kk,test'
 % <numlayers> is like 6       or [] (indicating graymid)
 % <layerprefix> is like 'A'   or [] (indicating graymid)
 % <fstruncate' is like 'pt'   or [] (indicating graymid)
+% <alignmentdir> (optional) is like 'freesurferalignment' (default)
 %
-% Based on an existing EPI alignment (freesurferalignment/alignment.mat),
+% Based on an existing EPI alignment (<alignmentdir>/alignment.mat),
 % return the locations of the vertices (4 x V) in the EPI space.
 %
 % We return vertices concatenated in the following order:
@@ -20,6 +21,11 @@ function f = cvngetlayersinEPI(subjectid,datadir,numlayers,layerprefix,fstruncat
 % OR
 %   lh.graymid
 %   rh.graymid
+
+% input
+if ~exist('alignmentdir','var') || isempty(alignmentdir)
+  alignmentdir = 'freesurferalignment';
+end
 
 % calc
 fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
@@ -34,7 +40,7 @@ else
 end
 
 % load transformation
-load(sprintf('%s/freesurferalignment/alignment.mat',datadir),'tr');
+load(sprintf('%s/%s/alignment.mat',datadir,alignmentdir),'tr');
 
 % load surfaces
 vertices = {};
