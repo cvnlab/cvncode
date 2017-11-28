@@ -12,6 +12,7 @@ function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncat
 % anatomical and atlas-related quantities.
 %
 % history:
+% - 2017/11/28 - add support for SWI
 % - 2017/08/25 - add support for HCP_MMP1
 % - 2017/08/25 - add new images (rand, curvature no shading, curvature bordered, flocgeneral);
 %                change to black text, black scale bar
@@ -25,6 +26,10 @@ function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncat
 % - 2016/11/29 - add support for SURFVOX
 % - 2016/11/28 - add support for new volumes: DIM1-3, BVOL, MAXEDIT
 % - 2016/11/22 - omit a few of these for the fsaverage case
+
+
+% USE hemibordercolor 'w'% should make hemi border faint gray!!
+
 
 %%%%% PREP
 
@@ -301,7 +306,7 @@ for zz=1:length(allviews)
     % process quantities for each layer
       prev = warning('query');
       warning off;
-    todos = [{'T1' 'T2' 'FMAP' 'BVOL' 'MAXEDIT' 'SINUSBW'} volnames];   % Aug 14 2017 - drop: 'DIM1' 'DIM2' 'DIM3' 
+    todos = [{'T1' 'T2' 'FMAP' 'BVOL' 'MAXEDIT' 'SINUSBW' 'SWI'} volnames];   % Aug 14 2017 - drop: 'DIM1' 'DIM2' 'DIM3' 
     for q=1:length(todos)
       for p=1:length(infilenames)
         file0 = matchfiles(sprintf('%s/surf/*.%s_%s_DENSETRUNC%s.mgz',fsdir,todos{q},infilenames{p},fstruncate));
@@ -312,11 +317,16 @@ for zz=1:length(allviews)
         thresh0 = [];  % default
         alpha0 = [];   % default
         if ismember(todos{q},{'T1' 'T2' 'FMAP'})
-          if ~isempty(regexp(surftype0,'flat.patch'))
+          if ~isempty(regexp(surftype0,'flat.patch'))  % hm, why is this here?
             continue;
           end
           if p==1
             rng = [0 mean(temp)*3];  % WEIRD HEURISTIC!
+          end
+          cmap0 = 'gray';
+        elseif ismember(todos{q},{'SWI'})
+          if p==1
+            rng = [0 prctile(temp(:),99)];
           end
           cmap0 = 'gray';
         elseif ismember(todos{q},{'DIM1' 'DIM2' 'DIM3'})
