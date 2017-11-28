@@ -55,6 +55,12 @@ fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
 t1nifti = sprintf('%s/mri/T1.nii.gz',fsdir);
 t2nifti = sprintf('%s/mri/T2alignedtoT1.nii.gz',fsdir);
 
+% revert to T1 if necessary
+if ~exist(t2nifti,'file')
+  fprintf('*** Warning: T2 not found. Using the T1. ***\n');
+  t2nifti = t1nifti;
+end
+
 % load the T2 anatomy
 vol1orig = load_untouch_nii(gunziptemp(t2nifti));
 vol1size = vol1orig.hdr.dime.pixdim(2:4);
@@ -123,6 +129,18 @@ else
     alignvolumedata_auto(mn,sd,[0 0 0 0 0 0 1 1 1 1 1 1],[1 1 1]);
     alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[1 1 1]);
     alignvolumedata_auto(mn,sd,[0 0 0 0 0 0 1 1 1 1 1 1],[1 1 1]);
+
+% MUTUAL INFORMATION:
+%     alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[4 4 4],[],[],[],1);
+%     alignvolumedata_auto(mn,sd,[0 0 0 0 0 0 1 1 1 1 1 1],[4 4 4],[],[],[],1);
+%     alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[2 2 2],[],[],[],1);
+%     alignvolumedata_auto(mn,sd,[0 0 0 0 0 0 1 1 1 1 1 1],[2 2 2],[],[],[],1);
+%     alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[1 1 1],[],[],[],1);
+%     alignvolumedata_auto(mn,sd,[0 0 0 0 0 0 1 1 1 1 1 1],[1 1 1],[],[],[],1);
+%     alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[1 1 1],[],[],[],1);
+%     alignvolumedata_auto(mn,sd,[0 0 0 0 0 0 1 1 1 1 1 1],[1 1 1],[],[],[],1);
+%     alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[1 1 1],[],[],[],1);
+%     alignvolumedata_auto(mn,sd,[0 0 0 0 0 0 1 1 1 1 1 1],[1 1 1],[],[],[],1);
   else
     alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[4 4 4]);
     alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[2 2 2]);
