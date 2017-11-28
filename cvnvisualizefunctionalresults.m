@@ -9,6 +9,7 @@ function cvnvisualizefunctionalresults(subjectid,numlayers,layerprefix,fstruncat
 % <ppdir> is like     '/home/stone-ext1/fmridata/20151008-ST001-kk,test/preprocessVER1SURFC1051'
 % <ppdirvol> is like  '/home/stone-ext1/fmridata/20151008-ST001-kk,test/preprocessVER1'
 %   this is for the low-res-related stuff; if that doesn't exist, this input can be [].
+%   if input is provided and the folder doesn't actually exist, we just silently skip.
 % <outputdir> is like '/home/stone/generic/Dropbox/cvnlab/ppresults/C0041/funcviz/session/'
 %
 % For a number of different views, write out figures showing a variety of quantities related
@@ -20,6 +21,7 @@ function cvnvisualizefunctionalresults(subjectid,numlayers,layerprefix,fstruncat
 % of bias-corrected signal intensities and the 'dark' (<.5) vertices.
 %
 % history:
+% - 2017/11/28 - silent skip for <ppdirvol> not existing
 % - 2017/08/25 - change dark to 0.75 threshold and make them look black on white
 % - 2017/08/25 - change to white background, black text, black scale bar
 % - 2017/08/14 - add support for flat.patch
@@ -68,7 +70,7 @@ if exist(madfile,'file') && exist(tsnrfile,'file')  % some sessions don't have t
 end
 
 % load in low-res-related stuff
-if ~isempty(ppdirvol)
+if ~isempty(ppdirvol) && exist(ppdirvol,'dir')
   files0 = matchfiles(sprintf('%s/mean_*_biascorrected.mat',ppdirvol));
   prefixes = cellfun(@(x) subscript(regexp(x,'.*?mean_(\S+)_biascorrected.mat','tokens'),1,1),files0);
   clear S;
@@ -193,7 +195,7 @@ for zz=1:length(allviews)
   end
   
   % lowres-related stuff
-  if ~isempty(ppdirvol)
+  if ~isempty(ppdirvol) && exist(ppdirvol,'dir')
   
     % for each smoothed version
     for zz=1:length(prefixes)
