@@ -5,9 +5,9 @@ function cvnmapvolumetosurface(subjectid,numlayers,layerprefix,fstruncate, ...
 %   volfiles,names,datafun,specialmm,interptype,alignfile,outputdir)
 %
 % <subjectid> is like 'C0051'
-% <numlayers> is like 6
-% <layerprefix> is like 'A'
-% <fstruncate' is like 'pt'
+% <numlayers> is like 6.      can be [] which means non-dense case.
+% <layerprefix> is like 'A'.  can be [] which means non-dense case.
+% <fstruncate' is like 'pt'.  can be [] which means non-dense case.
 % <volfiles> is a wildcard or cell vector matching one or more NIFTI files. can also be raw matrices.
 % <names> is a string (or cell vector of strings) to be used as prefixes in output filenames.
 %   There should be a 1-to-1 correspondence between <volfiles> and <names>.
@@ -28,8 +28,11 @@ function cvnmapvolumetosurface(subjectid,numlayers,layerprefix,fstruncate, ...
 % <outputdir> (optional) is the directory to write the .mgz files to.
 %   Default is cvnpath('freesurfer')/<subjectid>/surf/
 %
-% Use interpolation to transfer the volume data in <volfiles> onto the layer 
-% surfaces (e.g. layerA1-A6) as well as the white and pial surfaces.
+% Use interpolation to transfer the volume data in <volfiles> onto either,
+% for the dense case (<numlayers> specified):
+%   (1) the layer surfaces (e.g. layerA1-A6) as well as the white and pial surfaces.
+% or for the non-dense case (<numlayers> set to []):
+%   (2) the graymid, white, and pial surfaces.
 % Save the results as .mgz files.
 %
 % There are three cases:
@@ -42,6 +45,7 @@ function cvnmapvolumetosurface(subjectid,numlayers,layerprefix,fstruncate, ...
 %     with <alignfile>. This allows the volumes to be placed in arbitrary locations.
 %
 % history:
+% - 2017/11/29 - implement non-dense case
 % - 2016/11/30 - add <alignfile> and <outputdir> inputs
 % - 2016/11/29 - add <specialmm> and <interptype> inputs
 
@@ -79,15 +83,25 @@ if ~isempty(alignfile)
 end
 
 % figure out surface names
-surfs = {}; surfsB = {};
-for p=1:numlayers
-  surfs{p} =  sprintf('layer%s%dDENSETRUNC%s', layerprefix,p,fstruncate);  % six layers, dense, truncated
-  surfsB{p} = sprintf('layer%s%d_DENSETRUNC%s',layerprefix,p,fstruncate);  % six layers, dense, truncated
+if isempty(numlayers)
+  surfs = {}; surfsB = {};
+  surfs{end+1} =  'graymid';
+  surfsB{end+1} = 'graymid';
+  surfs{end+1} =  'white';
+  surfsB{end+1} = 'white';
+  surfs{end+1} =  'pial';
+  surfsB{end+1} = 'pial';
+else
+  surfs = {}; surfsB = {};
+  for p=1:numlayers
+    surfs{p} =  sprintf('layer%s%dDENSETRUNC%s', layerprefix,p,fstruncate);  % six layers, dense, truncated
+    surfsB{p} = sprintf('layer%s%d_DENSETRUNC%s',layerprefix,p,fstruncate);  % six layers, dense, truncated
+  end
+  surfs{end+1} =  sprintf('whiteDENSETRUNC%s', fstruncate);  % white
+  surfsB{end+1} = sprintf('white_DENSETRUNC%s',fstruncate);  % white
+  surfs{end+1} =  sprintf('pialDENSETRUNC%s', fstruncate);   % pial
+  surfsB{end+1} = sprintf('pial_DENSETRUNC%s',fstruncate);   % pial
 end
-surfs{end+1} =  sprintf('whiteDENSETRUNC%s', fstruncate);  % white
-surfsB{end+1} = sprintf('white_DENSETRUNC%s',fstruncate);  % white
-surfs{end+1} =  sprintf('pialDENSETRUNC%s', fstruncate);   % pial
-surfsB{end+1} = sprintf('pial_DENSETRUNC%s',fstruncate);   % pial
 
 % load surfaces
 vertices = {};
