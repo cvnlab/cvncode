@@ -81,6 +81,10 @@ for i = 1:numel(Lookup)
     end
 
     roixy=cat(1,roixy{:});
+    
+    if isempty(roixy)
+      roixy = zeros([0 2]);
+    end
 
     txtimg=addtext2img(nan(size(rgbimg)),{roixy(:,1),roixy(:,2),roistr,textargs0{:},textargs{:}},1);
 
