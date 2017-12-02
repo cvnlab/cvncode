@@ -24,8 +24,10 @@ function [viewpt, fliphemi, viewhemi] = cvnlookupviewpoint(subject,hemi,viewname
 %
 % Note: subject input is not currently used, but may be useful in the future
 
-% Update KJ 2017-07-25: Add viewhemi to simplify viewing fliphemi views
+% history:
+% - 2017/12/02 - add occipA/B/C
 % Update KJ 2017-08-11: Set views to [0 0 0] for flat patches 
+% Update KJ 2017-07-25: Add viewhemi to simplify viewing fliphemi views
 
 fliphemi=false;
 viewhemi=hemi;
@@ -36,6 +38,58 @@ if(~isempty(regexp(surftype,'^sphere')))
             viewpt_LR = {[10 -40 0],[-10 -40 0]};
         case 'ventral'
             viewpt_LR = {[10 -70 0],[-10 -70 0]};
+
+        case 'occipA1'
+            viewpt_LR = {[10      -40 0],[-10      -40 0]};
+        case 'occipA2'
+            viewpt_LR = {[10-45   -40 0],[-10+45   -40 0]};
+        case 'occipA3'
+            viewpt_LR = {[10-2*45 -40 0],[-10+2*45 -40 0]};
+        case 'occipA4'
+            viewpt_LR = {[10-3*45 -40 0],[-10+3*45 -40 0]};
+        case 'occipA5'
+            viewpt_LR = {[10-4*45 -40 0],[-10+4*45 -40 0]};
+        case 'occipA6'
+            viewpt_LR = {[10-5*45 -40 0],[-10+5*45 -40 0]};
+        case 'occipA7'
+            viewpt_LR = {[10-6*45 -40 0],[-10+6*45 -40 0]};
+        case 'occipA8'
+            viewpt_LR = {[10-7*45 -40 0],[-10+7*45 -40 0]};
+
+        case 'occipB1'
+            viewpt_LR = {[10 -40      0],  [-10 -40      0]};
+        case 'occipB2'
+            viewpt_LR = {[10 -40+45   0],  [-10 -40+45   0]};
+        case 'occipB3'
+            viewpt_LR = {[10 -40+2*45 0],  [-10 -40+2*45 0]};
+        case 'occipB4'
+            viewpt_LR = {[10 -40+3*45 180],[-10 -40+3*45 180]};
+        case 'occipB5'
+            viewpt_LR = {[10 -40+4*45 180],[-10 -40+4*45 180]};
+        case 'occipB6'
+            viewpt_LR = {[10 -40+5*45 180],[-10 -40+5*45 180]};
+        case 'occipB7'
+            viewpt_LR = {[10 -40+6*45 180],[-10 -40+6*45 180]};
+        case 'occipB8'
+            viewpt_LR = {[10 -40+7*45 0],  [-10 -40+7*45 0]};
+
+        case 'occipC1'
+            viewpt_LR = {[10-2*45 -40      0],[-10+2*45 -40      0]};
+        case 'occipC2'
+            viewpt_LR = {[10-2*45 -40+45   0],[-10+2*45 -40+45   0]};
+        case 'occipC3'
+            viewpt_LR = {[10-2*45 -40+2*45 0],[-10+2*45 -40+2*45 0]};
+        case 'occipC4'
+            viewpt_LR = {[10-2*45 -40+3*45 180],[-10+2*45 -40+3*45 180]};
+        case 'occipC5'
+            viewpt_LR = {[10-2*45 -40+4*45 180],[-10+2*45 -40+4*45 180]};
+        case 'occipC6'
+            viewpt_LR = {[10-2*45 -40+5*45 180],[-10+2*45 -40+5*45 180]};
+        case 'occipC7'
+            viewpt_LR = {[10-2*45 -40+6*45 180],[-10+2*45 -40+6*45 180]};
+        case 'occipC8'
+            viewpt_LR = {[10-2*45 -40+7*45 0],[-10+2*45 -40+7*45 0]};
+
         otherwise
     end
 elseif(~isempty(regexp(surftype,'\.flat\.patch\.'))) %#ok<*RGXP1>
