@@ -1,17 +1,21 @@
-function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncate,figdir)
+function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncate,figdir,altmode)
 
-% function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncate,figdir)
+% function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncate,figdir,altmode)
 %
 % <subjectid> is like 'C0001'
 % <numlayers> is like 6          or [] when non-dense processing
 % <layerprefix> is like 'A'      or [] when non-dense processing
 % <fstruncate> is like 'pt'      or [] when non-dense processing
 % <figdir> is directory to write figures to.
+% <altmode> (optional) is
+%   0 means do nothing special
+%   1 means generate alternative sphere viewpoints
 %
 % For a number of different views, write out figures showing a variety of different
 % anatomical and atlas-related quantities.
 %
 % history:
+% - 2017/12/02 - add support for <altmode>
 % - 2017/11/28 - add support for SWI
 % - 2017/08/25 - add support for HCP_MMP1
 % - 2017/08/25 - add new images (rand, curvature no shading, curvature bordered, flocgeneral);
@@ -33,6 +37,11 @@ function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncat
 
 %%%%% PREP
 
+% input
+if ~exist('altmode','var') || isempty(altmode)
+  altmode = 0;
+end
+
 % define
 hemis = {'lh' 'rh'};
 hemitexts = {'L' 'R'};
@@ -52,20 +61,34 @@ fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
 V = struct('data',zeros(numlh+numrh,1),'numlh',numlh,'numrh',numrh);
 
 % define
-allviews = { ...
-  {'ventral'        'sphere'                   0 1000    0         [1 1]} ...
-  {'occip'          'sphere'                   0 1000    0         [1 1]} ...
-  {'occip'          'inflated'                 0  500    0         [1 1]} ...
-  {'ventral'        'inflated'                 1  500    0         [1 1]} ...
-  {'parietal'       'inflated'                 0  500    0         [1 1]} ...
-  {'medial'         'inflated'                 0  500    0         [1 1]} ...
-  {'lateral'        'inflated'                 0  500    0         [1 1]} ...
-  {'medial-ventral' 'inflated'                 0  500    0         [1 1]} ...
-  {'occip'          'sphere'                   0 1000    1         [1 1]} ...
-  {'ventral'        'inflated'                 1  500    1         [1 1]} ...
-  {'ventral'        'gVTC.flat.patch.3d'       1 2000    0         [160 0]} ...   % 12.5 pixels per mm
-  {''               'gEVC.flat.patch.3d'       0 1500    0         [120 0]} ...   % 12.5 pixels per mm
-};
+switch altmode
+case 0
+  allviews = { ...
+    {'ventral'        'sphere'                   0 1000    0         [1 1]} ...
+    {'occip'          'sphere'                   0 1000    0         [1 1]} ...
+    {'occip'          'inflated'                 0  500    0         [1 1]} ...
+    {'ventral'        'inflated'                 1  500    0         [1 1]} ...
+    {'parietal'       'inflated'                 0  500    0         [1 1]} ...
+    {'medial'         'inflated'                 0  500    0         [1 1]} ...
+    {'lateral'        'inflated'                 0  500    0         [1 1]} ...
+    {'medial-ventral' 'inflated'                 0  500    0         [1 1]} ...
+    {'occip'          'sphere'                   0 1000    1         [1 1]} ...
+    {'ventral'        'inflated'                 1  500    1         [1 1]} ...
+    {'ventral'        'gVTC.flat.patch.3d'       1 2000    0         [160 0]} ...   % 12.5 pixels per mm
+    {''               'gEVC.flat.patch.3d'       0 1500    0         [120 0]} ...   % 12.5 pixels per mm
+  };
+case 1
+
+  % like: occipA1
+  todo = {'A' 'B' 'C'};
+  allviews = {};
+  for xx=1:length(todo)
+    for yy=1:8
+      allviews{end+1} = {sprintf('occip%s%d',todo{xx},yy)         'sphere'                   0 1000    0         [1 1]};
+    end
+  end
+
+end
 
 % loop over views
 for zz=1:length(allviews)
