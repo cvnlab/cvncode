@@ -15,6 +15,7 @@ function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncat
 % anatomical and atlas-related quantities.
 %
 % history:
+% - 2017/12/03 - add support for KGSROI
 % - 2017/12/02 - add support for <altmode>
 % - 2017/11/28 - add support for SWI
 % - 2017/08/25 - add support for HCP_MMP1
@@ -253,6 +254,16 @@ for zz=1:length(allviews)
   roinames=regexprep(roinames{1},'@.+','');
   rgbimg=drawroinames(roiimg,rgbimg,L,1:numel(roinames),cleantext(roinames));
   imwrite(rgbimg,sprintf('%s/%s',outputdir,'mmp_names.png'));
+
+  % KGSROI atlas stuff (without names)
+  [roiimg,~,rgbimg]=writefun(cvnloadmgz(sprintf('%s/label/?h%s.KGSROILabels.mgz',fsdir,surfsuffix2)), ...
+    sprintf('kgsroi.png'),         'jet',         [0 6],     0.5,0.85,{});
+
+  % KGSROI atlas stuff (with names)
+  [~,roinames,~]=cvnroimask(subjectid,hemis,'KGSROI*',[],'orig','cell');
+  roinames=regexprep(roinames{1},'@.+','');
+  rgbimg=drawroinames(roiimg,rgbimg,L,1:numel(roinames),cleantext(roinames));
+  imwrite(rgbimg,sprintf('%s/%s',outputdir,'kgsroi_names.png'));
 
   % gVTC (without names)
   [roiimg,~,rgbimg]=writefun(cvnloadmgz(sprintf('%s/label/?h%s.gVTC.mgz',fsdir,surfsuffix2)), ...
