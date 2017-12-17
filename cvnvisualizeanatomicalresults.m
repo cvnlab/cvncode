@@ -15,6 +15,7 @@ function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncat
 % anatomical and atlas-related quantities.
 %
 % history:
+% - 2017/12/17 - set hemibordercolor to 'w' and add non-dense T1divT2 support
 % - 2017/12/03 - add support for KGSROI
 % - 2017/12/02 - add support for <altmode>
 % - 2017/11/28 - add support for SWI
@@ -31,10 +32,6 @@ function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncat
 % - 2016/11/29 - add support for SURFVOX
 % - 2016/11/28 - add support for new volumes: DIM1-3, BVOL, MAXEDIT
 % - 2016/11/22 - omit a few of these for the fsaverage case
-
-
-% USE hemibordercolor 'w'% should make hemi border faint gray!!
-
 
 %%%%% PREP
 
@@ -89,6 +86,10 @@ case 1
     end
   end
 
+% EXPERIMENTAL:
+%     {'occipC2'        'sphere'                   0 1000    0         [1 1]} ...
+%     {'occipC2'        'sphere'                   0 1000    1         [1 1]} ...
+
 end
 
 % loop over views
@@ -126,14 +127,14 @@ for zz=1:length(allviews)
   viewpt = cvnlookupviewpoint(subjectid,hemistouse,viewname0,surftype0);
   L = [];
   [mappedvals,L,rgbimg] = cvnlookupimages(subjectid,V,hemistouse,viewpt,L, ...
-    'xyextent',xyextent0,'rgbnan',1,'text',hemitextstouse, ...
+    'xyextent',xyextent0,'rgbnan',1,'hemibordercolor','w','text',hemitextstouse, ...
     'textcolor','k','scalebarcolor','k','surftype',surftype0,'imageres',imageres0, ...
     'surfsuffix',choose(fsaverage0,sprintf('fsaverage%s',surfsuffix2),surfsuffix));
 
   % make helper functions
   writefun = @(vals,filename,cmap,rng,thresh,alpha,others) ...
     cvnlookupimages(subjectid,setfield(V,'data',double(vals)),hemistouse,viewpt,L, ...  % NOTE: double
-    'xyextent',xyextent0,'rgbnan',1,'text',hemitextstouse, ...
+    'xyextent',xyextent0,'rgbnan',1,'hemibordercolor','w','text',hemitextstouse, ...
     'textcolor','k','scalebarcolor','k','surftype',surftype0,'imageres',imageres0, ...
     'surfsuffix',choose(fsaverage0,sprintf('fsaverage%s',surfsuffix2),surfsuffix), ...
     'colormap',cmap,'clim',rng,'filename',sprintf('%s/%s',outputdir,filename), ...
@@ -381,6 +382,39 @@ for zz=1:length(allviews)
           cmap0 = 'hot';
         elseif isequal(todos{q}(1:7),'SURFVOX')
           rng = [0 7];
+          cmap0 = 'jet';
+        end
+        writefun(temp,sprintf('%s_%s.png',todos{q},outfilenames{p}),cmap0,rng,thresh0,alpha0,{});
+      end
+    end
+      warning(prev);
+
+  else
+
+    % calc
+    infilenames =  {'graymid'};  % 'white' 'pial' 
+    outfilenames = {'graymid'};  % 'white' 'pial' 
+
+    % process quantities for each layer
+      prev = warning('query');
+      warning off;
+    todos = {'T1divT2'};
+    for q=1:length(todos)
+      for p=1:length(infilenames)
+        file0 = matchfiles(sprintf('%s/surf/*.%s_%s.mgz',fsdir,todos{q},infilenames{p}));
+        if isempty(file0)
+          continue;
+        end
+        temp = cvnloadmgz(file0);
+        thresh0 = [];  % default
+        alpha0 = [];   % default
+        if ismember(todos{q},{'T1divT2'})
+%           if ~isempty(regexp(surftype0,'flat.patch'))  % hm, why is this here?
+%             continue;
+%           end
+          if p==1
+            rng = prctile(temp(:),[1 99]);
+          end
           cmap0 = 'jet';
         end
         writefun(temp,sprintf('%s_%s.png',todos{q},outfilenames{p}),cmap0,rng,thresh0,alpha0,{});
