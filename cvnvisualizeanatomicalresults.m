@@ -15,7 +15,7 @@ function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncat
 % anatomical and atlas-related quantities.
 %
 % history:
-% - 2018/01/13 - add support for fsaverage flat (non-dense)
+% - 2018/01/13 - add support for fsaverage flat (non-dense); allow fsaverage to do the fsaverage cases
 % - 2017/12/17 - set hemibordercolor to 'w' and add non-dense T1divT2 support
 % - 2017/12/03 - add support for KGSROI
 % - 2017/12/02 - add support for <altmode>
@@ -104,12 +104,6 @@ for zz=1:length(allviews)
   xyextent0 = allviews{zz}{6};
   
   % get out early
-  if isequal(subjectid,'fsaverage') && fsaverage0
-    % NOTE: this is a bit awkward. there was a crash (a transfer file missing) when trying to do this case.
-    %       conceptually, it is a bit redundant and crazy (to transfer fsaverage to fsaverage).
-    %       so, we just do a hack and omit this for-loop case!!
-    continue;
-  end
   if isequal(surftype0,'full.flat.patch.3d') && ~isempty(numlayers)  % fsaverage flat is compatible only with non-dense !
     continue;
   end
