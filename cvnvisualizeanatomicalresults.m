@@ -15,6 +15,7 @@ function cvnvisualizeanatomicalresults(subjectid,numlayers,layerprefix,fstruncat
 % anatomical and atlas-related quantities.
 %
 % history:
+% - 2018/01/13 - add support for fsaverage flat (non-dense)
 % - 2017/12/17 - set hemibordercolor to 'w' and add non-dense T1divT2 support
 % - 2017/12/03 - add support for KGSROI
 % - 2017/12/02 - add support for <altmode>
@@ -74,6 +75,7 @@ case 0
     {'ventral'        'inflated'                 1  500    1         [1 1]} ...
     {'ventral'        'gVTC.flat.patch.3d'       1 2000    0         [160 0]} ...   % 12.5 pixels per mm
     {''               'gEVC.flat.patch.3d'       0 1500    0         [120 0]} ...   % 12.5 pixels per mm
+    {''               'full.flat.patch.3d'       0 1500    1         [290 0]} ...   % 5.17 pixels per mm
   };
 case 1
 
@@ -106,6 +108,9 @@ for zz=1:length(allviews)
     % NOTE: this is a bit awkward. there was a crash (a transfer file missing) when trying to do this case.
     %       conceptually, it is a bit redundant and crazy (to transfer fsaverage to fsaverage).
     %       so, we just do a hack and omit this for-loop case!!
+    continue;
+  end
+  if isequal(surftype0,'full.flat.patch.3d') && ~isempty(numlayers)  % fsaverage flat is compatible only with non-dense !
     continue;
   end
 
@@ -427,8 +432,11 @@ for zz=1:length(allviews)
   %%%%% flatgrid stuff:
 
   if ~isempty(regexp(surftype0,'flat.patch'))
-    writefun(cvnloadmgz(sprintf('%s/label/?h%s.%s.badness.mgz',fsdir,surfsuffix2,surftype0)), ...
-      sprintf('badness.png'),  'hot',  [-1 2],[],[],{});
+    file0 = sprintf('%s/label/?h%s.%s.badness.mgz',fsdir,surfsuffix2,surftype0);
+    if exist(file0,'file')
+      writefun(cvnloadmgz(file0), ...
+        sprintf('badness.png'),  'hot',  [-1 2],[],[],{});
+    end
   end
 
 end
