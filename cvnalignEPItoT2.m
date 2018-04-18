@@ -1,6 +1,6 @@
-function cvnalignEPItoT2(subjectid,outputdir,meanfunctional,mcmask,wantaffine,tr)
+function cvnalignEPItoT2(subjectid,outputdir,meanfunctional,mcmask,wantaffine,tr,wanthack)
 
-% function cvnalignEPItoT2(subjectid,outputdir,meanfunctional,mcmask,wantaffine,tr)
+% function cvnalignEPItoT2(subjectid,outputdir,meanfunctional,mcmask,wantaffine,tr,wanthack)
 %
 % <subjectid> is like 'C0001'
 % <outputdir> is like '/home/stone-ext1/fmridata/20151008-ST001-kk,test/freesurferalignment'
@@ -8,7 +8,17 @@ function cvnalignEPItoT2(subjectid,outputdir,meanfunctional,mcmask,wantaffine,tr
 % <mcmask> (optional) is {mn sd} with the mn and sd outputs of defineellipse3d.m.
 %   If [] or not supplied, we prompt the user to determine these with the GUI.
 % <wantaffine> (optional) is whether to use affine (instead of rigid-body). Default: 0.
-% <tr> (optional) is the starting point to use. Default is to use a built-in default.
+% <tr> (optional) is the starting point to use. Can be an actual transformation struct,
+%   or can be one of the following:
+%   1 means to use the old built-in default
+%   2 means to use the new built-in default (Apr 18 2018)
+%   Default: 2.
+% <wanthack> (optional) is to rotatematrix(...,1,2,1) to the functional to help with fitting.
+%   note that the alignment parameters that are determined are with respect to the
+%   rotated functional. however, all other files that we output are as if we didn't rotate. 
+%   if you make use of the alignment parameters, you must remember to do the 
+%   necessary compensation! <wanthack> should no longer be necessary given that we
+%   exposed rotorder in alignvolumedata.m.
 %
 % Perform alignment of the <meanfunctional> to the T2 anatomy (which should have
 % been created by cvnalignT2toT1.m).  In the alignment, there is a pause for the 
@@ -32,6 +42,8 @@ function cvnalignEPItoT2(subjectid,outputdir,meanfunctional,mcmask,wantaffine,tr
 %   (and saved using the mean functional as a template).
 %
 % history:
+% - 2018/04/18 - new default <tr> and mechanism to allow different defaults.
+% - 2018/03/06 - add <wanthack>
 % - 2017/01/31 - add "epimatchedtoT1" png inspections
 % - 2016/11/04 - round mn and sd to 6 significant digits
 % - 2016/09/02 - implement wantmanual; fix the gzipping
@@ -44,7 +56,10 @@ if ~exist('wantaffine','var') || isempty(wantaffine)
   wantaffine = 0;
 end
 if ~exist('tr','var') || isempty(tr)
-  tr = [];
+  tr = 2;
+end
+if ~exist('wanthack','var') || isempty(wanthack)
+  wanthack = 0;
 end
 
 % make directory
@@ -82,6 +97,10 @@ vol2orig = load_untouch_nii(gunziptemp(meanfunctional));
 vol2size = vol2orig.hdr.dime.pixdim(2:4);
 vol2 = double(vol2orig.img);
 vol2(isnan(vol2)) = 0;
+if wanthack
+  assert(round(100*vol2size(1))==round(100*vol2size(2)));
+  vol2 = rotatematrix(vol2,1,2,1);
+end
 fprintf('vol2 has dimensions %s at %s mm.\n',mat2str(size(vol2)),mat2str(vol2size));
 
 % manually define ellipse to be used in the auto alignment
@@ -95,8 +114,13 @@ else
 end
 
 % deal with default tr
-if isempty(tr)
-  tr = maketransformation([0 0 0],[1 2 3],[120 60 140],[1 2 3],[-10 50 80],size(vol2),size(vol2).*vol2size,[1 1 -1],[0 0 0],[0 0 0],[0 0 0]);
+if isnumeric(tr)
+  switch tr
+  case 1
+    tr = maketransformation([0 0 0],[1 2 3],[120 60 140],[1 2 3],[-10 50 80],size(vol2),size(vol2).*vol2size,[1 1 -1],[0 0 0],[0 0 0],[0 0 0]);
+  case 2
+    tr = maketransformation([0 0 0],[1 2 3],[128 70 121],[1 3 2],[92 85 35],size(vol2),size(vol2).*vol2size,[1 -1 1],[0 0 0],[0 0 0],[0 0 0]);
+  end
 end
 
 % start the alignment
@@ -165,6 +189,13 @@ anatmatch3 = extractslices(vol3,vol3size,vol2,vol2size,tr);
 
 % get slices from EPI to match T1 (and T2)
 epimatch =   extractslices(vol1,vol1size,vol2,vol2size,tr,1);
+
+% have to deal with the hack
+if wanthack
+  anatmatch1 = rotatematrix(anatmatch1,1,2,-1);
+  anatmatch3 = rotatematrix(anatmatch3,1,2,-1);
+  vol2 =       rotatematrix(vol2,1,2,-1);
+end
 
 % inspect the alignment
 makeimagestack3dfiles(vol2,              sprintf('%s/epi', outputdir),[2 2 2],[0 0 -1],[],1);
