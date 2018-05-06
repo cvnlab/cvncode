@@ -103,6 +103,16 @@ numbugloops=10;
 for bugloop = 1:numbugloops
     try
         fig=figure('visible','off','color','r');
+        
+        % in newer MATLABs, there is a property called
+        % 'GraphicsSmoothing', and we need this to be off
+        % since otherwise we will get anti-aliasing in OpenGL
+        % rendering (via the print command).
+        try
+          set(fig,'GraphicsSmoothing','off');
+        catch
+        end
+        
         %p=patch(surf,'facevertexcdata',valrgb,'facecolor','flat','linestyle','none');
         p=patch('faces',surf.faces,'vertices',viewvert,'facevertexcdata',valrgb,'facecolor','flat','linestyle','none');
         
