@@ -140,9 +140,9 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+freesurfdir=cvnpath('freesurfer');
 surfdir=[];
 if(ischar(surfdir_or_subject) && sum(surfdir_or_subject=='/' | surfdir_or_subject=='\')==0)
-    freesurfdir=cvnpath('freesurfer');
     surfdir=sprintf('%s/%s/surf',freesurfdir,surfdir_or_subject);
 elseif(exist(surfdir_or_subject,'dir'))
     surfdir=surfdir_or_subject;
