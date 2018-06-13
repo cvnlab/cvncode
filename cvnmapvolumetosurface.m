@@ -11,6 +11,7 @@ function cvnmapvolumetosurface(subjectid,numlayers,layerprefix,fstruncate, ...
 % <volfiles> is a wildcard or cell vector matching one or more NIFTI files. can also be raw matrices.
 % <names> is a string (or cell vector of strings) to be used as prefixes in output filenames.
 %   There should be a 1-to-1 correspondence between <volfiles> and <names>.
+%   Also, note that we silently and gracefully skip over files in <volfiles> that don't exist.
 % <datafun> (optional) is a function (or cell vector of functions) to apply to the data 
 %   right after loading them in. If you pass only one function, we apply that function
 %   to each volume.
@@ -45,6 +46,7 @@ function cvnmapvolumetosurface(subjectid,numlayers,layerprefix,fstruncate, ...
 %     with <alignfile>. This allows the volumes to be placed in arbitrary locations.
 %
 % history:
+% - 2018/06/13 - gracefully skip over missing files
 % - 2017/11/29 - implement non-dense case
 % - 2016/11/30 - add <alignfile> and <outputdir> inputs
 % - 2016/11/29 - add <specialmm> and <interptype> inputs
@@ -112,6 +114,27 @@ for p=1:length(hemis)
     vertices{p,q}(4,:) = 1;  % now: 4 x V
   end
 end
+
+% deal with missing files
+if ischar(volfiles)
+  volfiles = {volfiles};
+end
+if ischar(names)
+  names = {names};
+end
+todelete = [];
+for p=1:length(volfiles)
+  if ischar(volfiles{p})
+    volfiles{p} = matchfiles(volfiles{p});
+    if isempty(volfiles{p})
+      todelete = [todelete p];
+    else
+      volfiles{p} = volfiles{p}{1};
+    end
+  end
+end
+volfiles(todelete) = [];
+names(todelete) = [];
 
 % load volumes
 if isequal(specialmm,0)
