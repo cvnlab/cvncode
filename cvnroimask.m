@@ -103,8 +103,15 @@ for s = 1:numel(suffixes)
         end
     end
     
-    
-    [sourceN,lookup,valid]=cvnlookupvertex(subject,hemi,suffix,destsuffix);
+    % gracefully move on if a surface doesn't exist
+    try
+      [sourceN,lookup,valid]=cvnlookupvertex(subject,hemi,suffix,destsuffix);
+    catch me
+      if isequal(me.identifier,'cvnlookupvertex:surfnotfound')
+        continue;
+      end
+    end
+
     fullroi=zeros(size(lookup));
     fullroi(~valid)=0;
     
