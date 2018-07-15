@@ -36,6 +36,7 @@ function [destvals, lookupidx, validmask, sourcesuffix] = cvnlookupvertex(surfdi
 %                         it was automatically detected instead of specified.
 %
 
+% Update KK 07-15-2015: Add explicit error checking for whether sourcesurf and destsurf exist
 % Update KJ 1-26-2015: Add automatic detection of source type (based on size(vals))
 % Update KJ 11-2-2016: Add fsaverage options and valstruct input options
 % Update KJ 10-18-2017: Add support for generalized source and dest (eg: '.32k'->'.MSMSulc')
@@ -212,6 +213,13 @@ end
 
 sourcesurf=sprintf('%s/%s.sphere%s',sourcesurfdir,hemi,sourcesuffix_file);
 destsurf=sprintf('%s/%s.sphere%s',destsurfdir,hemi,destsuffix_file);
+
+if ~exist(sourcesurf,'file')
+  error('cvnlookupvertex:surfnotfound',sprintf('%s not found',sourcesurf));
+end
+if ~exist(destsurf,'file')
+  error('cvnlookupvertex:surfnotfound',sprintf('%s not found',destsurf));
+end
 
 sourceN=freesurfer_read_surf_kj(sourcesurf,'justcount',true);
 destN=freesurfer_read_surf_kj(destsurf,'justcount',true);
