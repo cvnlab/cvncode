@@ -1,8 +1,9 @@
-function cvnwritemgz(subjectid,name,vals,hemi,outputdir,surfsuffix)
+function fsmgh = cvnwritemgz(subjectid,name,vals,hemi,outputdir,surfsuffix,fsmgh)
 
 % function cvnwritemgz(subjectid,name,vals,hemi,outputdir,surfsuffix)
 %
 % <subjectid> is like 'C0041' (can be 'fsaverage')
+%   can also be a full path to the FreeSurfer subject directory.
 % <name> is a string
 % <vals> is a vector of values for the surface
 % <hemi> is 'lh' or 'rh'
@@ -17,7 +18,11 @@ function cvnwritemgz(subjectid,name,vals,hemi,outputdir,surfsuffix)
 % Note that we make certain assumptions about what fields to mangle (see code).
 
 % calc
-fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
+if ~isempty(regexp(subjectid,filesep))
+  fsdir = subjectid;
+else
+  fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
+end
 
 % input
 if ~exist('outputdir','var') || isempty(outputdir)
@@ -31,11 +36,13 @@ end
 mkdirquiet(outputdir);
 
 % load template
-file0 = sprintf('%s/surf/%s.w-g.pct.mgh',fsdir,hemi(1:2));
-if ~exist(file0,'file')  % fsaverage doesn't have the above file, so let's use this one:
-  file0 = sprintf('%s/surf/%s.orig.avg.area.mgh',fsdir,hemi(1:2));
+if ~(exist('fsmgh','var') && ~isempty(fsmgh))
+  file0 = sprintf('%s/surf/%s.w-g.pct.mgh',fsdir,hemi(1:2));
+  if ~exist(file0,'file')  % fsaverage doesn't have the above file, so let's use this one:
+    file0 = sprintf('%s/surf/%s.orig.avg.area.mgh',fsdir,hemi(1:2));
+  end
+  fsmgh = MRIread(file0);
 end
-fsmgh = MRIread(file0);
 
 % calc
 if isequal(surfsuffix,'orig')
