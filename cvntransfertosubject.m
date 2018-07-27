@@ -2,8 +2,8 @@ function f = cvntransfertosubject(sourcesubject,destsubject,vals,hemi,interptype
 
 % function f = cvntransfertosubject(sourcesubject,destsubject,vals,hemi,interptype,sourcesuffix,destsuffix)
 %
-% <sourcesubject> is like 'C0041'
-% <destsubject> is like 'CVNS005' or 'fsaverage'
+% <sourcesubject> is like 'C0041' (or directory where surfaces are found)
+% <destsubject> is like 'CVNS005' or 'fsaverage' (or directory where surfaces are found)
 % <vals> is a column vector of values defined on the regular sphere surface (one hemi)
 % <hemi> is 'lh' or 'rh'
 % <interptype> is 'linear' or 'nearest'
@@ -35,12 +35,34 @@ if(~exist('interptype','var') || isempty(interptype))
     interptype='nearest';
 end
 
-fsdirFROM = sprintf('%s/%s',cvnpath('freesurfer'),sourcesubject);
-fsdirTO = sprintf('%s/%s',cvnpath('freesurfer'),destsubject);
+%%%
+
+% NEW WAY:
+fsdirFROM=[];
+if(ischar(sourcesubject) && sum(sourcesubject=='/' | sourcesubject=='\')==0)
+    fsdirFROM=sprintf('%s/%s/surf',cvnpath('freesurfer'),sourcesubject);
+elseif(exist(sourcesubject,'dir'))
+    fsdirFROM=sourcesubject;
+end
+assert(exist(fsdirFROM,'dir')>0);
+
+fsdirTO=[];
+if(ischar(destsubject) && sum(destsubject=='/' | destsubject=='\')==0)
+    fsdirTO=sprintf('%s/%s/surf',cvnpath('freesurfer'),destsubject);
+elseif(exist(destsubject,'dir'))
+    fsdirTO=destsubject;
+end
+assert(exist(fsdirTO,'dir')>0);
+
+% OLD WAY:
+% fsdirFROM = sprintf('%s/%s',cvnpath('freesurfer'),sourcesubject);
+% fsdirTO = sprintf('%s/%s',cvnpath('freesurfer'),destsubject);
+
+%%%
 
 % calc
-surf1file = sprintf('%s/surf/%s.sphere.reg%s',     fsdirFROM,hemi,sourcesuffix);
-surf2file = sprintf('%s/surf/%s.sphere.reg%s',fsdirTO,hemi,destsuffix);
+surf1file = sprintf('%s/%s.sphere.reg%s',fsdirFROM,hemi,sourcesuffix);
+surf2file = sprintf('%s/%s.sphere.reg%s',fsdirTO,hemi,destsuffix);
 
 % load surfaces (note that we skip the post-processing of vertices and faces since unnecessary for what we are doing)
 clear surf1;
