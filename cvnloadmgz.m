@@ -12,5 +12,5 @@ files = matchfiles(files);
 % load and concatenate
 vals = [];
 for q=1:length(files)
-  vals = [vals; load_mgh(files{q})];
+  vals = [vals; vflatten(load_mgh(files{q}))];
 end
