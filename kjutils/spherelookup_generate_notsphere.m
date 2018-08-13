@@ -118,11 +118,11 @@ for bugloop = 1:numbugloops
         
         axis vis3d equal;
         
-        fullscreen(gcf);
-        fpos=get(gcf,'position');
+        fullscreen(fig);
+        fpos=get(fig,'position');
         %fpos([3 4])=max(fpos([3 4]));
         fpos([3 4])=exportheight;
-        set(gcf,'position',fpos);
+        set(fig,'position',fpos);
         %axis off tight;
         axis off;
         axis manual; %don't allow any more automatic axis resizing
@@ -136,13 +136,14 @@ for bugloop = 1:numbugloops
         vxlim=vmid(1)+max(vsize)*[-.5 .5]*1.1;
         vylim=vmid(2)+max(vsize)*[-.5 .5]*1.1;
         
-        set(gca,'units','normalized','position',[0 0 1 1]);
-        %set(gca,'xlim',[vmin(1) vmax(1)],'ylim',[vmin(2) vmax(2)]);
-        set(gca,'xlim',vxlim,'ylim',vylim);
+        axh = get(fig,'Children');
+        set(axh,'units','normalized','position',[0 0 1 1]);
+        %set(axh,'xlim',[vmin(1) vmax(1)],'ylim',[vmin(2) vmax(2)]);
+        set(axh,'xlim',vxlim,'ylim',vylim);
         
         scalestr=sprintf('-m%d',scalefactor);
         
-        img=export_fig(gca,'-a1',scalestr,'-nocrop');
+        img=export_fig(axh,'-a1',scalestr,'-nocrop');
         
         
         
@@ -166,8 +167,8 @@ for bugloop = 1:numbugloops
         set(p,'facecolor','g');
         material dull;
         camlight headlight
-        %pixpos=getpixelposition(gca);
-        img=export_fig(gca,'-a1',scalestr,'-nocrop');
+        %pixpos=getpixelposition(axh);
+        img=export_fig(axh,'-a1',scalestr,'-nocrop');
         
         hsvmask=rgb2hsv(img);
         
