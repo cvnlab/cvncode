@@ -35,6 +35,7 @@ switch(lower(whichpath))
             };
     case 'freesurfer'
         testpaths={
+            getenv('SUBJECTS_DIR')
             '/stone/ext1/freesurfer/subjects'
             '/home/stone-ext1/freesurfer/subjects'
             };
