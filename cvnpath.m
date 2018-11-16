@@ -23,7 +23,7 @@ function p = cvnpath(whichpath)
 switch(lower(whichpath))
     case 'code'
         testpaths={
-            '/home/stone/generic/Dropbox/cvnlab/code'
+            '/home/stone/generic/Dropbox/cvnlabsmall/code'
             };
     case 'commonmatlab'
         testpaths={
@@ -31,7 +31,7 @@ switch(lower(whichpath))
             };
     case 'ppresults'
         testpaths={
-            '/home/stone/generic/Dropbox/cvnlab/ppresults'
+            '/home/stone/generic/Dropbox/cvnlabbig/ppresults'
             };
     case 'freesurfer'
         testpaths={
