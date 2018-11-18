@@ -118,18 +118,23 @@ for zz=1:length(allviews)
     hemitextstouse = hemitexts;
   end
 
+  % calc some lookup stuff
+  viewpt = cvnlookupviewpoint(subjectid,hemistouse,viewname0,surftype0);
+  L = [];
+  try
+    [mappedvals,L,rgbimg] = cvnlookupimages(subjectid,V,hemistouse,viewpt,L, ...
+      'xyextent',xyextent0,'rgbnan',1,'hemibordercolor','w','text',hemitextstouse, ...
+      'textcolor','k','scalebarcolor','k','surftype',surftype0,'imageres',imageres0, ...
+      'surfsuffix',choose(fsaverage0,sprintf('fsaverage%s',surfsuffix2),surfsuffix));
+  catch
+    warning(sprintf('surftype = %s, viewname = %s does not exist? continuing.',surftype0,viewname0));
+    continue;  % likely, the surface does not exist, so just continue
+  end
+
   % make directories
   mkdirquiet(figdir);
   mkdirquiet(outputdir);
   
-  % calc some lookup stuff
-  viewpt = cvnlookupviewpoint(subjectid,hemistouse,viewname0,surftype0);
-  L = [];
-  [mappedvals,L,rgbimg] = cvnlookupimages(subjectid,V,hemistouse,viewpt,L, ...
-    'xyextent',xyextent0,'rgbnan',1,'hemibordercolor','w','text',hemitextstouse, ...
-    'textcolor','k','scalebarcolor','k','surftype',surftype0,'imageres',imageres0, ...
-    'surfsuffix',choose(fsaverage0,sprintf('fsaverage%s',surfsuffix2),surfsuffix));
-
   % make helper functions
   writefun = @(vals,filename,cmap,rng,thresh,alpha,others) ...
     cvnlookupimages(subjectid,setfield(V,'data',double(vals)),hemistouse,viewpt,L, ...  % NOTE: double
