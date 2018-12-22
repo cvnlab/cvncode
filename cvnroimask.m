@@ -50,7 +50,7 @@ labeldir=sprintf('%s/label',subjdir);
 
 roistr=[];
 if(any(roifile=='@'))
-    roiparts=strsplit(roifile,'@');
+    roiparts=strsplitalt(roifile,'@');
     roival=str2num(roiparts{1}); %#ok<ST2NM>
     if(isempty(roival))
         roistr=roiparts{1};
