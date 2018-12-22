@@ -2,7 +2,7 @@ function [experiment, default_contrast] = data_dir_to_experiment(data_dir)
 
 	date_start = regexp(data_dir,'[0-9]{8}');
 	new_str = data_dir(date_start:end);
-	parts = strsplit(new_str,'/');
+	parts = strsplitalt(new_str,'/');
 	session = parts{1};
 
 	switch session
