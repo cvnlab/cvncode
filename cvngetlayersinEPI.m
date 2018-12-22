@@ -4,23 +4,33 @@ function f = cvngetlayersinEPI(subjectid,datadir,numlayers,layerprefix,fstruncat
 %
 % <subjectid> is like 'C0001'
 % <datadir> is like '/home/stone-ext1/fmridata/20151008-ST001-kk,test'
-% <numlayers> is like 6       or [] (indicating graymid)
-% <layerprefix> is like 'A'   or [] (indicating graymid)
-% <fstruncate' is like 'pt'   or [] (indicating graymid)
+% <numlayers> is like 6 or [] (indicating graymid)
+% <layerprefix> is like 'A' (only matters if <numlayers> is not [])
+% <fstruncate' is like 'pt' (only matters if <numlayers> is not [])
+%   if [], we do not do "DENSETRUNC" surfaces.
 % <alignmentdir> (optional) is like 'freesurferalignment' (default)
 %
 % Based on an existing EPI alignment (<alignmentdir>/alignment.mat),
 % return the locations of the vertices (4 x V) in the EPI space.
 %
 % We return vertices concatenated in the following order:
-%   lh.layerA1DENSETRUNCpt
-%   rh.layerA1DENSETRUNCpt
-%   lh.layerA2DENSETRUNCpt
-%   rh.layerA2DENSETRUNCpt
-%     etc.
+%   if <numlayers>,<layerprefix>,<fstruncate> are specified:
+%     lh.layerA1DENSETRUNCpt
+%     rh.layerA1DENSETRUNCpt
+%     lh.layerA2DENSETRUNCpt
+%     rh.layerA2DENSETRUNCpt
+%       etc.
 % OR
-%   lh.graymid
-%   rh.graymid
+%   if <numlayers> is []:
+%     lh.graymid
+%     rh.graymid
+% OR
+%   if <numlayers>,<layerprefix> are specified:
+%     lh.layerA1
+%     rh.layerA1
+%     lh.layerA2
+%     rh.layerA2
+%       etc.
 
 % input
 if ~exist('alignmentdir','var') || isempty(alignmentdir)
@@ -35,7 +45,11 @@ if isempty(numlayers)
 else
   surfs = {};
   for p=1:numlayers
-    surfs{p} = sprintf('layer%s%dDENSETRUNC%s',layerprefix,p,fstruncate);  % six layers, dense, truncated
+    if isempty(fstruncate)
+      surfs{p} = sprintf('layer%s%d',layerprefix,p);                         % layers
+    else
+      surfs{p} = sprintf('layer%s%dDENSETRUNC%s',layerprefix,p,fstruncate);  % layers, dense, truncated
+    end
   end
 end
 
