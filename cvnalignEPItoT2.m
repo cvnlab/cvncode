@@ -1,6 +1,6 @@
-function cvnalignEPItoT2(subjectid,outputdir,meanfunctional,mcmask,wantaffine,tr,wanthack)
+function cvnalignEPItoT2(subjectid,outputdir,meanfunctional,mcmask,wantaffine,tr,wanthack,mode)
 
-% function cvnalignEPItoT2(subjectid,outputdir,meanfunctional,mcmask,wantaffine,tr,wanthack)
+% function cvnalignEPItoT2(subjectid,outputdir,meanfunctional,mcmask,wantaffine,tr,wanthack,mode)
 %
 % <subjectid> is like 'C0001'
 % <outputdir> is like '/home/stone-ext1/fmridata/20151008-ST001-kk,test/freesurferalignment'
@@ -19,6 +19,13 @@ function cvnalignEPItoT2(subjectid,outputdir,meanfunctional,mcmask,wantaffine,tr
 %   if you make use of the alignment parameters, you must remember to do the 
 %   necessary compensation! <wanthack> should no longer be necessary given that we
 %   exposed rotorder in alignvolumedata.m.
+% <mode> (optional) is
+%   0 means default behavior
+%   1 means save 'mcmask' and initial alignment parameters 'tr', but quit early
+%  -1 means ignore the <mcmask> and <tr> inputs,
+%     load 'mcmask' and 'tr' parameters from alignment.mat,
+%     and do not pause for manual intervention.
+%   Default: 0.
 %
 % Perform alignment of the <meanfunctional> to the T2 anatomy (which should have
 % been created by cvnalignT2toT1.m).  In the alignment, there is a pause for the 
@@ -42,6 +49,7 @@ function cvnalignEPItoT2(subjectid,outputdir,meanfunctional,mcmask,wantaffine,tr
 %   (and saved using the mean functional as a template).
 %
 % history:
+% - 2018/10/18 - add <mode>
 % - 2018/04/18 - new default <tr> and mechanism to allow different defaults.
 % - 2018/03/06 - add <wanthack>
 % - 2017/01/31 - add "epimatchedtoT1" png inspections
@@ -60,6 +68,9 @@ if ~exist('tr','var') || isempty(tr)
 end
 if ~exist('wanthack','var') || isempty(wanthack)
   wanthack = 0;
+end
+if ~exist('mode','var') || isempty(mode)
+  mode = 0;
 end
 
 % make directory
@@ -104,32 +115,55 @@ end
 fprintf('vol2 has dimensions %s at %s mm.\n',mat2str(size(vol2)),mat2str(vol2size));
 
 % manually define ellipse to be used in the auto alignment
-if isempty(mcmask)
-  [f,mn,sd] = defineellipse3d(vol2);
-  mcmask = {eval(mat2str(mn,6)) eval(mat2str(sd,6))};
-  fprintf('mcmask = %s;\n',cell2str(mcmask));
+if isequal(mode,-1)
+  mcmask = loadmulti(sprintf('%s/alignment.mat',outputdir),'mcmask');
 else
-  mn = mcmask{1};
-  sd = mcmask{2};
+  if isempty(mcmask)
+    [f,mn,sd] = defineellipse3d(vol2);
+    mcmask = {eval(mat2str(mn,6)) eval(mat2str(sd,6))};
+    fprintf('mcmask = %s;\n',cell2str(mcmask));
+  end
 end
+mn = mcmask{1};
+sd = mcmask{2};
 
 % deal with default tr
-if isnumeric(tr)
-  switch tr
-  case 1
-    tr = maketransformation([0 0 0],[1 2 3],[120 60 140],[1 2 3],[-10 50 80],size(vol2),size(vol2).*vol2size,[1 1 -1],[0 0 0],[0 0 0],[0 0 0]);
-  case 2
-    tr = maketransformation([0 0 0],[1 2 3],[128 70 121],[1 3 2],[92 85 35],size(vol2),size(vol2).*vol2size,[1 -1 1],[0 0 0],[0 0 0],[0 0 0]);
+if isequal(mode,-1)
+  tr = loadmulti(sprintf('%s/alignment.mat',outputdir),'tr');
+else
+  if isnumeric(tr)
+    switch tr
+    case 1
+      tr = maketransformation([0 0 0],[1 2 3],[120 60 140],[1 2 3],[-10 50 80],size(vol2),size(vol2).*vol2size,[1 1 -1],[0 0 0],[0 0 0],[0 0 0]);
+    case 2
+      tr = maketransformation([0 0 0],[1 2 3],[128 70 121],[1 3 2],[92 85 35],size(vol2),size(vol2).*vol2size,[1 -1 1],[0 0 0],[0 0 0],[0 0 0]);
+    end
   end
 end
 
 % start the alignment
 alignvolumedata(vol1,vol1size,vol2,vol2size,tr);
 
-% pause to do some manual alignment (to get a reasonable starting point)
-clear wantmanual;
-keyboard;
+% if mode is not -1, pause to do some manual alignment (to get a reasonable starting point)
+if ~isequal(mode,-1)
+  clear wantmanual;
+  keyboard;
+end
 tr = alignvolumedata_exporttransformation;  % report to the user to save just in case
+
+% perhaps save early?
+switch mode
+
+case {0 -1}
+  % do nothing special and just proceed
+
+case 1
+
+  % write tr and mcmask to a .mat file and just get out
+  save(sprintf('%s/alignment.mat',outputdir),'tr','mcmask');
+  return;
+
+end
 
 % if the user sets wantmanual to 1, then we will stop instead of proceeding with auto-alignment!
 
@@ -180,15 +214,20 @@ end
 T = transformationtomatrix(tr,0,vol1size);
 fprintf('T=%s;\n',mat2str(T));
 
-% write tr and T to a .mat file
-save(sprintf('%s/alignment.mat',outputdir),'tr','T','mcmask');
-
 % get slices from T2 and T1 to match EPI
 anatmatch1 = extractslices(vol1,vol1size,vol2,vol2size,tr);
 anatmatch3 = extractslices(vol3,vol3size,vol2,vol2size,tr);
 
 % get slices from EPI to match T1 (and T2)
 epimatch =   extractslices(vol1,vol1size,vol2,vol2size,tr,1);
+
+% quantify goodness
+good = isfinite(anatmatch1(:)) & anatmatch1(:)~=0 & isfinite(vol2(:)) & vol2(:)~=0;
+rpearson = corr(anatmatch1(good),vol2(good));
+rspear =   corr(anatmatch1(good),vol2(good),'Type','Spearman');
+
+% write results to a .mat file
+save(sprintf('%s/alignment.mat',outputdir),'tr','T','mcmask','rpearson','rspear');
 
 % have to deal with the hack
 if wanthack
