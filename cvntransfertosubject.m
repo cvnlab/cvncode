@@ -4,7 +4,9 @@ function f = cvntransfertosubject(sourcesubject,destsubject,vals,hemi,interptype
 %
 % <sourcesubject> is like 'C0041' (or directory where surfaces are found)
 % <destsubject> is like 'CVNS005' or 'fsaverage' (or directory where surfaces are found)
-% <vals> is a column vector of values defined on the regular sphere surface (one hemi)
+% <vals> is a column vector of values defined on the regular sphere surface (one hemi).
+%   can have multiple cases as separate columns.  also, can be a row vector of indices
+%   into the regular sphere surface. (in this case we ignore <interptype> and just do nearest)
 % <hemi> is 'lh' or 'rh'
 % <interptype> is 'linear' or 'nearest'
 % <sourcesuffix> is 'orig|DENSE|DENSETRUNCpt'
@@ -71,6 +73,15 @@ clear surf2;
 [surf2.vertices,surf2.faces] = freesurfer_read_surf_kj(surf2file);
 
 % do it
-f = griddata(surf1.vertices(:,1),surf1.vertices(:,2),surf1.vertices(:,3),vflatten(vals), ...
-             surf2.vertices(:,1),surf2.vertices(:,2),surf2.vertices(:,3),interptype);
-
+if size(vals,1)==1
+  if length(vals) > 500
+    warning('might be very slow and/or memory-intensive!');
+  end
+  [~,f] = min(calcconfusionmatrix(surf1.vertices(vals,1:3)',surf2.vertices',4),[],1);  % 1 x N with indices
+else
+  f = [];
+  for p=1:size(vals,2)
+    f(:,p) = griddata(surf1.vertices(:,1),surf1.vertices(:,2),surf1.vertices(:,3),vals(:,p), ...
+                      surf2.vertices(:,1),surf2.vertices(:,2),surf2.vertices(:,3),interptype);
+  end
+end
