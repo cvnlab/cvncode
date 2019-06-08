@@ -51,6 +51,7 @@ function f = cvnmapsurfacetovolume(subjectid,numlayers,layerprefix,fstruncate,da
 %   such as enforcing minimum distances and/or using only gray-matter voxels from FS, etc.
 %
 % History:
+% - 2019/06/08 - refactor code to use cvnmapsurfacetovolume_helper.m
 % - 2017/11/28 - implement non-dense case
 % - 2016/11/29 - add <specialmode>; load from T1 and explicitly cast to 'single'
 
@@ -113,99 +114,8 @@ end
 % aggregate coordinates across hemis and layers (3 x vertices*(6 or 1))
 allvertices = subscript(catcell(2,vertices),{1:3 ':'});
 
-% calc/define
-m = size(allvertices,2);   % number of vertices
-n = newres^3;              % number of voxels
-d = size(data,1);          % number of distinct datasets
-
-% prepare some sparse-related stuff
-AA = 1:m;
-
-% construct X [vertices x voxels, each row has 8 entries with weights, the max for a weight is 3]
-Xold = sparse(m,n);
-for x=[-1 1]
-  for y=[-1 1]
-    for z=[-1 1]
-    
-      % calc the voxel index and the distance away from that voxel index
-      if x==1
-        xR = ceil(allvertices(1,:));    % ceil-val  (.1 means use weight of .9)
-        xD = xR-allvertices(1,:);       
-      else
-        xR = floor(allvertices(1,:));   % val-floor (.1 means use weight of .9)
-        xD = allvertices(1,:)-xR;
-      end
-
-      if y==1
-        yR = ceil(allvertices(2,:));
-        yD = yR-allvertices(2,:);
-      else
-        yR = floor(allvertices(2,:));
-        yD = allvertices(2,:)-yR;
-      end
-
-      if z==1
-        zR = ceil(allvertices(3,:));
-        zD = zR-allvertices(3,:);
-      else
-        zR = floor(allvertices(3,:));
-        zD = allvertices(3,:)-zR;
-      end
-      
-      % calc
-      II = sub2ind([newres newres newres],xR,yR,zR);  % 1 x vertices with the voxel index to go to
-      DD = (1-xD)+(1-yD)+(1-zD);                      % 1 x vertices with the weight to assign
-      
-      % construct the entries and add the old one in
-      X = sparse(AA,II,DD,m,n);
-      X = Xold + X;
-      Xold = X;
-
-    end
-  end
-end
-clear Xold;
-
-% do it
-if specialmode==0
-
-  % each voxel is assigned a weighted sum of vertex values.
-  % this should be done as a weighted average. thus, need to divide by sum of weights.
-  % let's compute that now.
-  wtssum = ones(1,m)*X;  % 1 x voxels
-
-  % take the vertex data and map to voxels
-  f = data*X;      % d x voxels
-
-  % do the normalization [if a voxel has no vertex contribution, it gets <emptyval>]
-  f = zerodiv(f,repmat(wtssum,[d 1]),emptyval);
-
-else
-
-  % expand data into separate channels
-  datanew = zeros(specialmode,size(data,2));
-  for p=1:specialmode
-    datanew(p,:) = double(data==p);
-  end
-  data = datanew;
-  clear datanew;
-    
-  % take the vertex data and map to voxels
-  f = data*X;      % d x voxels
-  
-  % which voxels have no vertex contribution?
-  bad = sum(f,1)==0;
-  
-  % perform winner-take-all (f becomes the index!)
-  [mx,f] = max(f,[],1);
-  
-  % put in <emptyval>
-  f(bad) = emptyval;
-
-end
-
-% prepare the results
-f = reshape(f',[newres newres newres d]);
+% do the heavy lifting (map surface vertices to volume voxels)
+f = cvnmapsurfacetovolume_helper(data,allvertices,newres,specialmode>0,emptyval);
 
 % save files?
 if ~isempty(outputprefix)
