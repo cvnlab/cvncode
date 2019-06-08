@@ -4,13 +4,17 @@ function vals = cvnloadmgz(files)
 %
 % <files> is a wildcard that matches one or more .mgz files
 %
-% Concatenate the values from these files into a column vector and return.
+% Concatenate the values from these files along the first dimension and return.
+% Useful for concatenating lh and rh data.
 
 % match
 files = matchfiles(files);
+if isempty(files)
+  warning('no files found');
+end
 
 % load and concatenate
 vals = [];
 for q=1:length(files)
-  vals = [vals; vflatten(load_mgh(files{q}))];
+  vals = [vals; load_mgh(files{q})];
 end
