@@ -2,7 +2,7 @@ function files = cvncollectT1s(subjectid,dataloc,gradfile,str0,wantskip)
 
 % function files = cvncollectT1s(subjectid,dataloc,gradfile,str0,wantskip)
 %
-% <subjectid> is like 'C0001'
+% <subjectid> is like 'C0001' or {A} where A is the anatomicals directory to write to
 % <dataloc> is a scan directory like '/home/stone-ext1/fmridata/20151014-ST001-wynn,subject1'
 %   or a cell vector of scan directories
 % <gradfile> (optional) is gradunwarp's scanner or coeff file (e.g. 'prisma').
@@ -27,6 +27,7 @@ function files = cvncollectT1s(subjectid,dataloc,gradfile,str0,wantskip)
 % Turn on matlabpool before calling for speed-ups!
 %
 % history:
+% - 2019/06/08 - allow <subjectid> to be a directory
 % - 2016/10/31 - add <wantskip>
 % - 2016/06/03 - add <str0> input; load from the dicom directory
 % - 2016/05/29 - add support for <gradfile>
@@ -43,7 +44,11 @@ if ~exist('wantskip','var') || isempty(wantskip)
 end
 
 % calc
-dir0 = sprintf('%s/%s',cvnpath('anatomicals'),subjectid);
+if ischar(subjectid)
+  dir0 = sprintf('%s/%s',cvnpath('anatomicals'),subjectid);
+else
+  dir0 = subjectid{1};
+end
 
 % make subject anatomical directory
 assert(mkdir(dir0));
@@ -58,7 +63,7 @@ t1files = {};
 for p=1:length(dataloc)
 
   % match the files
-  t1files0 = matchfiles(sprintf('%s/dicom/*%s*',dataloc{p},str0));
+  t1files0 = flatten(matchfiles(sprintf('%s/dicom/*%s*',dataloc{p},str0)));
   if wantskip
     assert(mod(length(t1files0),2)==0);
     t1files0 = t1files0(2:2:end);   % [hint: 2nd of each pair is the one that is homogenity-corrected]
@@ -69,11 +74,17 @@ for p=1:length(dataloc)
 
 end
 
+% get out early
+if isempty(t1files)
+  warning('no files found!');
+  return;
+end
+
 % convert dicoms to NIFTIs and get the filenames
 files = {};
 for p=1:length(t1files)
   result = unix_wrapper(sprintf('dcm2nii -o %s -r N -x N %s',dir0,t1files{p}));
-  temp = regexp(result,'GZip\.\.\.(.+)','tokens');
+  temp = regexp(result,'GZip\.\.\.(.+\.gz)','tokens');
   files{p} = [dir0 '/' temp{1}{1}];
 end
 
