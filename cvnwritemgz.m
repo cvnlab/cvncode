@@ -5,17 +5,22 @@ function fsmgh = cvnwritemgz(subjectid,name,vals,hemi,outputdir,surfsuffix,fsmgh
 % <subjectid> is like 'C0041' (can be 'fsaverage')
 %   can also be a full path to the FreeSurfer subject directory.
 % <name> is a string
-% <vals> is a vector of values for the surface
+% <vals> is a vector of values (1 x V) for the surface.
+%   can also be multiple vectors (D x V).
 % <hemi> is 'lh' or 'rh'
 % <outputdir> (optional) is the directory to write the file to.
 %   Default is cvnpath('freesurfer')/<subjectid>/surf/
 % <surfsuffix> (optional) is a suffix to tack onto <hemi>, e.g., 'DENSETRUNCpt'.
-%   Special case is 'orig' which is equivalent to ''.
+%   Special case is 'orig' which is equivalent to using a suffix of ''.
 %   Default: 'orig'.
 %
 % Write a file like <hemi><surfsuffix>.<name>.mgz.
 % 
 % Note that we make certain assumptions about what fields to mangle (see code).
+
+% history:
+% - 2019/06/08 - update to be compatible with multiple datasets in one file;
+%                add some more fields to ensure maximum compatibility.
 
 % calc
 if ~isempty(regexp(subjectid,filesep))
@@ -51,14 +56,23 @@ else
   suffstr = surfsuffix;
 end
 file = sprintf('%s/%s%s.%s.mgz',outputdir,hemi,suffstr,name);
-n = numel(vals);
+d = size(vals,1);
+v = size(vals,2);
 
-% mangle
+% sanity check
+if v==1
+  error('<vals> should have data oriented along the rows');
+end
+
+% mangle fields
 fsmgh.fspec = file;
-fsmgh.vol = flatten(vals);
-fsmgh.volsize = [1 n 1];
-fsmgh.width = n;
-fsmgh.nvoxels = n;
+fsmgh.vol = reshape(permute(vals,[2 1]),1,v,1,d);  % 1 x V x 1 x D
+fsmgh.volsize = [1 v 1];
+fsmgh.height = 1;
+fsmgh.width = v;
+fsmgh.depth = 1;
+fsmgh.nframes = d;
+fsmgh.nvoxels = v;
 
 % write
 MRIwrite(fsmgh,file);
