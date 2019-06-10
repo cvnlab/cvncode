@@ -59,9 +59,11 @@ file = sprintf('%s/%s%s.%s.mgz',outputdir,hemi,suffstr,name);
 d = size(vals,1);
 v = size(vals,2);
 
-% sanity check
+% if column vector, silently transform to row vector
 if v==1
-  error('<vals> should have data oriented along the rows');
+  vals = vals.';
+  d = size(vals,1);
+  v = size(vals,2);
 end
 
 % mangle fields
