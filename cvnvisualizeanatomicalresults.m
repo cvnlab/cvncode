@@ -230,7 +230,7 @@ for zz=1:length(allviews)
     sprintf('sulc.png'),        'gray',     [-1 2],[],[],{});
 
   % Kastner atlas stuff (without names)
-  [roiimg,~,rgbimg]=writefun(cvnloadmgz(sprintf('%s/label/?h%s.Kastner2015Labels.mgz',fsdir,surfsuffix2)), ...
+  [roiimg,~,rgbimg]=writefun(cvnloadmgz(sprintf('%s/label/?h%s.Kastner2015*.mgz',fsdir,surfsuffix2)), ...
     sprintf('kastner.png'),     'jet',      [0 25],     0.5,0.85,{});
 
   % Kastner atlas stuff (with names)
