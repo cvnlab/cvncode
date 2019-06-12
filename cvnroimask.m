@@ -172,6 +172,9 @@ for s = 1:numel(suffixes)
             if(isempty(ctab) && ~isempty(ctabfile))
                 ctab=read_ctab(ctabfile);
             end
+            if ~isempty(ctab)
+              ctab.table = double(ctab.table);
+            end
             if(~isempty(roistr))
                 roiidx=find(wildcardmatch(ctab.struct_names,roistr));
                 
