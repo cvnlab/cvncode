@@ -16,5 +16,12 @@ end
 % load and concatenate
 vals = [];
 for q=1:length(files)
-  vals = [vals; load_mgh(files{q})];
+  temp = load_mgh(files{q});
+  
+  % if a vector along fourth dimension, re-orient to be column vector
+  if size(temp,1)==1 && size(temp,2)==1 && size(temp,3)==1
+    temp = permute(temp,[4 1 2 3]);
+  end
+
+  vals = [vals; temp];
 end
