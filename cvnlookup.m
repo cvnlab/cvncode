@@ -6,7 +6,8 @@ function varargout = cvnlookup(FSID,view_number,data,clim0,cmap0,thresh0,Lookup,
 % <view_number> (optional) is a positive integer with the desired view. Default: 1.
 % <data> (optional) is V x 1 with the data (concatenated across lh and rh hemispheres).
 %   can also be a [lh,rh].XXX.mgz file (we will attempt to find both files [lh,rh].XXX.mgz).
-%   Default is [] which means to generate randn values.
+%   Default is [] which means to generate randn values. Note that if we get only one hemisphere,
+%   we may be able to proceed by filling NaNs in the other hemisphere and issuing a warning.
 % <clim0> (optional) is [MIN MAX] for the colormap range. Default: 1st and 99th percentile.
 % <cmap0> (optional) is the desired colormap. Default: jet(256).
 % <thresh0> (optional) is threshold value. Default is [] which means no thresholding.
@@ -73,7 +74,9 @@ if wantinteractive
   if isempty(data)
     [file0,pathname0] = uigetfile('*.mgz','Select .mgz file');
     if ~isequal(file0,0)
+      hemigiven = file0(1:2);
       data = fullfile(pathname0,['??.' file0(4:end)]);
+      data = cvnloadmgz(data);
     end
   end
   if ischar(data) && exist(data,'file')
@@ -87,6 +90,7 @@ end
 if ischar(data) && ~isempty(data) && exist(data,'file')
   pathname0 = stripfile(data);
   data = stripfile(data,1);
+  hemigiven = data(1:2);
   data = fullfile(pathname0,['??.' data(4:end)]);
   data = cvnloadmgz(data);
 end
@@ -155,11 +159,11 @@ if isempty(data)
   valstruct.data = randn(size(valstruct.data));
 else
   if ~isequal(size(valstruct.data),size(data))
-    if valstruct.numlh == length(data)
+    if valstruct.numlh == length(data) && (exist('hemigiven','var') && isequal(hemigiven,'lh'))
       warning('<data> appears to have only the LH data. proceeding using NaNs for the RH data.')
       valstruct.data(:) = NaN;
       valstruct.data(1:valstruct.numlh) = data;
-    elseif valstruct.numrh == length(data)
+    elseif valstruct.numrh == length(data) && (exist('hemigiven','var') && isequal(hemigiven,'rh'))
       warning('<data> appears to have only the RH data. proceeding using NaNs for the LH data.')
       valstruct.data(:) = NaN;
       valstruct.data(valstruct.numlh+1:end) = data;
