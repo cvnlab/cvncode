@@ -155,9 +155,20 @@ if isempty(data)
   valstruct.data = randn(size(valstruct.data));
 else
   if ~isequal(size(valstruct.data),size(data))
-    error('<data> does not have the correct dimensions');
+    if valstruct.numlh == length(data)
+      warning('<data> appears to have only the LH data. proceeding using NaNs for the RH data.')
+      valstruct.data(:) = NaN;
+      valstruct.data(1:valstruct.numlh) = data;
+    elseif valstruct.numrh == length(data)
+      warning('<data> appears to have only the RH data. proceeding using NaNs for the LH data.')
+      valstruct.data(:) = NaN;
+      valstruct.data(valstruct.numlh+1:end) = data;
+    else
+      error('<data> does not have the correct dimensions');
+    end
+  else
+    valstruct.data = data;
   end
-  valstruct.data = data;
 end
 
 % deal with color range
