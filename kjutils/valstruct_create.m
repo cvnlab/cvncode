@@ -4,7 +4,7 @@ function valstruct = valstruct_create(subject,surfsuffix,fillval)
 %
 %Inputs:
 % subject:      FreeSurfer subject ID (where surfaces are found)
-% surfsuffix:   Surface type: DENSETRUNCpt|DENSE|orig (default=DENSETRUNCpt)
+% surfsuffix:   Surface type: DENSETRUNCpt|DENSE|orig (default=orig)
 % fillval:      Initial value for data (default=0)
 %
 %Outputs:
@@ -19,9 +19,13 @@ function valstruct = valstruct_create(subject,surfsuffix,fillval)
 %     numrh: 471462
 %
 %See also: valstruct_getdata, valstruct_setdata
+%
+% history:
+% - 2019/06/13 - changed default for surfsuffix to 'orig'
 
 if(~exist('surfsuffix','var') || isempty(surfsuffix))
-    surfsuffix='DENSETRUNCpt';
+%    surfsuffix='DENSETRUNCpt';
+  surfsuffix = 'orig';
 end
 
 if(~exist('fillval','var') || isempty(fillval))
