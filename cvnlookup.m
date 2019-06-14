@@ -77,11 +77,15 @@ if wantinteractive
       hemigiven = file0(1:2);
       data = fullfile(pathname0,['??.' file0(4:end)]);
       data = cvnloadmgz(data);
+    else
+      data = [];
     end
   end
   if ischar(data) && exist(data,'file')
   else
-    data = eval(data);
+    if ~isempty(data) && ischar(data)
+      data = eval(data);
+    end
   end
 end
 if ~exist('data','var') || isempty(data)
