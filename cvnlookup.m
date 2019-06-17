@@ -11,6 +11,7 @@ function varargout = cvnlookup(FSID,view_number,data,clim0,cmap0,thresh0,Lookup,
 % <clim0> (optional) is [MIN MAX] for the colormap range. Default: 1st and 99th percentile.
 % <cmap0> (optional) is the desired colormap. Default: jet(256).
 % <thresh0> (optional) is threshold value. Default is [] which means no thresholding.
+%   if specified as an imaginary number X*j, we specify the 'absthreshold' option with X.
 % <Lookup> (optional) is the Lookup to re-use.
 % <wantfig> (optional) is whether to show a figure. Default: 1.
 % <extraopts> (optional) is a cell vector of extra options to cvnlookupimages.m. Default: {}.
@@ -144,7 +145,6 @@ allviews = { ...
 
 % set information
 hemis = {'lh', 'rh'};           % hemisphere (lh, rh, both)
-surfsuffix = 'orig';            % set to standard non-dense surfaces
 
 % load view parameters
 view = allviews{view_number};   % view
@@ -154,11 +154,16 @@ hemiflip = view{3};             % flip hemispheres?
 imageres = view{4};             % resolution
 fsaverage0 = view{5};           % want to map to fsaverage?
 xyextent = view{6};             % xy extent to show
+if fsaverage0
+  surfsuffix = 'fsaverage';     % set to fsaverage non-dense surface
+else
+  surfsuffix = 'orig';          % set to standard non-dense surfaces
+end
 
 %% Load data
 
 % deal with valstruct data
-valstruct = valstruct_create(FSID,surfsuffix);
+valstruct = valstruct_create(FSID,'orig');
 if isempty(data)
   valstruct.data = randn(size(valstruct.data));
 else
@@ -190,10 +195,15 @@ end
 %% Call cvnlookupimages
 
 % generate image
+if isreal(thresh0)
+  threshopt = {'threshold',thresh0};
+else
+  threshopt = {'absthreshold',imag(thresh0)};
+end
 [rawimg,Lookup,rgbimg] = cvnlookupimages(FSID,valstruct,viewhemis,viewpt,Lookup,...
                 'surftype',surftype,'surfsuffix',surfsuffix,'xyextent',xyextent,...
                 'text',upper(viewhemis),'imageres',imageres,'rgbnan',0.5, ...
-                'clim',clim0,'colormap',cmap0,'threshold',thresh0,extraopts{:});
+                'clim',clim0,'colormap',cmap0,threshopt{:},extraopts{:});
     % lookup_roi_params={'roiname',atlas_def,'roicolor',[1 1 1],'drawroinames',true};
     % 'threshold',1
     % 'background','sulc'
