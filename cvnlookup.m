@@ -147,13 +147,22 @@ allviews = { ...
 hemis = {'lh', 'rh'};           % hemisphere (lh, rh, both)
 
 % load view parameters
-view = allviews{view_number};   % view
-viewname = view{1};             % ventral, occip, etc.
-surftype = view{2};             % inflated, sphere, etc.
-hemiflip = view{3};             % flip hemispheres?
-imageres = view{4};             % resolution
-fsaverage0 = view{5};           % want to map to fsaverage?
-xyextent = view{6};             % xy extent to show
+if isnumeric(view_number)
+  view = allviews{view_number};   % view
+  viewname = view{1};             % ventral, occip, etc.
+  surftype = view{2};             % inflated, sphere, etc.
+  hemiflip = view{3};             % flip hemispheres?
+  imageres = view{4};             % resolution
+  fsaverage0 = view{5};           % want to map to fsaverage?
+  xyextent = view{6};             % xy extent to show
+elseif ischar(view_number)
+  viewname = view_number;
+  surftype = 'sphere';
+  hemiflip = 0;
+  imageres = 1000;
+  fsaverage0 = 0;  % 1??
+  xyextent = [1 1];
+end
 if fsaverage0
   surfsuffix = 'fsaverage';     % set to fsaverage non-dense surface
 else
