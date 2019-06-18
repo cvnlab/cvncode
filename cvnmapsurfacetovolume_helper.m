@@ -6,7 +6,7 @@ function f = cvnmapsurfacetovolume_helper(data,vertices,res,specialmode,emptyval
 % <vertices> is 3 x V with the X-, Y-, and Z- coordinates of the vertices.
 % <res> is the desired volume size. For example, 256 means 256 x 256 x 256.
 % <specialmode> is 0 means usual linear weighting; 1 means treat each dataset as
-%   positive integers from 1 through N and perform a winner-take-all voting mechanism.
+%   consisting of discrete integer labels and perform a winner-take-all voting mechanism.
 % <emptyval> is the value to use when no vertices map to a voxel
 %
 % return the data mapped to a volume in <f>.
@@ -92,13 +92,14 @@ else
   f = [];
   for q=1:d
     
-    % figure out max integer
-    maxn = max(data(q,:));
-
+    % figure out discrete integer labels
+    alllabels = flatten(union(data(q,:),[]));
+    assert(all(isfinite(alllabels)));
+    
     % expand data into separate channels
-    datanew = zeros(maxn,size(data,2));  % N x vertices
-    for p=1:maxn
-      datanew(p,:) = double(data(q,:)==p);
+    datanew = zeros(length(alllabels),size(data,2));  % N x vertices
+    for p=1:length(alllabels)
+      datanew(p,:) = double(data(q,:)==alllabels(p));
     end
     
     % take the vertex data and map to voxels
@@ -107,14 +108,17 @@ else
     % which voxels have no vertex contribution?
     bad = sum(f0,1)==0;
   
-    % perform winner-take-all (f0 becomes the index!)
+    % perform winner-take-all (f0 is the index relative to alllabels!)
     [mx,f0] = max(f0,[],1);
   
+    % figure out the final labeling scheme
+    finaldata = alllabels(f0);
+  
     % put in <emptyval>
-    f0(bad) = emptyval;
+    finaldata(bad) = emptyval;
     
     % save
-    f(:,:,:,q) = reshape(f0,[res res res]);
+    f(:,:,:,q) = reshape(finaldata,[res res res]);
 
   end
 
