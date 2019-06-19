@@ -4,6 +4,7 @@ function varargout = cvnlookup(FSID,view_number,data,clim0,cmap0,thresh0,Lookup,
 %
 % <FSID> (optional) is the FreeSurfer subject ID, e.g. 'subj01'. Default: 'fsaverage'.
 % <view_number> (optional) is a positive integer with the desired view. Default: 1.
+%   Other options are possible (see below).
 % <data> (optional) is V x 1 with the data (concatenated across lh and rh hemispheres).
 %   can also be a [lh,rh].XXX.mgz file (we will attempt to find both files [lh,rh].XXX.mgz).
 %   Default is [] which means to generate randn values. Note that if we get only one hemisphere,
@@ -49,6 +50,10 @@ function varargout = cvnlookup(FSID,view_number,data,clim0,cmap0,thresh0,Lookup,
 %  8 {'ventral'        'gVTC.flat.patch.3d'       1 2000    0         [160 0]} ...   % 12.5 pixels per mm
 %  9 {''               'gEVC.flat.patch.3d'       0 1500    0         [120 0]} ...   % 12.5 pixels per mm
 % 10 {''               'full.flat.patch.3d'       0 1500    1         [290 0]} ...   % 5.17 pixels per mm
+%    OR
+% 'occipA1' through 'occipA8' where A can also be B or C
+%    OR
+% a fully specified cell vector with the options listed above
 
 %% Setup
 
@@ -158,8 +163,15 @@ elseif ischar(view_number)
   surftype = 'sphere';
   hemiflip = 0;
   imageres = 1000;
-  fsaverage0 = 0;  % 1??
+  fsaverage0 = 0;
   xyextent = [1 1];
+else
+  viewname = view_number{1};
+  surftype = view_number{2};
+  hemiflip = view_number{3};
+  imageres = view_number{4};
+  fsaverage0 = view_number{5};
+  xyextent = view_number{6};
 end
 if fsaverage0
   surfsuffix = 'fsaverage';     % set to fsaverage non-dense surface
