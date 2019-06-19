@@ -75,7 +75,6 @@ if wantinteractive
   if isempty(data)
     [file0,pathname0] = uigetfile('*.mgz','Select .mgz file');
     if ~isequal(file0,0)
-      hemigiven = file0(1:2);
       data = fullfile(pathname0,['??.' file0(4:end)]);
       data = cvnloadmgz(data);
     else
@@ -85,7 +84,7 @@ if wantinteractive
   if ischar(data) && exist(data,'file')
   else
     if ~isempty(data) && ischar(data)
-      data = eval(data);
+      data = evalin('base',data);
     end
   end
 end
@@ -95,7 +94,6 @@ end
 if ischar(data) && ~isempty(data) && exist(data,'file')
   pathname0 = stripfile(data);
   data = stripfile(data,1);
-  hemigiven = data(1:2);
   data = fullfile(pathname0,['??.' data(4:end)]);
   data = cvnloadmgz(data);
 end
@@ -177,11 +175,11 @@ if isempty(data)
   valstruct.data = randn(size(valstruct.data));
 else
   if ~isequal(size(valstruct.data),size(data))
-    if valstruct.numlh == length(data) && (exist('hemigiven','var') && isequal(hemigiven,'lh'))
+    if valstruct.numlh == length(data)
       warning('<data> appears to have only the LH data. proceeding using NaNs for the RH data.')
       valstruct.data(:) = NaN;
       valstruct.data(1:valstruct.numlh) = data;
-    elseif valstruct.numrh == length(data) && (exist('hemigiven','var') && isequal(hemigiven,'rh'))
+    elseif valstruct.numrh == length(data)
       warning('<data> appears to have only the RH data. proceeding using NaNs for the LH data.')
       valstruct.data(:) = NaN;
       valstruct.data(valstruct.numlh+1:end) = data;
