@@ -19,7 +19,7 @@ function [viewpt, fliphemi, viewhemi] = cvnlookupviewpoint(subject,hemi,viewname
 %
 % Current viewpoints:
 %  sphere: occip, ventral
-%  inflated: occip, ventral, dorsal, medial, lateral, medial-ventral, parietal
+%  inflated: occip, ventral, ventral-lateral, dorsal, medial, lateral, medial-ventral, parietal
 %    (these should work for other non-sphere as well, eg: white, pial, etc)
 %
 % Note: subject input is not currently used, but may be useful in the future
@@ -108,6 +108,9 @@ elseif(isempty(regexp(surftype,'sphere')))
             viewpt_LR={[0 45 0],[0 45 0]};
         case 'ventral'
             viewpt_LR={[0 -90 -90],[0 -90 -90]};
+            fliphemi=true;
+        case 'ventral-lateral'
+            viewpt_LR={[95 -66 270],[-95 -66 90]};
             fliphemi=true;
         case 'medial'
             viewpt_LR={[90 0 15],[-90 0 -15]};
