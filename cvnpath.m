@@ -31,7 +31,7 @@ switch(lower(whichpath))
             };
     case 'ppresults'
         testpaths={
-            '/home/stone/generic/Dropbox/cvnlabbig/ppresults'
+            '/home/stone-ext4/generic/cvnlabbig/ppresults'
             };
     case 'freesurfer'
         testpaths={
