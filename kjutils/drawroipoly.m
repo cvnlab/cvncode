@@ -1,17 +1,23 @@
-function [Rmask,Rimg,roihemi] = drawroipoly(img,Lookup)
-%[Rmask,Rimg,roihemi] = drawroipoly(himg,Lookup)
+function [Rmask,Rimg,roihemi] = drawroipoly(img,Lookup,Rimg)
+%[Rmask,Rimg,roihemi] = drawroipoly(himg,Lookup,Rimg)
 %
 %Interface for drawing ROI and converting to surface vertex mask
 %
 %Inputs
 %   img:        MxN image to draw on, or handle to existing GUI image handle 
 %   Lookup:     cvnlookupimages Lookup struct (or cell of structs for lh,rh)
+%   Rimg (optional): MxN matrix where 1s exist in the matrix.
+%                    If supplied, we skip manual user drawing of the polygon
+%                    and instead act as if Rimg==1 is the drawn polygon mask.
 %
 %Outputs
 %   Rmask:      Vx1 logical (If Lookup is a single hemi, V=(numlh x 1) or (numrh x 1)
 %                      If Lookup is both hemis, V=(numlh+numrh x 1)
 %   Rimg:       MxN binary image of ROI as drawn
 %   roihemi:    'lh' or 'rh' depending on which hemi user drew on
+%
+% Note: We automatically fill any holes in the drawn binary mask!
+%       This is useful when Rimg is supplied by the user (there might be holes).
 
 Rmask=[];
 
@@ -36,17 +42,33 @@ else
     himg=imshow(rgbimg);
 end
 
+wantbypass = exist('Rimg','var') && ~isempty(Rimg);
+
 imgroi=[];
 %Press Escape to erase and start again
 %double click on final vertex to close polygon
 %or right click on first vertex, and click "Create mask" to view the result
 %Keep going until user closes the window
-fprintf('Press Escape to erase and start again\n');
-fprintf('Double click on final vertex to close polygon\n');
-fprintf('Right click on first vertex, and click "Create mask" to view the result\n');
-fprintf('When finished, close window to continue\n');
+if ~wantbypass
+  fprintf('Press Escape to erase and start again\n');
+  fprintf('Double click on final vertex to close polygon\n');
+  fprintf('Right click on first vertex, and click "Create mask" to view the result\n');
+  fprintf('When finished, close window to continue\n');
+end
 while(ishandle(himg))
-    [rimg,rx,ry]=roipoly();
+    if wantbypass
+      [ry,rx] = ind2sub(size(Rimg),find(Rimg==1));
+      rimg = double(Rimg==1);
+    else
+      [rimg,rx,ry]=roipoly();
+    end
+
+    rimgNEW = imfill(rimg,'holes');
+    if ~isequal(rimgNEW,rimg)
+      fprintf('** NOTE: There were holes, so we are using imfill to fill holes!\n');
+      rimg = rimgNEW;
+    end
+
     if(isempty(rimg))
         continue;
     end
@@ -75,6 +97,10 @@ while(ishandle(himg))
     %quick way to merge rgbimg background with roi mask
     tmprgb=bsxfun(@times,rgbimg,.75*imgroi + .25);
     set(himg,'cdata',tmprgb);
+    
+    if wantbypass
+      close;
+    end
 end
 
 
