@@ -4,7 +4,9 @@ function [Rmask,Rimg,roihemi] = drawroipoly(img,Lookup,Rimg)
 %Interface for drawing ROI and converting to surface vertex mask
 %
 %Inputs
-%   img:        MxN image to draw on, or handle to existing GUI image handle 
+%   himg:        MxN image to draw on, or handle to existing GUI image handle.
+%                can also be a cell vector in which case you can toggle between
+%                images while drawing by using the number keys (1,2,3,...)!
 %   Lookup:     cvnlookupimages Lookup struct (or cell of structs for lh,rh)
 %   Rimg (optional): MxN matrix where 1s exist in the matrix.
 %                    If supplied, we skip manual user drawing of the polygon
@@ -27,20 +29,33 @@ end
 
 
 if(isempty(img))
-    himg=findobj(gca,'type','image');
+    himg={findobj(gca,'type','image')};
+else
+
+  if ~iscell(img)
+    img = {img};
+  end
+
+  himg = {}; rgbimg = {};
+  for pp=1:length(img)
+    if(ishandle(img{pp}))
+        himg{pp}=img{pp};
+        if(~isequal(get(himg{pp},'type'),'image'))
+            himg{pp}=findobj(himg{pp},'type','image');
+        end
+        rgbimg{pp}=get(himg{pp},'cdata');
+    else
+        rgbimg{pp}=img{pp};
+        figure;
+        himg{pp}=imshow(rgbimg{pp});
+    end
+  end
+
 end
 
-if(ishandle(img))
-    himg=img;
-    if(~isequal(get(himg,'type'),'image'))
-        himg=findobj(himg,'type','image');
-    end
-    rgbimg=get(himg,'cdata');
-else
-    rgbimg=img;
-    figure;
-    himg=imshow(rgbimg);
-end
+
+% magic to allow positive integer keys to toggle
+set(gcf,'KeyPressFcn',@(handle,event) togglefun(handle,event,rgbimg,himg));
 
 wantbypass = exist('Rimg','var') && ~isempty(Rimg);
 
@@ -55,7 +70,7 @@ if ~wantbypass
   fprintf('Right click on first vertex, and click "Create mask" to view the result\n');
   fprintf('When finished, close window to continue\n');
 end
-while(ishandle(himg))
+while(ishandle(himg{end}))
     if wantbypass
       [ry,rx] = ind2sub(size(Rimg),find(Rimg==1));
       rimg = double(Rimg==1);
@@ -95,8 +110,9 @@ while(ishandle(himg))
     end
     
     %quick way to merge rgbimg background with roi mask
-    tmprgb=bsxfun(@times,rgbimg,.75*imgroi + .25);
-    set(himg,'cdata',tmprgb);
+    currentrgb = get(himg{end},'CData');
+    tmprgb=bsxfun(@times,currentrgb,.75*imgroi + .25);
+    set(himg{end},'cdata',tmprgb);
     
     if wantbypass
       close;
@@ -128,3 +144,13 @@ end
 
 Rimg=imgroi;
 roihemi=Lookup{h}.hemi;
+
+%%%%%%%%%%%%%%%%%
+
+function togglefun(handle,event,rgbimg,himg)
+
+temp = str2double(event.Key);
+if isint(temp) && temp >= 1 && temp <= length(rgbimg)
+  %%currenth = findobj(gca,'type','image');
+  set(himg{end},'CData',rgbimg{temp});
+end
