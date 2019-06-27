@@ -70,7 +70,7 @@ if ~wantbypass
   fprintf('Right click on first vertex, and click "Create mask" to view the result\n');
   fprintf('When finished, close window to continue\n');
 end
-while(ishandle(himg{end}))
+while(ishandle(himg{1}))
     if wantbypass
       [ry,rx] = ind2sub(size(Rimg),find(Rimg==1));
       rimg = double(Rimg==1);
@@ -110,9 +110,9 @@ while(ishandle(himg{end}))
     end
     
     %quick way to merge rgbimg background with roi mask
-    currentrgb = get(himg{end},'CData');
+    currentrgb = get(himg{1},'CData');
     tmprgb=bsxfun(@times,currentrgb,.75*imgroi + .25);
-    set(himg{end},'cdata',tmprgb);
+    set(himg{1},'cdata',tmprgb);
     
     if wantbypass
       close;
@@ -152,5 +152,5 @@ function togglefun(handle,event,rgbimg,himg)
 temp = str2double(event.Key);
 if isint(temp) && temp >= 1 && temp <= length(rgbimg)
   %%currenth = findobj(gca,'type','image');
-  set(himg{end},'CData',rgbimg{temp});
+  set(himg{1},'CData',rgbimg{temp});
 end
