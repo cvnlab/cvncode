@@ -113,7 +113,7 @@ elseif(isempty(regexp(surftype,'sphere')))
             viewpt_LR={[95 -66 270],[-95 -66 90]};
             fliphemi=true;
         case 'lateral-auditory'
-            viewpt_LR={[-120 -5 0],[120 -5 0]};
+            viewpt_LR={[-120 15 0],[120 15 0]};
         case 'medial'
             viewpt_LR={[90 0 15],[-90 0 -15]};
         case 'lateral'
