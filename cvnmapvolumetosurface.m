@@ -94,15 +94,27 @@ if isempty(numlayers)
   surfs{end+1} =  'pial';
   surfsB{end+1} = 'pial';
 else
-  surfs = {}; surfsB = {};
-  for p=1:numlayers
-    surfs{p} =  sprintf('layer%s%dDENSETRUNC%s', layerprefix,p,fstruncate);  % six layers, dense, truncated
-    surfsB{p} = sprintf('layer%s%d_DENSETRUNC%s',layerprefix,p,fstruncate);  % six layers, dense, truncated
+  if isempty(fstruncate)
+    surfs = {}; surfsB = {};
+    for p=1:numlayers
+      surfs{p} =  sprintf('layer%s%d',layerprefix,p);
+      surfsB{p} = sprintf('layer%s%d',layerprefix,p);
+    end
+    surfs{end+1} =  sprintf('white');
+    surfsB{end+1} = sprintf('white');
+    surfs{end+1} =  sprintf('pial');
+    surfsB{end+1} = sprintf('pial');
+  else
+    surfs = {}; surfsB = {};
+    for p=1:numlayers
+      surfs{p} =  sprintf('layer%s%dDENSETRUNC%s', layerprefix,p,fstruncate);  % six layers, dense, truncated
+      surfsB{p} = sprintf('layer%s%d_DENSETRUNC%s',layerprefix,p,fstruncate);  % six layers, dense, truncated
+    end
+    surfs{end+1} =  sprintf('whiteDENSETRUNC%s', fstruncate);  % white
+    surfsB{end+1} = sprintf('white_DENSETRUNC%s',fstruncate);  % white
+    surfs{end+1} =  sprintf('pialDENSETRUNC%s', fstruncate);   % pial
+    surfsB{end+1} = sprintf('pial_DENSETRUNC%s',fstruncate);   % pial
   end
-  surfs{end+1} =  sprintf('whiteDENSETRUNC%s', fstruncate);  % white
-  surfsB{end+1} = sprintf('white_DENSETRUNC%s',fstruncate);  % white
-  surfs{end+1} =  sprintf('pialDENSETRUNC%s', fstruncate);   % pial
-  surfsB{end+1} = sprintf('pial_DENSETRUNC%s',fstruncate);   % pial
 end
 
 % load surfaces
