@@ -36,6 +36,8 @@ elseif(size(vertvalues,1)==1 && size(vertvalues,3)==1)
 end
 if(~isempty(Lookup.input2surf) && Lookup.inputN==size(vertvalues,1))
     fullvals=+vertvalues(Lookup.input2surf,:);
+      % critical line: make an image by using nearest-neighbor indices into vertices.
+      % Lookup.imglookup is just something like [1000x1000 uint32] with indices into vertices.
     img=fullvals(Lookup.imglookup,:);
 else
     img=+vertvalues(Lookup.imglookup,:);

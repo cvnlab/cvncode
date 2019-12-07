@@ -37,7 +37,11 @@ assert(isequal(size(img),size(Lookup.imglookup)));
 assert(~isempty(Lookup.reverselookup));
 
 vertvalues=badval*ones(Lookup.vertsN,1);
+  % for each 2D pixel, assign the vertex associated with that pixel to have data from img.
+  % Lookup.imglookup is just something like [1000x1000 uint32] with indices into vertices.
 vertvalues(Lookup.imglookup)=img;
+  % for each vertex that happen to be visible(?), assign that vertex to have data from img.
+  % Lookup.reverselookup is something like [227021x1 uint32] with indices that go into the image.
 vertvalues(Lookup.reverselookup>0)=img(Lookup.reverselookup(Lookup.reverselookup>0));
 if(~isempty(Lookup.input2surf))
     v=vertvalues;
