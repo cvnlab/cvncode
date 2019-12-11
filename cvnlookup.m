@@ -56,7 +56,8 @@ function varargout = cvnlookup(FSID,view_number,data,clim0,cmap0,thresh0,Lookup,
 %    OR
 % 'occipA1' through 'occipA8' where A can also be B or C
 %    OR
-% a fully specified cell vector with the options listed above
+% a fully specified cell vector with the options listed above.
+%   note that VIEWPOINT can take the format {viewpt viewhemis}.
 
 %% Setup
 
@@ -215,7 +216,12 @@ if isempty(clim0)
 end
 
 % call predefined viewpoint for lookup
-[viewpt,~,viewhemis] = cvnlookupviewpoint(FSID,hemis,viewname,surftype);
+if iscell(viewname)
+  viewpt = viewname{1};
+  viewhemis = viewname{2};
+else
+  [viewpt,~,viewhemis] = cvnlookupviewpoint(FSID,hemis,viewname,surftype);
+end
 
 %% Call cvnlookupimages
 
