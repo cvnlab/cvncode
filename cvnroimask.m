@@ -5,12 +5,13 @@ function [roimask, roidescription, roicolors] = cvnroimask(subject,hemi,roifile,
 % hemi = lh or rh
 % roifile = search string for files in <subject>/label/<hemi>*.mgz, *.annot, <hemi>*.label
 %           Can contain wildcards
-% roival =  For .mgz and .annot files, you can choose a particular ROI(s)
+% roival (optional) =
+%          For .mgz and .annot files, you can choose a particular ROI(s)
 %               within the file, either:
 %           1) by value (ie vertex label values) 
 %        or 2) by name if <roifile>.ctab is available
-% destsuffix = orig(default)|DENSE|DENSETRUNCpt (defines output)
-% outputstyle = cell(default)|collapsebinary|collapsevals|matrix|vals
+% destsuffix (optional) = orig(default)|DENSE|DENSETRUNCpt (defines output)
+% outputstyle (optional) = cell(default)|collapsebinary|collapsevals|matrix|vals
 %
 % Outputs:
 %   roimask=1xN cell array of Vx1 binary masks
@@ -31,6 +32,9 @@ function [roimask, roidescription, roicolors] = cvnroimask(subject,hemi,roifile,
 % [roimask,roidescription]=cvnroimask('C0045','rh','*cuneus*@aparc',[],'DENSETRUNCpt');
 % [roimask,roidescription]=cvnroimask('C0045','rh','G_occipital*@aparc.a2009s',[],'DENSETRUNCpt');
 
+if(~exist('roival','var') || isempty(roival))
+    roival=[];
+end
 if(~exist('destsuffix','var') || isempty(destsuffix))
     destsuffix='orig';
 end
