@@ -9,7 +9,7 @@ function [roimask, roidescription, roicolors] = cvnroimask(subject,hemi,roifile,
 %               within the file, either:
 %           1) by value (ie vertex label values) 
 %        or 2) by name if <roifile>.ctab is available
-% destsuffix = orig|DENSE|DENSETRUNCpt (defines output)
+% destsuffix = orig(default)|DENSE|DENSETRUNCpt (defines output)
 % outputstyle = cell(default)|collapsebinary|collapsevals|matrix|vals
 %
 % Outputs:
@@ -31,6 +31,9 @@ function [roimask, roidescription, roicolors] = cvnroimask(subject,hemi,roifile,
 % [roimask,roidescription]=cvnroimask('C0045','rh','*cuneus*@aparc',[],'DENSETRUNCpt');
 % [roimask,roidescription]=cvnroimask('C0045','rh','G_occipital*@aparc.a2009s',[],'DENSETRUNCpt');
 
+if(~exist('destsuffix','var') || isempty(destsuffix))
+    destsuffix='orig';
+end
 if(~exist('outputstyle','var') || isempty(outputstyle))
     outputstyle='cell';
 end
