@@ -4,10 +4,10 @@ function varargout = cvnreadsurface(subject, hemi, surftype, surfsuffix, varargi
 % Read a freesurfer surface (verts,faces) from file, or just the vertex count
 %
 % Inputs:
-%   subject:            Freesurfer subject
-%   hemi:               'lh','rh', or {'lh','rh'}
-%   surftype:           sphere|inflated|white|pial|layerA1 ...
-%   surfsuffix:         DENSE|DENSETRUNCpt|orig ("orig"=<hemi>.sphere)
+%   subject:               Freesurfer subject
+%   hemi:                  'lh','rh', or {'lh','rh'}
+%   surftype:              sphere|inflated|white|pial|layerA1 ...
+%   surfsuffix (optional): DENSE|DENSETRUNCpt|orig (default) ("orig"=<hemi>.sphere)
 %
 % Outputs:
 %   surface_or_count:   a struct for each hemisphere, containing
@@ -46,6 +46,11 @@ function varargout = cvnreadsurface(subject, hemi, surftype, surfsuffix, varargi
 %
 
 % Update KJ 2017-08-03: Allow patch surface types
+
+% inputs
+if ~exist('surfsuffix','var') || isempty(surfsuffix)
+  surfsuffix = 'orig';
+end
 
 %%%%%%%%%%%%%%%%%%%%
 %default options
