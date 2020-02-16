@@ -1,4 +1,14 @@
-function f = cmfecccmap
+function f = cmfecccmap(maxecc)
+
+% function f = cmfecccmap(maxecc)
+%
+% <maxecc> sets the number at which the final color ends (see function for details)
+%
+% return a 256 x 3 colormap.
+
+if ~exist('maxecc','var') || isempty(maxecc)
+  maxecc = 12;
+end
 
 cmap = [...
 0. 0. 0. 0.666667;
@@ -13,7 +23,7 @@ cmap = [...
 90. 1. 1. 1.;
 ];
 
-eccs = linspace(0,12,257);
+eccs = linspace(0,maxecc,257);
 eccs = (eccs(1:end-1) + eccs(2:end))/2;
 
 finalcmap = [];
