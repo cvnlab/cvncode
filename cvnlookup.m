@@ -56,8 +56,13 @@ function varargout = cvnlookup(FSID,view_number,data,clim0,cmap0,thresh0,Lookup,
 %    OR
 % 'occipA1' through 'occipA8' where A can also be B or C
 %    OR
-% a fully specified cell vector with the options listed above.
-%   note that VIEWPOINT can take the format {viewpt viewhemis}.
+% a fully specified cell vector with the options listed above. note that VIEWPOINT 
+%   can take the format {viewpt viewhemis}. for example, consider the following:
+%   cvnlookup('subj01',{ {{[0 0 110] [0 0 -110]} {'lh' 'rh'}} 'full.flat.patch.3d' 0 1500 0 []}, ...
+%             [],[],[],10,[],[],{'savelookup',false});
+
+% Internal notes:
+% - special case of <wantfig> is 2 which means create an invisible figure.
 
 %% Setup
 
@@ -233,7 +238,7 @@ else
 end
 [rawimg,Lookup,rgbimg] = cvnlookupimages(FSID,valstruct,viewhemis,viewpt,Lookup,...
                 'surftype',surftype,'surfsuffix',surfsuffix,'xyextent',xyextent,...
-                'text',upper(viewhemis),'imageres',imageres,'rgbnan',0.5, ...
+                'imageres',imageres,'rgbnan',0.5, ...                                    %'text',upper(viewhemis),
                 'clim',clim0,'colormap',cmap0,threshopt{:},extraopts{:});
     % lookup_roi_params={'roiname',atlas_def,'roicolor',[1 1 1],'drawroinames',true};
     % 'threshold',1
@@ -245,9 +250,12 @@ end
     % 'savelookup',false,
 
 % visualize rgbimg
-if wantfig
+switch wantfig
+case 1
   figure; himg = imshow(rgbimg);
-else
+case 2
+  figure('Visible','off'); himg = imshow(rgbimg);
+otherwise
   himg = [];
 end
 
