@@ -1,4 +1,4 @@
-function [Rmask,Rimg,roihemi] = drawroipoly(img,Lookup,Rimg)
+function [Rmask,Rimg,roihemi] = drawroipoly(img,Lookup,Rimg,specialmode)
 %[Rmask,Rimg,roihemi] = drawroipoly(himg,Lookup,Rimg)
 %
 %Interface for drawing ROI and converting to surface vertex mask
@@ -20,6 +20,10 @@ function [Rmask,Rimg,roihemi] = drawroipoly(img,Lookup,Rimg)
 %
 % Note: We automatically fill any holes in the drawn binary mask!
 %       This is useful when Rimg is supplied by the user (there might be holes).
+
+% when <specialmode> is 1, we wait around for the user to toggle keys
+% and when they finally press return, we toggle back to the first image
+% and then return. also, all outputs are just returned as [].
 
 Rmask=[];
 
@@ -56,6 +60,15 @@ end
 
 % magic to allow positive integer keys to toggle
 set(gcf,'KeyPressFcn',@(handle,event) togglefun(handle,event,rgbimg,himg));
+
+% handle specialmode
+if exist('specialmode','var') && specialmode==1
+  Rmask = [];
+  Rimg = [];
+  roihemi = [];
+  uiwait(gcf);
+  return;
+end
 
 wantbypass = exist('Rimg','var') && ~isempty(Rimg);
 
@@ -148,6 +161,11 @@ roihemi=Lookup{h}.hemi;
 %%%%%%%%%%%%%%%%%
 
 function togglefun(handle,event,rgbimg,himg)
+
+if isequal(event.Key,'return')
+  set(himg{1},'CData',rgbimg{1});  % go back to the first one!
+  uiresume(gcf);
+end
 
 temp = str2double(event.Key);
 if isint(temp) && temp >= 1 && temp <= length(rgbimg)
