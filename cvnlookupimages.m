@@ -89,6 +89,7 @@ function [mappedvals,Lookup,rgbimg,options] = cvnlookupimages(subject, vals, hem
 %   text:           string to display in top left corner of RGB image 
 %               OR  cell array of strings if multiple hemis 
 %                   eg: 'LAYER1' or {'LEFT','RIGHT'}
+%                   Note: can be quite slow for large images, so consider omitting.
 %   textsize:       font size in pixels (default=50) 
 %                   If textsize<1, fontsize will be textsize*imageres
 %   textcolor:      text color (default='w', ie white)
