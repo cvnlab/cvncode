@@ -1,4 +1,4 @@
-function [Rmask,Rimg,roihemi] = drawroipoly(img,Lookup,Rimg,specialmode)
+function [Rmask,Rimg,roihemi,xlim0,ylim0,figpos0] = drawroipoly(img,Lookup,Rimg,specialmode)
 %[Rmask,Rimg,roihemi] = drawroipoly(himg,Lookup,Rimg)
 %
 %Interface for drawing ROI and converting to surface vertex mask
@@ -24,6 +24,8 @@ function [Rmask,Rimg,roihemi] = drawroipoly(img,Lookup,Rimg,specialmode)
 % when <specialmode> is 1, we wait around for the user to toggle keys
 % and when they finally press return, we toggle back to the first image
 % and then return. also, all outputs are just returned as [].
+%
+% <xlim0>, <ylim0>, <figpos0> are the x- and y-limits and figure position upon returning.
 
 Rmask=[];
 
@@ -67,6 +69,9 @@ if exist('specialmode','var') && specialmode==1
   Rimg = [];
   roihemi = [];
   uiwait(gcf);
+  xlim0 = get(get(himg{1},'Parent'),'XLim');
+  ylim0 = get(get(himg{1},'Parent'),'YLim');
+  figpos0 = get(get(get(himg{1},'Parent'),'Parent'),'Position');
   return;
 end
 
@@ -91,6 +96,12 @@ while(ishandle(himg{1}))
       [rimg,rx,ry]=roipoly();
     end
 
+    if ishandle(himg{1})
+      xlim0 = get(get(himg{1},'Parent'),'XLim');
+      ylim0 = get(get(himg{1},'Parent'),'YLim');
+      figpos0 = get(get(get(himg{1},'Parent'),'Parent'),'Position');
+    end
+    
     rimgNEW = imfill(rimg,'holes');
     if ~isequal(rimgNEW,rimg)
       fprintf('** NOTE: There were holes, so we are using imfill to fill holes!\n');
@@ -126,7 +137,7 @@ while(ishandle(himg{1}))
     currentrgb = get(himg{1},'CData');
     tmprgb=bsxfun(@times,currentrgb,.75*imgroi + .25);
     set(himg{1},'cdata',tmprgb);
-    
+
     if wantbypass
       close;
     end
