@@ -8,7 +8,7 @@
 % % define
 % subjid = 'subj01';   % which subject
 % cmap   = jet(256);   % colormap for ROIs
-% rng    = [0 3];      % should be [0 N] where N is the max ROI index
+% rng    = [0 3];      % should be [0 N] where N>=1 is the max ROI index
 % roilabels = {'V1' 'V2' 'V3'};  % 1 x N cell vector of strings
 % mgznames = {'prfangle' 'prfangle' 'prfeccentricity'};           % quantities of interest in label/?h.MGZNAME.mgz (1 x Q)
 % crngs = {[0 360]          [0 360]             [0 12]};          % ranges for the quantities (1 x Q)
@@ -33,6 +33,13 @@
 %     roivals = cvnloadmgz(sprintf('%s/fsaverage/label/?h.testroi.mgz',cvnpath('freesurfer')));
 % - If <roivals> has only LH or RH vertices, we try to automatically detect this
 %   and compensate accordingly.
+
+% wishlist?:
+% - capability? BORDER??? view
+% - clear and merge only on one hemi?
+% - speckles and holes
+% - allow "cancel"?
+% - allow "undo"?
 
 %% %%%%% SETUP
 
@@ -135,6 +142,9 @@ while 1
 
   % if this is a new view, we have to generate some maps
   if ~isequal(viewmode,oldviewmode)
+    xlimOLD = [];
+    ylimOLD = [];
+    figposOLD = [];
     close(tempfigs);
     tempfigs = [];
     [rawimg1,Lookup1,rgbimg1,himg1] = cvnlookup(subjid,viewmode,double(curv.data<0),[-1 2],gray(256),[],[],2);
@@ -150,6 +160,11 @@ while 1
   % draw the main ROI image
   [rawimg0,Lookup0,rgbimg0,himg0] = cvnlookup(subjid,viewmode,roivals,rng,cmap,0.5,[],[]); 
   curfig = get(get(himg0,'Parent'),'Parent');
+  if ~isempty(xlimOLD)
+    set(get(curfig,'CurrentAxes'),'XLim',xlimOLD);
+    set(get(curfig,'CurrentAxes'),'YLim',ylimOLD);
+    set(curfig,'Position',figposOLD);
+  end
 
   % ask the user what to do
   while 1
@@ -158,10 +173,10 @@ while 1
     figure(curfig);  % make sure this exists and is on top
 %    pause(1);  % some delay is necessary in order to make sure the main ROI figure is created
     fprintf('Toggle maps using number keys. Press RETURN in window when ready to proceed.\n');
-    drawroipoly([{himg0 himg1} himgs],Lookup0,[],1);
+    [~,~,~,xlimOLD,ylimOLD,figposOLD] = drawroipoly([{himg0 himg1} himgs],Lookup0,[],1);
     
     % after the user presses RETURN, we are here and ready to proceed
-    str0 = {'Draw' 'Draw-safe (only unlabeled)' 'Erase' 'Erase-safe (only from selected)' 'Clear' 'Add New ROI' 'Rename ROI' 'Delete ROI' 'Merge ROIs' 'Split ROI' 'Reorder ROIs' 'Change Colormap' 'Switch View' 'Save' 'Quit'};
+    str0 = {'Draw' 'Draw-safe (only unlabeled)' 'Just-draw' 'Erase' 'Erase-safe (only from selected)' 'Clear' 'Add New ROI' 'Rename ROI' 'Delete ROIs' 'Merge ROIs' 'Split ROI' 'Reorder ROIs' 'Change Colormap' 'Switch View' 'Save' 'Quit'};
     [selection,ok] = listdlg('ListSize',listsize,'ListString',str0,'SelectionMode','single', ...
                              'PromptString','What do you want to do?'); 
     if ok, break;, end
@@ -169,21 +184,21 @@ while 1
   whmode = selection;
   
   % we may need to ask the user more stuff
-  if ismember(selection,[1 2])
+  if ismember(whmode,[1 2])
     while 1
       [selection,ok] = listdlg('ListSize',listsize,'ListString',roilabels,'SelectionMode','single', ...
                                'PromptString',sprintf('%s -- draw on which ROI?',str0{whmode})); 
       if ok, break;, end
     end
     roiix = selection;  % only 1
-  elseif ismember(selection,[4 5])
+  elseif ismember(whmode,[5 6])
     while 1
       [selection,ok] = listdlg('ListSize',listsize,'ListString',roilabels,'SelectionMode','multiple', ...
                                'PromptString',sprintf('%s -- which ROI(s) are being erased?',str0{whmode}));
       if ok, break;, end
     end
     roiix = selection;  % might be 1 or more
-  elseif selection==10
+  elseif whmode==11
     while 1
       [selection,ok] = listdlg('ListSize',listsize,'ListString',roilabels,'SelectionMode','single', ...
                                'PromptString',sprintf('%s -- which ROI do you want to split?',str0{whmode}));
@@ -193,8 +208,8 @@ while 1
   end
   
   % if user wants to draw, let them
-  if ismember(whmode,[1:4 10])
-    Rmask = drawroipoly([{himg0 himg1} himgs],Lookup0);
+  if ismember(whmode,[1:5 11])
+    [Rmask,~,~,xlimOLD,ylimOLD,figposOLD] = drawroipoly([{himg0 himg1} himgs],Lookup0);
   end
 
   % handle the request
@@ -204,13 +219,19 @@ while 1
   case 2
     roivals(roivals==0 & Rmask==1) = roiix;      % non-drawn vertices that are selected become roiix
   case 3
-    roivals(Rmask==1) = 0;                       % selected vertices get reset to 0
+    roiix = mode(filterout(roivals(logical(Rmask)),0));
+    if isempty(roiix) || isnan(roiix)
+      roiix = 1;
+    end
+    roivals = roivals.*(1-Rmask) + roiix*Rmask;  % assign all selected vertices to roiix
   case 4
-    roivals(ismember(roivals,roiix) & Rmask==1) = 0;  % vertices that are in roiix and selected get reset to 0
+    roivals(Rmask==1) = 0;                       % selected vertices get reset to 0
   case 5
+    roivals(ismember(roivals,roiix) & Rmask==1) = 0;  % vertices that are in roiix and selected get reset to 0
+  case 6
     roivals(ismember(roivals,roiix)) = 0;        % all roiix are reset to 0
     close(curfig);
-  case 6  % Add New ROI
+  case 7  % Add New ROI
     while 1
       temp = inputdlg('Name this ROI:');
       if ~isempty(temp{1})
@@ -222,7 +243,7 @@ while 1
     close(curlegend);
     wantlegend = 1;
     close(curfig);
-  case 7  % Rename ROI
+  case 8  % Rename ROI
     while 1
       [selection,ok] = listdlg('ListSize',listsize,'ListString',roilabels,'SelectionMode','single', ...
                                'PromptString','Rename which ROI?');
@@ -238,10 +259,10 @@ while 1
     close(curlegend);
     wantlegend = 1;
     close(curfig);
-  case 8  % Delete ROI
+  case 9  % Delete ROIs
     while 1
-      [selection,ok] = listdlg('ListSize',listsize,'ListString',roilabels,'SelectionMode','single', ...
-                               'PromptString','Delete which ROI?');
+      [selection,ok] = listdlg('ListSize',listsize,'ListString',roilabels,'SelectionMode','multiple', ...
+                               'PromptString','Delete which ROI(s)?');
       if ok, break;, end
     end
     for pp=fliplr(selection)  % need to do from the end
@@ -251,10 +272,14 @@ while 1
       roilabels(pp) = [];
       rng(2) = rng(2) - 1;
     end
+    if rng(2)==0  % need at least one ROI
+      roilabels = {'label1'};
+      rng = [0 1];
+    end
     close(curlegend);
     wantlegend = 1;
     close(curfig);
-  case 9   % Merge ROIs
+  case 10   % Merge ROIs
     while 1
       [selection,ok] = listdlg('ListSize',listsize,'ListString',roilabels,'SelectionMode','multiple', ...
                                'PromptString',sprintf('%s -- which ROIs would you like to merge?',str0{whmode}));
@@ -272,7 +297,7 @@ while 1
     close(curlegend);
     wantlegend = 1;
     close(curfig);
-  case 10  % Split ROI
+  case 11  % Split ROI
     while 1
       temp = inputdlg('Name this ROI:');
       if ~isempty(temp{1})
@@ -284,7 +309,7 @@ while 1
     roivals(roivals==roiix & Rmask==1) = rng(2);
     close(curlegend);
     wantlegend = 1;
-  case 11  % Reorder ROIs
+  case 12  % Reorder ROIs
     oldorder = 1:length(roilabels);
     neworder = [];
     while ~isempty(oldorder)
@@ -307,7 +332,7 @@ while 1
     close(curlegend);
     wantlegend = 1;
     close(curfig);
-  case 12  % Change Colormap
+  case 13  % Change Colormap
     while 1
       temp = inputdlg('Specify new colormap:');
       if ~isempty(temp{1})
@@ -318,10 +343,10 @@ while 1
     close(curlegend);
     wantlegend = 1;
     close(curfig);
-  case 13  % Switch View
+  case 14  % Switch View
     viewmode = [];
     close(curfig);
-  case 14 % Save
+  case 15  % Save
     % get filename from user and try to save
     while 1
       [savefilename,savepathname] = uiputfile('lh.testroi.mgz','Save ROI labels');
@@ -351,7 +376,7 @@ while 1
       break;
     end
     close(curfig);
-  case 15
+  case 16
     break;  % quit!
   end
 
