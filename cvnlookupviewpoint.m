@@ -122,6 +122,11 @@ elseif(isempty(regexp(surftype,'sphere')))
             viewpt_LR={[45 -45 15],[-45 -45 -15]};
         case 'occip'
             viewpt_LR={[10 -45 0],[-10 -45 0]};
+        case 'superior'
+            viewpt_LR={[0 90 90],[90 90 0]};
+        case 'frontal'
+            viewpt_LR={[-180 0 0],[-180 0 0]};
+            fliphemi=true;
         otherwise
     end
     
