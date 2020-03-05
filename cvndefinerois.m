@@ -13,6 +13,7 @@
 % mgznames = {'prfangle' 'prfangle' 'prfeccentricity'};           % quantities of interest in label/?h.MGZNAME.mgz (1 x Q)
 % crngs = {[0 360]          [0 360]             [0 12]};          % ranges for the quantities (1 x Q)
 % cmaps = {cmfanglecmapRH   cmfanglecmap        cmfecccmap(4)};   % colormaps for the quantities (1 x Q)
+% threshs = {[] [] []};                                           % thresholds for the quantities (1 x Q)
 % roivals = [];                                                   % start with a blank slate
 %
 % % do it
@@ -33,6 +34,9 @@
 %     roivals = cvnloadmgz(sprintf('%s/fsaverage/label/?h.testroi.mgz',cvnpath('freesurfer')));
 % - If <roivals> has only LH or RH vertices, we try to automatically detect this
 %   and compensate accordingly.
+%
+% history:
+% - 2020/03/05 - add <threshs> input
 
 % wishlist?:
 % - capability? BORDER??? view
@@ -54,6 +58,9 @@ fsdir0 = sprintf('%s/%s/',cvnpath('freesurfer'),subjid);  % subject FS directory
 % inputs
 if isempty(roilabels)
   roilabels = mat2cellstr(1:rng(2));
+end
+if ~exist('threshs','var') || isempty(threshs)
+  threshs = cell(1,length(crngs));
 end
 
 % load curvature
@@ -151,7 +158,7 @@ while 1
     tempfigs(end+1) = get(get(himg1,'Parent'),'Parent');
     Lookup = {}; himgs = {};
     for zz=1:size(alldata,1)
-      [~,Lookup{zz},~,himgs{zz}] = cvnlookup(subjid,viewmode,cat(1,alldata{zz,:}),crngs{zz},cmaps{zz},[],[],2);
+      [~,Lookup{zz},~,himgs{zz}] = cvnlookup(subjid,viewmode,cat(1,alldata{zz,:}),crngs{zz},cmaps{zz},threshs{zz},[],2);
       tempfigs(end+1) = get(get(himgs{zz},'Parent'),'Parent');
     end
     oldviewmode = viewmode;
