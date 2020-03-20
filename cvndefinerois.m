@@ -25,10 +25,7 @@
 %
 % Note that there are some alternative formats for the inputs:
 % - <roilabels> can be [], in which we default to simple integer labels.
-% - <mgznames> can be a Q x 2 cell with the quantities of interest like this:
-%     {[LHx1] [RHx1]
-%      [LHx1] [RHx1]
-%      ...    ...   }
+% - <mgznames> can have elements that are like {[LHx1] [RHx1]} instead of a string.
 % - <mgznames> can be empty.
 % - <roivals> can be V x 1 with initial values for the ROI labels. For example:
 %     roivals = cvnloadmgz(sprintf('%s/fsaverage/label/?h.testroi.mgz',cvnpath('freesurfer')));
@@ -36,12 +33,12 @@
 %   and compensate accordingly.
 %
 % history:
+% - 2020/03/19 - the format for <mgznames> has changed!!
 % - 2020/03/05 - add <threshs> input
 
 % wishlist?:
-% - capability? BORDER??? view
 % - clear and merge only on one hemi?
-% - speckles and holes
+% - speckles and holes, think about this
 % - allow "cancel"?
 % - allow "undo"?
 
@@ -69,16 +66,16 @@ curv = cvnreadsurfacemetric(subjid,[],'curv',[],'orig');
 % load data
 alldata = {};
 if ~isempty(mgznames)
-  if ischar(mgznames{1,1})
-    alldata = {};
-    for mm=1:length(mgznames)
+  for pp=1:length(mgznames)
+    if ischar(mgznames{pp})
       for hh=1:length(hemis)
-        file0 = sprintf('%s/label/%s.%s.mgz',fsdir0,hemis{hh},mgznames{mm});
-        alldata{mm,hh} = cvnloadmgz(file0);
+        file0 = sprintf('%s/label/%s.%s.mgz',fsdir0,hemis{hh},mgznames{pp});
+        alldata{pp,hh} = cvnloadmgz(file0);
       end
+    else
+      alldata{pp,1} = mgznames{pp}{1};
+      alldata{pp,2} = mgznames{pp}{2};
     end
-  else
-    alldata = mgznames;
   end
 end
 numlh = curv.numlh;
