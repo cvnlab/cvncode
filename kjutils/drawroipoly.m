@@ -25,6 +25,11 @@ function [Rmask,Rimg,roihemi,xlim0,ylim0,figpos0] = drawroipoly(img,Lookup,Rimg,
 % and when they finally press return, we toggle back to the first image
 % and then return. also, all outputs are just returned as [].
 %
+% the first row of keys: 1,2,3,4,etc. toggles the images and starts afresh
+% the second row of keys: q,w,e,r,etc. draws "edge" images on the current image
+% the third row of keys: a,s,d,f,etc. changes the underlying image without changing
+%   the current "edge" images.
+%
 % <xlim0>, <ylim0>, <figpos0> are the x- and y-limits and figure position upon returning.
 
 Rmask=[];
@@ -49,11 +54,11 @@ else
         if(~isequal(get(himg{pp},'type'),'image'))
             himg{pp}=findobj(himg{pp},'type','image');
         end
-        rgbimg{pp}=get(himg{pp},'cdata');
+        rgbimg{1,pp}=get(himg{pp},'cdata');
     else
-        rgbimg{pp}=img{pp};
+        rgbimg{1,pp}=img{pp};
         figure;
-        himg{pp}=imshow(rgbimg{pp});
+        himg{pp}=imshow(rgbimg{1,pp});
     end
   end
 
@@ -173,13 +178,97 @@ roihemi=Lookup{h}.hemi;
 
 function togglefun(handle,event,rgbimg,himg)
 
+% the first time through, we need to save state
+if isempty(guidata(handle))
+  guidata(handle,rgbimg);
+end
+
+% get the current state
+rgbimg = guidata(handle);
+
 if isequal(event.Key,'return')
-  set(himg{1},'CData',rgbimg{1});  % go back to the first one!
+  set(himg{1},'CData',rgbimg{1,1});  % go back to the first one!
   uiresume(gcf);
 end
 
-temp = str2double(event.Key);
-if isint(temp) && temp >= 1 && temp <= length(rgbimg)
-  %%currenth = findobj(gca,'type','image');
-  set(himg{1},'CData',rgbimg{temp});
+possiblekeys0 = {'1' '2' '3' '4' '5' '6' '7' '8' '9' '0'};
+possiblekeys = {'q' 'w' 'e' 'r' 't' 'y' 'u' 'i' 'o' 'p'};
+possiblekeysB = {'a' 's' 'd' 'f' 'g' 'h' 'j' 'k' 'l' ';'};
+ix0 = find(ismember(possiblekeys0,event.Key));
+ix = find(ismember(possiblekeys,event.Key));
+ixB = find(ismember(possiblekeysB,event.Key));
+
+% e.g., command key invalidates everything
+if ~isempty(event.Modifier)
+  ix0 = [];
+  ix = [];
+  ixB = [];
 end
+
+% init
+temp = [];
+
+% if first row, reset edge images
+if ~isempty(ix0)
+  rgbimg{3,1} = [];
+  temp = ix0;
+end
+
+% if third row, we need to draw the base image, so simulate it
+if ~isempty(ixB)
+  temp = ixB;
+end
+
+% draw base image
+if ~isempty(temp) && isint(temp) && temp >= 1 && temp <= size(rgbimg,2)
+  %%currenth = findobj(gca,'type','image');
+  set(himg{1},'CData',rgbimg{1,temp});
+end
+
+% do we have second or third row to handle?
+if ~isempty(ix) || ~isempty(ixB)
+
+  % expand rgbimg if necessary
+  if size(rgbimg,1) < 3
+    rgbimg{3,1} = [];
+  end
+  
+  % if second row, add to the state and do it
+  if ~isempty(ix)
+    rgbimg{3,1} = union(rgbimg{3,1},ix);
+    listtodo = ix;
+  end
+  
+  % if third row, we need to do all of the current ones again
+  if ~isempty(ixB)
+    listtodo = rgbimg{3,1};
+  end
+  
+  for zz=1:length(listtodo)
+    todo = listtodo(zz);
+  
+    if todo >= 1 && todo <= size(rgbimg,2)
+  
+      % create edge image if necessary
+      if isempty(rgbimg{2,todo})
+        grayim = rgb2gray(rgbimg{1,todo});
+        if calccorrelation(grayim(:),vflatten(mean(rgbimg{1,todo},3))) > .9999  % if image appears to be grayscale
+          rgbimg{2,todo} = repmat(detectedges(grayim,0.5),[1 1 3]);
+        else
+          rgbimg{2,todo} = detectedges(rgbimg{1,todo}-repmat(rgb2gray(rgbimg{1,todo}),[1 1 3]),0.5);
+        end
+        rgbimg{2,todo} = rgbimg{2,todo}/sqrt(mean(rgbimg{2,todo}(:).^2))/3;  % normalize such that RMS at 1/3
+      end
+    
+      % within constraints of a mask, superimpose the edge image on the current image
+      mask = mean(rgbimg{2,todo},3) > 0.1;
+      set(himg{1},'CData',copymatrix(get(himg{1},'CData'),repmat(mask,[1 1 3]),rgbimg{2,todo}(repmat(mask,[1 1 3]))));
+
+    end
+  
+  end
+  
+end
+
+% store the state
+guidata(handle,rgbimg);
