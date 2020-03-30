@@ -1,6 +1,6 @@
-function varargout = cvnlookup(FSID,view_number,data,clim0,cmap0,thresh0,Lookup,wantfig,extraopts)
+function varargout = cvnlookup(FSID,view_number,data,clim0,cmap0,thresh0,Lookup,wantfig,extraopts,surfsuffix)
 
-% function [rawimg,Lookup,rgbimg,himg] = cvnlookup(FSID,view_number,data,clim0,cmap0,thresh0,Lookup,wantfig,extraopts)
+% function [rawimg,Lookup,rgbimg,himg] = cvnlookup(FSID,view_number,data,clim0,cmap0,thresh0,Lookup,wantfig,extraopts,surfsuffix)
 %
 % <FSID> (optional) is the FreeSurfer subject ID, e.g. 'subj01'. Default: 'fsaverage'.
 % <view_number> (optional) is a positive integer with the desired view. Default: 1.
@@ -16,6 +16,8 @@ function varargout = cvnlookup(FSID,view_number,data,clim0,cmap0,thresh0,Lookup,
 % <Lookup> (optional) is the Lookup to re-use.
 % <wantfig> (optional) is whether to show a figure. Default: 1.
 % <extraopts> (optional) is a cell vector of extra options to cvnlookupimages.m. Default: {}.
+% <surfsuffix> (optional) is 'orig' or 'DENSETRUNCpt'. Default is 'orig' which means
+%   standard non-dense FreeSurfer surfaces.
 %
 % This is a simple wrapper for cvnlookupimages.m that provides basic functionality.
 %
@@ -62,6 +64,9 @@ function varargout = cvnlookup(FSID,view_number,data,clim0,cmap0,thresh0,Lookup,
 %   can take the format {viewpt viewhemis}. for example, consider the following:
 %   cvnlookup('subj01',{ {{[0 0 110] [0 0 -110]} {'lh' 'rh'}} 'full.flat.patch.3d' 0 1500 0 []}, ...
 %             [],[],[],10,[],[],{'savelookup',false});
+%
+% history:
+% - 2020/03/30 - add <surfsuffix> input
 
 % Internal notes:
 % - special case of <wantfig> is 2 which means create an invisible figure.
@@ -142,6 +147,9 @@ end
 if ~exist('extraopts','var') || isempty(extraopts)
   extraopts = {};
 end
+if ~exist('surfsuffix','var') || isempty(surfsuffix)
+  surfsuffix = 'orig';  % default is standard non-dense surfaces
+end
 
 % define some views. inherited from cvnvisualizeanatomicalresults.m:
 allviews = { ...
@@ -190,15 +198,14 @@ else
   xyextent = view_number{6};
 end
 if fsaverage0
+  assert(isequal(surfsuffix,'orig'),'only orig surface data can be put onto fsaverage');
   surfsuffix = 'fsaverage';     % set to fsaverage non-dense surface
-else
-  surfsuffix = 'orig';          % set to standard non-dense surfaces
 end
 
 %% Load data
 
 % deal with valstruct data
-valstruct = valstruct_create(FSID,'orig');
+valstruct = valstruct_create(FSID,surfsuffix);
 if isempty(data)
   valstruct.data = randn(size(valstruct.data));
 else
