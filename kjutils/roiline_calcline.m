@@ -1,8 +1,10 @@
 function xyline = roiline_calcline(xypoint)
 
+% function xyline = roiline_calcline(xypoint)
+%
 % <xypoint> is pts x 2
 %
-% return <xyline> as points x 2 with pixels??
+% return <xyline> as pts x 2 with pixel units
 
 % rasterize line segments by interp1 with extra points (2*max), then prune
 xyd=[0; sqrt(sum((xypoint(2:end,:)-xypoint(1:end-1,:)).^2,2))];
@@ -22,4 +24,3 @@ for i = 2:size(xyi,1)-1
     end
 end
 xyline=[xyi2(1:n,:); xyi(end,:)];
-
