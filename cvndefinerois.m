@@ -33,6 +33,7 @@
 %   and compensate accordingly.
 %
 % history:
+% - 2020/05/09 - add a few new views
 % - 2020/03/19 - the format for <mgznames> has changed!!
 % - 2020/03/05 - add <threshs> input
 
@@ -133,15 +134,18 @@ while 1
               '7=inflated-medial-ventral' ...
               '8=gVTC' ...
               '9=gEVC' ...
+              '10=fsaverage-full-flat' ...
               '11=inflated-ventral-lateral' ...
               '12=inflated-lateral-auditory' ...
-              '13=full-flat'};
-      masterviewlist = [1 2 3 4 5 6 7 8 9 11 12 13];
+              '13=full-flat' ...
+              'occipA2' ...
+              'occipA8'};
+      masterviewlist = {1 2 3 4 5 6 7 8 9 10 11 12 13 'occipA2' 'occipA8'};
       [selection,ok] = listdlg('ListSize',listsize,'ListString',str0,'SelectionMode','single', ...
                                'PromptString','Which view do you want?'); 
       if ok, break;, end
     end
-    viewmode = masterviewlist(selection);
+    viewmode = masterviewlist{selection};
   end
 
   % if this is a new view, we have to generate some maps
