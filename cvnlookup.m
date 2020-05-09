@@ -1,6 +1,6 @@
 function varargout = cvnlookup(FSID,view_number,data,clim0,cmap0,thresh0,Lookup,wantfig,extraopts,surfsuffix)
 
-% function [rawimg,Lookup,rgbimg,himg] = cvnlookup(FSID,view_number,data,clim0,cmap0,thresh0,Lookup,wantfig,extraopts,surfsuffix)
+% function [rawimg,Lookup,rgbimg,himg,hmapfig] = cvnlookup(FSID,view_number,data,clim0,cmap0,thresh0,Lookup,wantfig,extraopts,surfsuffix)
 %
 % <FSID> (optional) is the FreeSurfer subject ID, e.g. 'subj01'. Default: 'fsaverage'.
 % <view_number> (optional) is a positive integer with the desired view. Default: 1.
@@ -66,6 +66,7 @@ function varargout = cvnlookup(FSID,view_number,data,clim0,cmap0,thresh0,Lookup,
 %             [],[],[],10,[],[],{'savelookup',false});
 %
 % history:
+% - 2020/05/09 - add <hmapfig> output; minor fsaverage-related fix
 % - 2020/03/30 - add <surfsuffix> input
 
 % Internal notes:
@@ -199,7 +200,9 @@ else
 end
 if fsaverage0
   assert(isequal(surfsuffix,'orig'),'only orig surface data can be put onto fsaverage');
-  surfsuffix = 'fsaverage';     % set to fsaverage non-dense surface
+  surfsuffixB = 'fsaverage';     % set to fsaverage non-dense surface
+else
+  surfsuffixB = surfsuffix;
 end
 
 %% Load data
@@ -248,7 +251,7 @@ else
   threshopt = {'absthreshold',imag(thresh0)};
 end
 [rawimg,Lookup,rgbimg] = cvnlookupimages(FSID,valstruct,viewhemis,viewpt,Lookup,...
-                'surftype',surftype,'surfsuffix',surfsuffix,'xyextent',xyextent,...
+                'surftype',surftype,'surfsuffix',surfsuffixB,'xyextent',xyextent,...
                 'imageres',imageres,'rgbnan',0.5, ...                                    %'text',upper(viewhemis),
                 'clim',clim0,'colormap',cmap0,threshopt{:},extraopts{:});
     % lookup_roi_params={'roiname',atlas_def,'roicolor',[1 1 1],'drawroinames',true};
@@ -263,11 +266,11 @@ end
 % visualize rgbimg
 switch wantfig
 case 1
-  figure; himg = imshow(rgbimg);
+  hmapfig = figure; himg = imshow(rgbimg);
 case 2
-  figure('Visible','off'); himg = imshow(rgbimg);
+  hmapfig = figure('Visible','off'); himg = imshow(rgbimg);
 otherwise
-  himg = [];
+  hmapfig = []; himg = [];
 end
 
 % deal with output
@@ -276,10 +279,11 @@ if nargout == 0
   assignin('base','Lookup',Lookup);
   assignin('base','rgbimg',rgbimg);
   assignin('base','himg',himg);
+  assignin('base','hmapfig',hmapfig);
 else
   varargout{1} = rawimg;
   varargout{2} = Lookup;
   varargout{3} = rgbimg;
   varargout{4} = himg;
+  varargout{5} = hmapfig;
 end
-
