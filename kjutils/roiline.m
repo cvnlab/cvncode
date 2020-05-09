@@ -1,4 +1,4 @@
-function [xypoint, xyline, pixelmask] = roiline(hfig,img,xy)
+function [xypoint, xyline, pixelmask] = roiline(hfig,img,xy,numlines,wantbypass)
 %[xypoint, xyline, pixelmask] = roiline(hfig,img,xy)
 %
 %Interactive multi-point line-drawing tool.
@@ -14,6 +14,12 @@ function [xypoint, xyline, pixelmask] = roiline(hfig,img,xy)
 % hfig = figure handle for line drawing (default: gcf)
 % img  = image matrix to display and draw on (default: current image)
 % xy   = Px2 initial xy points for roiline (default: [])
+% numlines = [] means do nothing special.
+%            otherwise, should be the number of lines (>=2) to draw.
+%            the expectation is that the user clicks 4 points
+%            and we draw "fanning" lines between 1->2 and 4->3.
+%            these lines are linearly and evenly spaced, and we
+%            return xyline as a cell vector.
 %
 %Outputs:
 % xypoint  = Px2 [x y] coordinates of points in the specified line
@@ -58,6 +64,14 @@ end
 
 if(~exist('xy','var') || isempty(xy))
     xy=[nan nan];
+end
+
+if(~exist('numlines','var') || isempty(numlines))
+    numlines = [];
+end
+
+if(~exist('wantbypass','var') || isempty(wantbypass))
+    wantbypass = 0;
 end
 
 if(~isempty(img))
@@ -151,7 +165,12 @@ fprintf('Close window or press Escape to cancel\n');
 fprintf('...\n');
 
 %%%%% wait for user to finish
-waitfor(htag);
+
+if wantbypass  % if the user just wants to immediately do a right-click
+  roiline_callback([],[],hfig);
+else
+  waitfor(htag);
+end
 if(~ishandle(hfig))
     return;
 end
@@ -181,26 +200,18 @@ if(size(xypoint,1)==1)
     return;
 end
 
-% rasterize line segments by interp1 with extra points (2*max), then prune
-xyd=[0; sqrt(sum((xypoint(2:end,:)-xypoint(1:end-1,:)).^2,2))];
-d=sum(xyd);
-xyi=interp1(linspace(0,1,size(xypoint,1)),xypoint,linspace(0,1,2*d));
-xyi=round(xyi);
-xyi=xyi(any(xyi(2:end,:)~=xyi(1:end-1,:),2),:);
-
-% prune again to remove "corners"
-xyi2=xyi;
-n=1;
-for i = 2:size(xyi,1)-1
-    if(all(xyi2(n,:)==xyi(i,:) | xyi(i+1,:)==xyi(i,:)))
-    else
-        n=n+1;
-        xyi2(n,:)=xyi(i,:);
-    end
+if isempty(numlines)
+  xyline = roiline_calcline(xypoint);
+  pixelmask(sub2ind(size(pixelmask),xyline(:,2),xyline(:,1)))=1;
+else
+  xyline = {};
+  for zz=1:numlines
+    pts1 = xypoint(1,:) + (xypoint(4,:)-xypoint(1,:)) * (zz-1)/(numlines-1);
+    pts2 = xypoint(2,:) + (xypoint(3,:)-xypoint(2,:)) * (zz-1)/(numlines-1);
+    xyline{zz} = roiline_calcline([pts1; pts2]);
+    pixelmask(sub2ind(size(pixelmask),xyline{zz}(:,2),xyline{zz}(:,1)))=1;
+  end
 end
-xyline=[xyi2(1:n,:); xyi(end,:)];
-
-pixelmask(sub2ind(size(pixelmask),xyline(:,2),xyline(:,1)))=1;
 
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -257,7 +268,19 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function roiline_callback(gcbo,eventdata)
+function roiline_callback(gcbo,eventdata,bypass)
+
+% just act like a right-click occurred
+if exist('bypass','var')
+  hfig=bypass;
+  M=getappdata(hfig,'data');
+  set(M.hmp,'visible','off');
+  delete(M.htag);
+  setappdata(hfig,'data',M);
+  roiline_update(hfig);
+  return;
+end
+
 hfig=gcbf;
 M=getappdata(hfig,'data');
 
