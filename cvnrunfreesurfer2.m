@@ -46,8 +46,10 @@ for p=1:length(prefixes)
   [vertices,faces] = freesurfer_read_surf_kj(sprintf('%s/surf/%s.graymid',fsdir,prefix0));
 
   % construct vertices (4 x V)
-  vertices = bsxfun(@plus,vertices',[128; 129; 128]);  % NOTICE THIS!!!
+  vertices = bsxfun(@plus,vertices',[128; 129; 128]);  % NOTICE THIS!!! THIS IS NOT QUITE RIGHT. see cvncheckfreesurfer.m
   vertices(4,:) = 1;
+
+  % NOTE: THIS MIDGRAY.MAT FILE IS DEPRECATED ANYWAY, SO WE WILL NOT FIX THIS VERTEX TRANSFORMATION ISSUE
 
   % construct faces (F x 3)
   faces = faces(:,[1 3 2]);  % necessary to convert freesurfer to matlab

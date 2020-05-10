@@ -46,6 +46,7 @@ function cvnmapvolumetosurface(subjectid,numlayers,layerprefix,fstruncate, ...
 %     with <alignfile>. This allows the volumes to be placed in arbitrary locations.
 %
 % history:
+% - 2020/05/09 - update to use vox2ras-tkr instead of the previous method (which was slightly inaccurate)
 % - 2018/06/13 - gracefully skip over missing files
 % - 2017/11/29 - implement non-dense case
 % - 2016/11/30 - add <alignfile> and <outputdir> inputs
@@ -117,13 +118,22 @@ else
   end
 end
 
+% derive FS-related transforms
+[status,result] = unix(sprintf('mri_info --vox2ras-tkr %s/mri/T1.mgz',fsdir)); assert(status==0);
+Torig = eval(['[' result ']']);  % vox2ras-tkr
+
 % load surfaces
 vertices = {};
 for p=1:length(hemis)
   for q=1:length(surfs)
-    vertices{p,q} = freesurfer_read_surf_kj(sprintf('%s/surf/%s.%s',fsdir,hemis{p},surfs{q}));
-    vertices{p,q} = bsxfun(@plus,vertices{p,q}',[128; 129; 128]);  % NOTICE THIS!!!
-    vertices{p,q}(4,:) = 1;  % now: 4 x V
+    vertices{p,q} = freesurfer_read_surf_kj(sprintf('%s/surf/%s.%s',fsdir,hemis{p},surfs{q}))';  % 3 x V
+    vertices{p,q}(4,:) = 1;
+    vertices{p,q} = inv(Torig)*vertices{p,q};  % map from rastkr to vox (this is 0-based where 0 is center of first voxel)
+    vertices{p,q}(1:3,:) = vertices{p,q}(1:3,:) + 1;  % now 1-based
+% OLD:
+%     vertices{p,q} = freesurfer_read_surf_kj(sprintf('%s/surf/%s.%s',fsdir,hemis{p},surfs{q}));
+%     vertices{p,q} = bsxfun(@plus,vertices{p,q}',[128; 129; 128]);  % NOTICE THIS!!!
+%     vertices{p,q}(4,:) = 1;  % now: 4 x V
   end
 end
 
@@ -181,7 +191,9 @@ for p=1:nd
     tempdata = feval(datafun{p},data(:,:,:,p));
     for q=1:length(hemis)
       for r=1:length(surfs)
-        coord = (vertices{q,r}(1:3,:) - .5)/fsres * newres + .5;  % DEAL WITH DIFFERENT RESOLUTION
+% OLD:
+%        coord = (vertices{q,r}(1:3,:) - .5)/fsres * newres + .5;  % DEAL WITH DIFFERENT RESOLUTION
+        coord = vertices{q,r}(1:3,:);
         temp = ba_interp3_wrapper(tempdata,coord,interptype);
         cvnwritemgz(subjectid,sprintf('%s_%s',names{p},surfsB{r}),temp,hemis{q},outputdir);
       end
@@ -200,7 +212,9 @@ for p=1:nd
           
         % in this case, we assume the center of the slab is matched
         else
-          coord = bsxfun(@plus,(vertices{q,r}(1:3,:) - (1+fsres)/2) * (1/specialmm(p)),vflatten((1+sizefull(data{p},3))/2));
+% OLD:
+%          coord = bsxfun(@plus,(vertices{q,r}(1:3,:) - (1+fsres)/2) * (1/specialmm(p)),vflatten((1+sizefull(data{p},3))/2));
+          coord = bsxfun(@plus,(vertices{q,r}(1:3,:) - (1+newres)/2) * (fsres/newres) * (1/specialmm(p)),vflatten((1+sizefull(data{p},3))/2));
         end
         
         % do the interpolation

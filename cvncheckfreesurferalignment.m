@@ -20,6 +20,14 @@ function cvncheckfreesurferalignment(subjectid,outputdir,meanfunctional,skip,dim
 %
 % history:
 % - 2018/07/27 - substantial revamp of figure output; also add input <figuredir>
+%
+%
+% THIS FUNCTION IS DEPRECATED due to the fstoint.m and vertex interpretation stuff.
+% We keep it just for historical purposes.
+
+
+fprintf('WARNING: THIS FUNCTION IS OBSOLETE!\n');
+
 
 % internal constants
 colors = {[0 .4  0] [0 1 0];

@@ -25,10 +25,7 @@ function f = cvnmapsurfacetovolume(subjectid,numlayers,layerprefix,fstruncate,da
 % Take the data in <data> and convert these data into volumes, where these volumes 
 % are in our standard FreeSurfer 320 x 320 x 320 0.8-mm space.
 %
-% The output of this function is 320 x 320 x 320 x D, and is in our "internal" space.
-%
-% If <outputprefix> is supplied, we also write NIFTI files using single format,
-%   and these NIFTI files are in the "fs" space.
+% If <outputprefix> is supplied, we also write NIFTI files using single format.
 %
 % Notes on how the conversion is done:
 % - We obtain the XYZ coordinates from the layer (or graymid) surfaces.
@@ -51,6 +48,7 @@ function f = cvnmapsurfacetovolume(subjectid,numlayers,layerprefix,fstruncate,da
 %   such as enforcing minimum distances and/or using only gray-matter voxels from FS, etc.
 %
 % History:
+% - 2020/05/09 - update to use vox2ras-tkr instead of the previous method (which was slightly inaccurate)
 % - 2019/06/08 - refactor code to use cvnmapsurfacetovolume_helper.m
 % - 2017/11/28 - implement non-dense case
 % - 2016/11/29 - add <specialmode>; load from T1 and explicitly cast to 'single'
@@ -100,14 +98,22 @@ else
   end
 end
 
+% derive FS-related transforms
+[status,result] = unix(sprintf('mri_info --vox2ras-tkr %s/mri/T1.mgz',fsdir)); assert(status==0);
+Torig = eval(['[' result ']']);  % vox2ras-tkr
+
 % load surfaces (the vertices are now in 320 space)
 vertices = {};
 for p=1:length(hemis)
   for q=1:length(surfs)
-    vertices{p,q} = freesurfer_read_surf_kj(sprintf('%s/surf/%s.%s',fsdir,hemis{p},surfs{q}));
-    vertices{p,q} = bsxfun(@plus,vertices{p,q}',[128; 129; 128]);  % NOTICE THIS!!!
-    vertices{p,q} = (vertices{p,q} - .5)/fsres * newres + .5;  % DEAL WITH DIFFERENT RESOLUTION
-    vertices{p,q}(4,:) = 1;  % now: 4 x V
+    vertices{p,q} = freesurfer_read_surf_kj(sprintf('%s/surf/%s.%s',fsdir,hemis{p},surfs{q}))';  % 3 x V
+    vertices{p,q}(4,:) = 1;
+    vertices{p,q} = inv(Torig)*vertices{p,q};  % map from rastkr to vox (this is 0-based where 0 is center of first voxel)
+    vertices{p,q}(1:3,:) = vertices{p,q}(1:3,:) + 1;  % now 1-based
+% OLD:
+%     vertices{p,q} = bsxfun(@plus,vertices{p,q}',[128; 129; 128]);  % NOTICE THIS!!!
+%     vertices{p,q} = (vertices{p,q} - .5)/fsres * newres + .5;  % DEAL WITH DIFFERENT RESOLUTION
+%     vertices{p,q}(4,:) = 1;  % now: 4 x V
   end
 end
 
@@ -119,9 +125,9 @@ f = cvnmapsurfacetovolume_helper(data,allvertices,newres,specialmode>0,emptyval)
 
 % save files?
 if ~isempty(outputprefix)
-  vol1orig = load_untouch_nii(gunziptemp(sprintf('%s/mri/T1.nii.gz',fsdir)));  % NOTE: hard-coded!
+  vol1orig = load_untouch_nii(sprintf('%s/mri/T1.nii.gz',fsdir));  % NOTE: hard-coded!
   for p=1:size(f,4)
-    vol1orig.img = inttofs(cast(f(:,:,:,p),'single'));
+    vol1orig.img = cast(f(:,:,:,p),'single');  %inttofs
     vol1orig.hdr.dime.datatype = 16;  % single (float) format
     vol1orig.hdr.dime.bitpix = 16;
     file0 = [outputprefix{p} '.nii'];
