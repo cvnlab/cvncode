@@ -20,15 +20,17 @@ function [Rmask,Rimg,roihemi,xlim0,ylim0,figpos0] = drawroipoly(img,Lookup,Rimg,
 %
 % Note: We automatically fill any holes in the drawn binary mask!
 %       This is useful when Rimg is supplied by the user (there might be holes).
+%
+% Tips:
+% - The first row of keys: 1,2,3,4,etc. toggles the images and starts afresh
+% - The second row of keys: q,w,e,r,etc. draws "edge" images on the current image
+% - The third row of keys: a,s,d,f,etc. changes the underlying image without changing
+%   the current "edge" images.
+% - Special key '/' will take a snapshot and write out.
 
 % when <specialmode> is 1, we wait around for the user to toggle keys
 % and when they finally press return, we toggle back to the first image
 % and then return. also, all outputs are just returned as [].
-%
-% the first row of keys: 1,2,3,4,etc. toggles the images and starts afresh
-% the second row of keys: q,w,e,r,etc. draws "edge" images on the current image
-% the third row of keys: a,s,d,f,etc. changes the underlying image without changing
-%   the current "edge" images.
 %
 % <xlim0>, <ylim0>, <figpos0> are the x- and y-limits and figure position upon returning.
 
@@ -189,6 +191,22 @@ rgbimg = guidata(handle);
 if isequal(event.Key,'return')
   set(himg{1},'CData',rgbimg{1,1});  % go back to the first one!
   uiresume(gcf);
+end
+
+if isequal(event.Key,'slash')
+  im0 = get(himg{1},'CData');
+  files0 = matchfiles('screenshot???.png');
+  cnt = 1;
+  if ~isempty(files0)
+    f = regexp(files0{end},'screenshot(\d+).png','tokens');
+    if ~isempty(f) && ~isempty(f{1})
+      cnt = str2double(f{1}{1}) + 1;
+    end
+  end
+  outfile0 = sprintf('screenshot%03d.png',cnt);
+  imwrite(uint8(255*im0),outfile0);
+  fprintf('screenshot file %s written.\n',outfile0);
+  return;
 end
 
 possiblekeys0 = {'1' '2' '3' '4' '5' '6' '7' '8' '9' '0'};
