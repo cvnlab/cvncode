@@ -73,6 +73,7 @@ function varargout = cvnlookup(FSID,view_number,data,clim0,cmap0,thresh0,Lookup,
 %             [],[],[],10,[],[],{'savelookup',false});
 %
 % history:
+% - 2022/02/24 - ensure that [] for threshold doesn't specify a 'threshold' option.
 % - 2020/05/09 - add <hmapfig> output; minor fsaverage-related fix
 % - 2020/03/30 - add <surfsuffix> input
 
@@ -252,10 +253,14 @@ end
 %% Call cvnlookupimages
 
 % generate image
-if isreal(thresh0)
-  threshopt = {'threshold',thresh0};
+if ~isempty(thresh0)
+  if isreal(thresh0)
+    threshopt = {'threshold',thresh0};
+  else
+    threshopt = {'absthreshold',imag(thresh0)};
+  end
 else
-  threshopt = {'absthreshold',imag(thresh0)};
+  threshopt = {};
 end
 [rawimg,Lookup,rgbimg] = cvnlookupimages(FSID,valstruct,viewhemis,viewpt,Lookup,...
                 'surftype',surftype,'surfsuffix',surfsuffixB,'xyextent',xyextent,...
