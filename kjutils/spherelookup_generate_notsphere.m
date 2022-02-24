@@ -319,7 +319,7 @@ notmissing0=notmissing;
 
 for i = 1:imax
     notmissing=(Adj*double(notmissing0))>0;
-    newidx=notmissing0==0 & notmissing>0;
+    newidx=find(notmissing0==0 & notmissing>0);
     
     [a,b]=find(Adj(newidx,:));
     %which neighbors are already in our missingnn list?
@@ -330,7 +330,7 @@ for i = 1:imax
     %NOTE: neigbor order is arbitrary, but all neighbors should be
     %close-ish so this likely won't matter.  final missingnn is done after
     %this loop using euclidian distance
-    newnn=zeros(sum(newidx),1);
+    newnn=zeros(length(newidx),1);
     newnn(a)=b;
     
     missingiter(newidx)=i;
