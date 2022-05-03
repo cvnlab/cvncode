@@ -35,6 +35,15 @@ function [surfvals A] = cvnsurfsmooth(subject,surfvals,fwhm,hemi,surftype,surfsu
 %   multiple surface maps at a time, so you will usually want the 'surfdata' 
 %   input to be a VxT matrix combining all of your maps to smooth them 
 %   in one call.
+%
+% Another example:
+%
+% lh = randn(163842,1);
+% rh = randn(163842,1);
+% cvnlookup('fsaverage',13,[lh; rh])
+% smoothedvalslh = cvnsurfsmooth('fsaverage',lh,2,'lh','white','orig','iterative');
+% smoothedvalsrh = cvnsurfsmooth('fsaverage',rh,4,'rh','white','orig','iterative');
+% cvnlookup('fsaverage',13,[smoothedvalslh; smoothedvalsrh])
 
 % KJ 2016-03-04 add 'workbench' option to wrap wb_command -metric-smoothing
 % KJ 2016-03-22 fix bug when data is a struct with both hemispheres
