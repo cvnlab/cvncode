@@ -40,12 +40,23 @@ function varargout = cvnlookup(FSID,view_number,data,clim0,cmap0,thresh0,Lookup,
 % figure; himg = imshow(rgbimg);
 % figure; imagesc(rawimg,[-3 3]);
 %
-% some useful options might include:
-% 'rgbnan',1, ...
+% example 4:
+% a = zeros(2*163842,1);
+% a(1:50000) = 1;
+% b = zeros(2*163842,1);
+% b(10000:20000) = 1;
+% cvnlookup('fsaverage',13,[],[-3 3],[],5,[],[],{'roimask' {a==1 b==1} 'roicolor' {[1 0 0] [0 0 1]}});
+%
+% some useful options might include (see cvnlookupimages.m for details):
+% 'rgbnan',1 (this sets background to white)
 % 'roiname',{'Kastner*' 'flocgeneral'},'roicolor',{'r' 'b'},'drawroinames',true, ...
 % 'roimask',{rand(lh+rh,1)>.3},'roicolor',{'r'},'roiwidth',1,'drawroinames',{'ROI'}, ...
-% 'hemibordercolor',[1 1 1], ...
-% 'scalebarcolor','k', ...
+% 'hemibordercolor',[1 1 1]   (set the vertical line that separates hemispheres to white)
+% 'scalebarcolor','k'   (make the scale bar black)
+% 'threshold',1     (threshold the data at 1)
+% 'background','sulc'    (use "sulc" as the underlay)
+% 'overlayalpha',datavals > tthresh    (only allow values passing the threshold to be shown)
+% 'absthreshold',2     (both positive and negative values exceeding the threshold are shown)
 %
 % View numbers:
 %      VIEWPOINT        SURFACE            HEMIFLIP  RES  FSAVG      XYEXTENT 
