@@ -84,6 +84,7 @@ function varargout = cvnlookup(FSID,view_number,data,clim0,cmap0,thresh0,Lookup,
 %             [],[],[],10,[],[],{'savelookup',false});
 %
 % history:
+% - 2022/06/25 - no longer default to rgbnan 0.5 (allow cvnlookupimages.m to set default)
 % - 2022/02/24 - ensure that [] for threshold doesn't specify a 'threshold' option.
 % - 2020/05/09 - add <hmapfig> output; minor fsaverage-related fix
 % - 2020/03/30 - add <surfsuffix> input
@@ -275,7 +276,7 @@ else
 end
 [rawimg,Lookup,rgbimg] = cvnlookupimages(FSID,valstruct,viewhemis,viewpt,Lookup,...
                 'surftype',surftype,'surfsuffix',surfsuffixB,'xyextent',xyextent,...
-                'imageres',imageres,'rgbnan',0.5, ...                                    %'text',upper(viewhemis),
+                'imageres',imageres, ...                                    %'text',upper(viewhemis),   'rgbnan',0.5
                 'clim',clim0,'colormap',cmap0,threshopt{:},extraopts{:});
     % lookup_roi_params={'roiname',atlas_def,'roicolor',[1 1 1],'drawroinames',true};
     % 'threshold',1
