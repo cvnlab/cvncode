@@ -90,7 +90,7 @@ end
 % load the T2 anatomy
 vol1orig = load_untouch_nii(gunziptemp(t2nifti));
 vol1size = vol1orig.hdr.dime.pixdim(2:4);
-vol1 = double(vol1orig.img);
+vol1 = double(vol1orig.img) * vol1orig.hdr.dime.scl_slope + vol1orig.hdr.dime.scl_inter;
 vol1(isnan(vol1)) = 0;
 vol1 = fstoint(vol1);  % this is necessary to get the surfaces to match the anatomy
 fprintf('vol1 has dimensions %s at %s mm.\n',mat2str(size(vol1)),mat2str(vol1size));
@@ -98,7 +98,7 @@ fprintf('vol1 has dimensions %s at %s mm.\n',mat2str(size(vol1)),mat2str(vol1siz
 % load the T1 anatomy
 vol3orig = load_untouch_nii(gunziptemp(t1nifti));
 vol3size = vol3orig.hdr.dime.pixdim(2:4);
-vol3 = double(vol3orig.img);
+vol3 = double(vol3orig.img) * vol3orig.hdr.dime.scl_slope + vol3orig.hdr.dime.scl_inter;
 vol3(isnan(vol3)) = 0;
 vol3 = fstoint(vol3);  % this is necessary to get the surfaces to match the anatomy
 fprintf('vol3 has dimensions %s at %s mm.\n',mat2str(size(vol3)),mat2str(vol3size));
@@ -106,7 +106,7 @@ fprintf('vol3 has dimensions %s at %s mm.\n',mat2str(size(vol3)),mat2str(vol3siz
 % load the mean functional
 vol2orig = load_untouch_nii(gunziptemp(meanfunctional));
 vol2size = vol2orig.hdr.dime.pixdim(2:4);
-vol2 = double(vol2orig.img);
+vol2 = double(vol2orig.img) * vol2orig.hdr.dime.scl_slope + vol2orig.hdr.dime.scl_inter;
 vol2(isnan(vol2)) = 0;
 if wanthack
   assert(round(100*vol2size(1))==round(100*vol2size(2)));

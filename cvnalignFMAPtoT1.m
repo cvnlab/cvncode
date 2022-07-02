@@ -60,7 +60,7 @@ mkdirquiet(outputdir);
 % load the T1 anatomy
 vol1orig = load_untouch_nii(gunziptemp(t1nifti));
 vol1size = vol1orig.hdr.dime.pixdim(2:4);
-vol1 = double(vol1orig.img);
+vol1 = double(vol1orig.img) * vol1orig.hdr.dime.scl_slope + vol1orig.hdr.dime.scl_inter;
 vol1(isnan(vol1)) = 0;
 vol1 = fstoint(vol1);  % this is necessary to get the surfaces to match the anatomy
 fprintf('vol1 has dimensions %s at %s mm.\n',mat2str(size(vol1)),mat2str(vol1size));

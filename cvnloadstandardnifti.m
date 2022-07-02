@@ -32,8 +32,8 @@ end
 data = [];
 for p=1:length(newfiles)
   if ischar(newfiles{p})
-    a1 = load_untouch_nii(gunziptemp(newfiles{p}));
-    vol = fstoint(double(a1.img));
+    a1 = load_untouch_nii(newfiles{p});
+    vol = fstoint(double(a1.img) * a1.hdr.dime.scl_slope + a1.hdr.dime.scl_inter);
   else
     vol = double(newfiles{p});
   end

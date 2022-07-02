@@ -49,16 +49,16 @@ fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
 
 % load T1 anatomy (can either be standard 1-mm isotropic 256 x 256 x 256, or something else!)
 file0 = sprintf('%s/mri/T1.nii.gz',fsdir);
-t1vol = load_untouch_nii(gunziptemp(file0));
+t1vol = load_untouch_nii(file0);
 t1volsize = t1vol.hdr.dime.pixdim(2:4);
-t1vol = fstoint(double(t1vol.img));  % NOTICE the fstoint!
+t1vol = fstoint(double(t1vol.img) * t1vol.hdr.dime.scl_slope + t1vol.hdr.dime.scl_inter);  % NOTICE the fstoint!
 t1vol(isnan(t1vol)) = 0;
 
 % load T2 anatomy
 file0 = sprintf('%s/mri/T2alignedtoT1.nii.gz',fsdir);
-t2vol = load_untouch_nii(gunziptemp(file0));
+t2vol = load_untouch_nii(file0);
 t2volsize = t2vol.hdr.dime.pixdim(2:4);
-t2vol = fstoint(double(t2vol.img));  % NOTICE the fstoint!
+t2vol = fstoint(double(t2vol.img) * t2vol.hdr.dime.scl_slope + t2vol.hdr.dime.scl_inter);  % NOTICE the fstoint!
 t2vol(isnan(t2vol)) = 0;
 
 % calc
@@ -106,9 +106,9 @@ for p=1:length(prefixes)
 end
 
 % load the mean functional
-epi = load_untouch_nii(gunziptemp(meanfunctional));
+epi = load_untouch_nii(meanfunctional);
 episize = epi.hdr.dime.pixdim(2:4);
-epi = double(epi.img);
+epi = double(epi.img) * epi.hdr.dime.scl_slope + epi.hdr.dime.scl_inter;
 epi(isnan(epi)) = 0;
 
 % figure out a reasonable contrast range for the T1, T2, and EPI

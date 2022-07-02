@@ -15,6 +15,7 @@ files = matchfiles(files);
 % load all data
 data = single([]);
 for p=1:length(files)
+    % note: no slope/intercept adjustment
   data = cat(4,data,single(getfield(load_untouch_nii(gunziptemp(files{p})),'img')));
 end
 

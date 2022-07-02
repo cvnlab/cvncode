@@ -56,9 +56,9 @@ pp0 =  sprintf('%s/%s',cvnpath('ppresults'),  subjectid);
 niifiles = matchfiles(niifiles);
 
 % load the first volume
-vol1 = load_untouch_nii(gunziptemp(niifiles{1}));
+vol1 = load_untouch_nii(niifiles{1});
 vol1size = vol1.hdr.dime.pixdim(2:4);
-vol1data = double(vol1.img);
+vol1data = double(vol1.img) * vol1.hdr.dime.scl_slope + vol1.hdr.dime.scl_inter;
 vol1data(isnan(vol1data)) = 0;
 
 % manually define ellipse on the first volume for use in the auto alignment
@@ -79,9 +79,9 @@ vols = vol1data;
 for p=2:length(niifiles)
 
   % load the volume
-  vol2 = load_untouch_nii(gunziptemp(niifiles{p}));
+  vol2 = load_untouch_nii(niifiles{p});
   vol2size = vol2.hdr.dime.pixdim(2:4);
-  vol2data = double(vol2.img);
+  vol2data = double(vol2.img) * vol2.hdr.dime.scl_slope + vol2.hdr.dime.scl_inter;
   vol2data(isnan(vol2data)) = 0;
   
   % start the alignment

@@ -20,7 +20,7 @@ assert(length(nifti0)==1);
 nifti0 = nifti0{1};
 
 % load data
-data = getfield(load_untouch_nii(nifti0),'img');
+data = getfield(load_untouch_nii(nifti0),'img');  % note: no slope/intercept adjustment
 
 % determine rng
 rng = prctile(flatten(double(data(:,:,:,1))),[.5 99.5]);

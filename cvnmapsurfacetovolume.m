@@ -130,6 +130,8 @@ if ~isempty(outputprefix)
     vol1orig.img = cast(f(:,:,:,p),'single');  %inttofs
     vol1orig.hdr.dime.datatype = 16;  % single (float) format
     vol1orig.hdr.dime.bitpix = 16;
+    vol1orig.hdr.dime.scl_slope = 1;
+    vol1orig.hdr.dime.scl_inter = 0;
     file0 = [outputprefix{p} '.nii'];
     save_untouch_nii(vol1orig,file0); gzip(file0); delete(file0);
   end
