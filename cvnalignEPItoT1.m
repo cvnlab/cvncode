@@ -59,7 +59,10 @@ t1nifti = sprintf('%s/mri/T1.nii.gz',fsdir);
 % load the T1 anatomy
 vol1orig = load_untouch_nii(gunziptemp(t1nifti));
 vol1size = vol1orig.hdr.dime.pixdim(2:4);
-vol1 = double(vol1orig.img) * vol1orig.hdr.dime.scl_slope + vol1orig.hdr.dime.scl_inter;
+vol1 = double(vol1orig.img);
+if vol1orig.hdr.dime.scl_slope ~= 0
+  vol1 = vol1 * vol1orig.hdr.dime.scl_slope + vol1orig.hdr.dime.scl_inter;
+end
 vol1(isnan(vol1)) = 0;
 vol1 = fstoint(vol1);  % this is necessary to get the surfaces to match the anatomy
 fprintf('vol1 has dimensions %s at %s mm.\n',mat2str(size(vol1)),mat2str(vol1size));
@@ -67,7 +70,10 @@ fprintf('vol1 has dimensions %s at %s mm.\n',mat2str(size(vol1)),mat2str(vol1siz
 % load the mean functional
 vol2orig = load_untouch_nii(gunziptemp(meanfunctional));
 vol2size = vol2orig.hdr.dime.pixdim(2:4);
-vol2 = double(vol2orig.img) * vol2orig.hdr.dime.scl_slope + vol2orig.hdr.dime.scl_inter;
+vol2 = double(vol2orig.img);
+if vol2orig.hdr.dime.scl_slope ~= 0
+  vol2 = vol2 * vol2orig.hdr.dime.scl_slope + vol2orig.hdr.dime.scl_inter;
+end
 vol2(isnan(vol2)) = 0;
 fprintf('vol2 has dimensions %s at %s mm.\n',mat2str(size(vol2)),mat2str(vol2size));
 

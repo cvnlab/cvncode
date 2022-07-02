@@ -68,7 +68,11 @@ for zz=1:length(targetreses)
 
   % pad the volume   [NOTE: THIS IS A RED FLAG]
   pads = round(padfactor*targsz./origsz);
-  vol = padarray(double(a1.img) * a1.hdr.dime.scl_slope + a1.hdr.dime.scl_inter,pads,'replicate','both');
+  vol = double(a1.img);
+  if a1.hdr.dime.scl_slope ~= 0
+    vol = vol * a1.hdr.dime.scl_slope + a1.hdr.dime.scl_inter;
+  end
+  vol = padarray(vol,pads,'replicate','both');
   
   % perform the smoothing   [ANOTHER RED FLAG: THE INVALID VOXELS ARE TREATED AS 0]
   vol = smoothvolumes(vol,origsz,targsz,1);      

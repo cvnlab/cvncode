@@ -33,7 +33,11 @@ data = [];
 for p=1:length(newfiles)
   if ischar(newfiles{p})
     a1 = load_untouch_nii(newfiles{p});
-    vol = fstoint(double(a1.img) * a1.hdr.dime.scl_slope + a1.hdr.dime.scl_inter);
+    vol = double(a1.img);
+    if a1.hdr.dime.scl_slope ~= 0
+      vol = vol * a1.hdr.dime.scl_slope + a1.hdr.dime.scl_inter;
+    end
+    vol = fstoint(vol);
   else
     vol = double(newfiles{p});
   end
