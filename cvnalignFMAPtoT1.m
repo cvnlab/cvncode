@@ -66,6 +66,7 @@ if vol1orig.hdr.dime.scl_slope ~= 0
 end
 vol1(isnan(vol1)) = 0;
 vol1 = fstoint(vol1);  % this is necessary to get the surfaces to match the anatomy
+fprintf('*** WARNING: we are performing fstoint.m, which is incompatible with new interpretation of FS vox2ras-tkr stuff (talk to Kendrick)\n');
 fprintf('vol1 has dimensions %s at %s mm.\n',mat2str(size(vol1)),mat2str(vol1size));
 
 % match fieldmap files (magnitude only)
