@@ -56,17 +56,17 @@ pp0 =  sprintf('%s/%s',cvnpath('ppresults'),  subjectid);
 niifiles = matchfiles(niifiles);
 
 % load the first volume
-vol1 = load_untouch_nii(niifiles{1});
-vol1size = vol1.hdr.dime.pixdim(2:4);
-vol1data = double(vol1.img);
+vol1orig = load_untouch_nii(niifiles{1});
+vol1size = vol1orig.hdr.dime.pixdim(2:4);
+vol1 = double(vol1orig.img);
 if vol1orig.hdr.dime.scl_slope ~= 0
-  vol1data = vol1data * vol1.hdr.dime.scl_slope + vol1.hdr.dime.scl_inter;
+  vol1 = vol1 * vol1orig.hdr.dime.scl_slope + vol1orig.hdr.dime.scl_inter;
 end
-vol1data(isnan(vol1data)) = 0;
+vol1(isnan(vol1)) = 0;
 
 % manually define ellipse on the first volume for use in the auto alignment
 if isempty(mcmask)
-  [f,mn,sd] = defineellipse3d(vol1data);
+  [f,mn,sd] = defineellipse3d(vol1);
   mcmask = {mn sd};
   fprintf('mcmask = %s;\n',cell2str(mcmask));
 else
@@ -75,10 +75,10 @@ else
 end
 
 % inspect first volume
-makeimagestack3dfiles(vol1data,sprintf('%s/%sfigures/vol%03d',pp0,outputprefix,1),skips,rots,[],1);
+makeimagestack3dfiles(vol1,sprintf('%s/%sfigures/vol%03d',pp0,outputprefix,1),skips,rots,[],1);
 
 % loop over volumes
-vols = vol1data;
+vols = vol1;
 for p=2:length(niifiles)
 
   % load the volume
@@ -91,7 +91,7 @@ for p=2:length(niifiles)
   vol2data(isnan(vol2data)) = 0;
   
   % start the alignment
-  alignvolumedata(vol2data,vol2size,vol1data,vol1size);  % NOTICE THAT FIRST VOLUME IS THE TARGET!
+  alignvolumedata(vol2data,vol2size,vol1,vol1size);  % NOTICE THAT FIRST VOLUME IS THE TARGET!
 
   % auto-align (rigid-body, correlation)
   alignvolumedata_auto(mn,sd,[1 1 1 1 1 1 0 0 0 0 0 0],[4 4 4]);
@@ -102,7 +102,7 @@ for p=2:length(niifiles)
   tr = alignvolumedata_exporttransformation;
 
   % get slices from vol2 to match vol1
-  matchvol = extractslices(vol2data,vol2size,vol1data,vol1size,tr);
+  matchvol = extractslices(vol2data,vol2size,vol1,vol1size,tr);
   
   % REALLY IMPORTANT: ENSURE FINITE (e.g. flirt blows up otherwise)
   matchvol(~isfinite(matchvol)) = 0;
@@ -168,6 +168,6 @@ end
 % end
 
 % save NIFTI file as output
-vol1.img = cast(meanvol,class(vol1.img));
+vol1orig.img = cast(meanvol,class(vol1orig.img));
 file0 = sprintf('%s/%s.nii',dir0,outputprefix);
-save_untouch_nii(vol1,file0); gzip(file0); delete(file0);
+save_untouch_nii(vol1orig,file0); gzip(file0); delete(file0);
