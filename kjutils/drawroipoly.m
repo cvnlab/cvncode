@@ -21,6 +21,9 @@ function [Rmask,Rimg,roihemi,xlim0,ylim0,figpos0] = drawroipoly(img,Lookup,Rimg,
 % Note: We automatically fill any holes in the drawn binary mask!
 %       This is useful when Rimg is supplied by the user (there might be holes).
 %
+% To fully prevent holes in polygon ROI selection, please make sure to 
+% draw on spherical surfaces OR flattened surfaces.
+%
 % Tips:
 % - The first row of keys: 1,2,3,4,etc. toggles the images and starts afresh
 % - The second row of keys: q,w,e,r,etc. draws "edge" images on the current image
@@ -209,9 +212,9 @@ if isequal(event.Key,'slash')
   return;
 end
 
-possiblekeys0 = {'1' '2' '3' '4' '5' '6' '7' '8' '9' '0'};
-possiblekeys = {'q' 'w' 'e' 'r' 't' 'y' 'u' 'i' 'o' 'p'};
-possiblekeysB = {'a' 's' 'd' 'f' 'g' 'h' 'j' 'k' 'l' ';'};
+possiblekeys0 = {'1' '2' '3' '4' '5' '6' '7' '8' '9' '0' 'hyphen'};
+possiblekeys = {'q' 'w' 'e' 'r' 't' 'y' 'u' 'i' 'o' 'p' 'leftbracket'};
+possiblekeysB = {'a' 's' 'd' 'f' 'g' 'h' 'j' 'k' 'l' 'semicolon' 'quote'};
 ix0 = find(ismember(possiblekeys0,event.Key));
 ix = find(ismember(possiblekeys,event.Key));
 ixB = find(ismember(possiblekeysB,event.Key));
