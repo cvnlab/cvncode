@@ -136,7 +136,8 @@ for bugloop = 1:numbugloops
         vxlim=vmid(1)+max(vsize)*[-.5 .5]*1.1;
         vylim=vmid(2)+max(vsize)*[-.5 .5]*1.1;
         
-        axh = get(fig,'Children');
+%        axh = get(fig,'Children');   %% MIGHT BREAK!
+        axh = fig.CurrentAxes;
         set(axh,'units','normalized','position',[0 0 1 1]);
         %set(axh,'xlim',[vmin(1) vmax(1)],'ylim',[vmin(2) vmax(2)]);
         set(axh,'xlim',vxlim,'ylim',vylim);
