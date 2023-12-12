@@ -61,14 +61,18 @@ for p=1:length(prefixes)
   % get freesurfer labels (fslabels is V x 1)
   [d,fslabels,colortable] = read_annotation(sprintf('%s/label/%s.aparc.annot',fsdir,prefix0),1);
 
+  % REMOVED vertices from the save below on Oct 28 2023, because
+  % it is wrong (see above) and since this is obsolete probably anyway.
+
   % save
   save(sprintf('%s/%s/%smidgray.mat',cvnpath('anatomicals'),subjectid,prefix0), ...
-       'vertices','faces','thickness','curvature','fslabels');
+       'faces','thickness','curvature','fslabels');
 
 end
 
 %%%%% calculate gray-matter information
 
+if 0  % HACKED THIS OUT ON Oct 28 2023, since vertices is wrong (see above) and since this is obsolete anyway
 if isempty(regexp(extraflags,'hires'))
 
   % load ribbon
@@ -88,6 +92,7 @@ if isempty(regexp(extraflags,'hires'))
     % 1-mm volume with, for each gray matter voxel, index of closest vertex (of mid-gray surface)
   save_mgh(inttofs(mnix),sprintf('%s/mri/ribbonsurfindex.mgz',fsdir),M,mr_parms);
 
+end
 end
 
 %%%%% calculate transfer functions
