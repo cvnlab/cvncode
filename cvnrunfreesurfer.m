@@ -96,5 +96,17 @@ else
 end
 unix_wrapper(sprintf('recon-all -s %s %s %s -all %s > %s/reconlog.txt',subjectid,str0,extrat2stuff,extraflags,dir0));
 
-% convert T1 to NIFTI for external use
+% convert T1/T2 to NIFTI for external use
 unix_wrapper(sprintf('mri_convert %s/mri/T1.mgz %s/mri/T1.nii.gz',fsdir,fsdir));
+if ~isempty(t2nifti)
+  unix_wrapper(sprintf('mri_convert %s/mri/T2.mgz %s/mri/T2.nii.gz',fsdir,fsdir));
+end
+
+% do some masking
+%unix_wrapper(sprintf('bet %s/mri/T1.nii.gz %s/mri/T1_bet.nii.gz -m',fsdir,fsdir));
+unix_wrapper(sprintf('mri_convert %s/mri/brainmask.mgz %s/mri/brainmask.nii.gz',fsdir,fsdir));
+unix_wrapper(sprintf('mri_binarize --i %s/mri/brainmask.nii.gz --o %s/mri/brainmask_dilated.nii.gz --min 0.5 --max Inf --dilate 3',fsdir,fsdir));
+unix_wrapper(sprintf('fslmaths %s/mri/T1.nii.gz -mas %s/mri/brainmask_dilated.nii.gz %s/mri/T1_masked.nii.gz -odt input',fsdir,fsdir,fsdir));
+if ~isempty(t2nifti)
+  unix_wrapper(sprintf('fslmaths %s/mri/T2.nii.gz -mas %s/mri/brainmask_dilated.nii.gz %s/mri/T2_masked.nii.gz -odt input',fsdir,fsdir,fsdir));
+end
