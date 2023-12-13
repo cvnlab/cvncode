@@ -109,7 +109,7 @@ if isequal(mode,1)
   % minimize sum of squares of the ranges of pts3 projected onto the 3-dimensional basis.
   % prepare u as an orthonormal basis.
   options = optimset('Display','off','FunValCheck','on','MaxFunEvals',Inf,'MaxIter',Inf,'TolFun',1e-6,'TolX',1e-6);
-  helperfun = @(x) quickgramschmidt(reshape(x,[3 3]));
+  helperfun = @(x) quickqr(reshape(x,[3 3]));
   [params,d,d,exitflag,output] = lsqnonlin(@(a) range(pts3(1:3,:)'*helperfun(a),1),flatten(u),[],[],options);
   assert(exitflag > 0);
   u = helperfun(params);
