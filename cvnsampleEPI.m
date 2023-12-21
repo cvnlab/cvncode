@@ -1,16 +1,22 @@
-function cvnsampleEPI(subjectid,aligndir,regridfile)
+function cvnsampleEPI(subjectid,aligndir,regridfile,outputfilename)
 
-% function cvnsampleEPI(subjectid,aligndir,regridfile)
+% function cvnsampleEPI(subjectid,aligndir,regridfile,outputfilename)
 %
 % <subjectid> is like 'cvn7002'
 % <aligndir> refers to multiple directories like '/path/to/FSalignmentZ_run%02d'
 % <regridfile> is like '/path/to/FSalignmentZ_run01/regridEPI.mat'
+% <outputfilename> (optional) is .mat file to save. Default: 'sampleEPI.mat'.
 %
 % Using the regridded location indicated in <regridfile>, this function
 % determines the corresponding locations for each given run of EPI data 
-% referred to by <aligndir>. We write these locations to sampleEPI.mat,
-% indicating exactly where to sample in the origianl EPI DICOM files to 
+% referred to by <aligndir>. We write these locations to <outputfilename>,
+% indicating exactly where to sample in the original EPI DICOM files to 
 % achieve data that reflect the desired regridded location.
+
+% inputs
+if ~exist('outputfilename','var') || isempty(outputfilename)
+  outputfilename = 'sampleEPI.mat';
+end
 
 % setup (see cvnregridEPI.m for the meaning of these)
 load(regridfile,'pts4','pts4dim','T');
@@ -34,7 +40,7 @@ while 1
   trans2file  = sprintf('%s/EPIsyn_0GenericAffine.mat',aligndir0);
   itrans1file = sprintf('%s/EPIsyn_1InverseWarp.nii.gz',aligndir0);
   itrans2file = sprintf('"[%s/EPIsyn_0GenericAffine.mat,1]"',aligndir0);
-  outputfile = sprintf('%s/sampleEPI.mat',aligndir0);
+  outputfile = sprintf('%s/%s',aligndir0,outputfilename);
 
   % load
   a1 = load_untouch_nii(epifile);  % load EPI volume
