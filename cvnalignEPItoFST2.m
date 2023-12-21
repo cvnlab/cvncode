@@ -1,6 +1,6 @@
-function cvnalignEPItoFST2(subjectid,outputdir,functionaldata,dicomref,synp2,synp3,imt,wantt2masked)
+function cvnalignEPItoFST2(subjectid,outputdir,functionaldata,dicomref,synp2,synp3,imt,wantt2masked,wantepihomogeneity)
 
-% function cvnalignEPItoFST2(subjectid,outputdir,functionaldata,dicomref,synp2,synp3,imt,wantt2masked)
+% function cvnalignEPItoFST2(subjectid,outputdir,functionaldata,dicomref,synp2,synp3,imt,wantt2masked,wantepihomogeneity)
 %
 % <subjectid> is like 'cvn7002'
 % <outputdir> is some output directory like '/path/to/FSalignment'
@@ -16,6 +16,9 @@ function cvnalignEPItoFST2(subjectid,outputdir,functionaldata,dicomref,synp2,syn
 %   as per the ANTS specification. Default: 1.
 % <wantt2masked> (optional) is whether to load T2_masked.nii.gz (as opposed to T2.nii.gz).
 %   Default: 0.
+% <wantepihomogeneity> (optional) is whether to homogenize the EPI volume before alignment.
+%   0 means do nothing special. 1 means to use the parameters of [99 1/10 5 10] in
+%   homogenizevolumes.m. [A B C D] means to use those parameters. Default: 0.
 %
 % Perform alignment of the T2 anatomy (prepared via FreeSurfer) to the <functionaldata>.
 % The <dicomref> helps us with NIFTI header stuff to get a good starting point.
@@ -34,6 +37,9 @@ if ~exist('imt','var') || isempty(imt)
 end
 if ~exist('wantt2masked','var') || isempty(wantt2masked)
   wantt2masked = 0;
+end
+if ~exist('wantepihomogeneity','var') || isempty(wantepihomogeneity)
+  wantepihomogeneity = 0;
 end
 
 % make directory
@@ -71,7 +77,17 @@ imwrite(uint8(255*makeimagestack(double(r1.img(:,:,round(end/2))),1)),gray(256),
 
 % take the mean of the functional data and save into the official "epinifti" file
 newdata = flipdim(permute(mean(single(f1.img),4),[2 1 3]),2);  % notice the strange permute and flipdim [this is because dcm2nii does some reordering]
-%[newdata,~,~] = homogenizevolumes(newdata);
+if ~isequal(wantepihomogeneity,0)
+  if isequal(wantepihomogeneity,1)
+    knobs = [99 1/10 5 10];
+  else
+    knobs = wantepihomogeneity;
+  end
+  oldmn = mean(newdata(:));
+  newdata2 = homogenizevolumes(newdata,knobs);
+  newmn = mean(newdata2(:));
+  newdata = newdata2 * (oldmn/newmn);  % preserve the mean
+end
 r1.img = cast(newdata,class(r1.img));
 save_untouch_nii(r1,epinifti);
 
