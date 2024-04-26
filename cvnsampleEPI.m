@@ -4,10 +4,12 @@ function cvnsampleEPI(subjectid,aligndir,regridfile,outputfilename)
 %
 % <subjectid> is like 'cvn7002'
 % <aligndir> refers to multiple directories like '/path/to/FSalignmentZ_run%02d'
-% <regridfile> is like '/path/to/FSalignmentZ_run01/regridEPI.mat'
+% <regridfile> is either
+%   (1) the result of cvnregridEPI.m like '/path/to/FSalignmentZ_run01/regridEPI.mat'
+%   (2) {0} which indicates graymid 
 % <outputfilename> (optional) is .mat file to save. Default: 'sampleEPI.mat'.
 %
-% Using the regridded location indicated in <regridfile>, this function
+% Using the locations indicated in <regridfile>, this function
 % determines the corresponding locations for each given run of EPI data 
 % referred to by <aligndir>. We write these locations to <outputfilename>,
 % indicating exactly where to sample in the original EPI DICOM files to 
@@ -18,9 +20,19 @@ if ~exist('outputfilename','var') || isempty(outputfilename)
   outputfilename = 'sampleEPI.mat';
 end
 
-% setup (see cvnregridEPI.m for the meaning of these)
-load(regridfile,'pts4','pts4dim','T');
-pts5 = inv(T)*double(pts4);  % this is 4 x points with "where in the T2 to prepare data at" (0-based)
+% setup locations
+%
+% handle the case of cvnregridEPI.m
+if ischar(regridfile)
+  load(regridfile,'pts4','pts4dim','T');
+  pts5 = inv(T)*double(pts4);  % this is 4 x points with "where in the T2 to prepare data at" (0-based)
+
+% handle the cortical surface case
+elseif isequal(regridfile{1},0)
+  pts5 = cvnreadsurfaceintovox(subjectid,[],[],[]);  % 4 x points in 0-based "T2" voxels
+  pts4dim = [];  % just a hack to be handled specially below
+
+end
 
 % start the loop
 runix = 1;
@@ -73,13 +85,27 @@ while 1
   for p=1:3
     Cnew(p,:) = single(ba_interp3_wrapper(coords(:,:,:,p),pts5(1:3,:)+1,'linear'));
   end
-  extratrans = {reshape(Cnew(1,:),pts4dim) ...
-                reshape(Cnew(2,:),pts4dim) ...
-                reshape(Cnew(3,:),pts4dim)};   % NOTE: single format
   
-  % finally, we have to reverse the funny transformation we did at the beginning
-  extratrans{2} = (size(a1.img,2)+1) - extratrans{2};  % reverse the flipdim(...,2)
-  [extratrans{1},extratrans{2}] = swap(extratrans{1},extratrans{2});  % reverse the permute(...,[2 1 3])
+  % this is the surface case
+  if isempty(pts4dim)
+    extratrans = {cat(1,Cnew,ones(1,size(Cnew,2),'single'))};  % NOTE: single format
+
+    % finally, we have to reverse the funny transformation we did at the beginning
+    extratrans{1}(2,:) = (size(a1.img,2)+1) - extratrans{1}(2,:);  % reverse the flipdim(...,2)
+    extratrans{1}([1 2],:) = extratrans{1}([2 1],:);  % reverse the permute(...,[2 1 3])
+  
+  % this is the volume case
+  else
+    extratrans = {reshape(Cnew(1,:),pts4dim) ...
+                  reshape(Cnew(2,:),pts4dim) ...
+                  reshape(Cnew(3,:),pts4dim)};   % NOTE: single format
+
+    % finally, we have to reverse the funny transformation we did at the beginning
+    extratrans{2} = (size(a1.img,2)+1) - extratrans{2};  % reverse the flipdim(...,2)
+    [extratrans{1},extratrans{2}] = swap(extratrans{1},extratrans{2});  % reverse the permute(...,[2 1 3])
+
+  end
+  
   
   % save .mat
   save(outputfile,'extratrans');
