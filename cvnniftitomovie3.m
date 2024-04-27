@@ -1,6 +1,6 @@
-function cvnniftitomovie3(nifti0,mov0,framerate,rots,flips,reorder,specialdrop)
+function cvnniftitomovie3(nifti0,mov0,framerate,rots,flips,reorder,specialdrop,crf)
 
-% function cvnniftitomovie3(nifti0,mov0,framerate,rots,flips,reorder,specialdrop)
+% function cvnniftitomovie3(nifti0,mov0,framerate,rots,flips,reorder,specialdrop,crf)
 %
 % <nifti0> is a wildcard matching one or more 4D NIFTI files
 % <mov0> is the .mp4 movie file to write, e.g. 'output.mp4'
@@ -13,6 +13,9 @@ function cvnniftitomovie3(nifti0,mov0,framerate,rots,flips,reorder,specialdrop)
 %   Default: [1 2 3] (i.e. do nothing).
 % <specialdrop> (optional) is number of trailing volumes to drop at the end
 %   of each run after loading it in. Default: 0.
+% <crf> (optional) controls the movie compression. The scale is 1-51
+%   where 1 is very low compression, 23 is default, and 51 is high compression.
+%   Default: 18.
 %
 % Create output.mp4 file. We visualize the middle slice along each 
 % of the three dimensions, and show every volume in every run.
@@ -48,6 +51,9 @@ if ~exist('reorder','var') || isempty(reorder)
 end
 if ~exist('specialdrop','var') || isempty(specialdrop)
   specialdrop = 0;
+end
+if ~exist('crf','var') || isempty(crf)
+  crf = 18;
 end
 
 % special scrub filename
@@ -144,8 +150,8 @@ for p=1:length(extractix)
 end
 
 % create a movie from image files
-unix_wrapper(sprintf('ffmpeg -framerate %d -pattern_type glob -i ''%s/image*.png'' -crf 22 -c:v libx264 -pix_fmt yuv420p -vf "pad=ceil(iw/2)*2:ceil(ih/2)*2" %s',framerate,temp0,mov0));
-unix_wrapper(sprintf('ffmpeg -framerate %d -pattern_type glob -i ''%s/image*.png'' -crf 22 -c:v libx264 -pix_fmt yuv420p -vf "pad=ceil(iw/2)*2:ceil(ih/2)*2" %s',magicfps,temp1,mov1));
+unix_wrapper(sprintf('ffmpeg -framerate %d -pattern_type glob -i ''%s/image*.png'' -crf %d -c:v libx264 -pix_fmt yuv420p -vf "pad=ceil(iw/2)*2:ceil(ih/2)*2" %s',framerate,temp0,crf,mov0));
+unix_wrapper(sprintf('ffmpeg -framerate %d -pattern_type glob -i ''%s/image*.png'' -crf %d -c:v libx264 -pix_fmt yuv420p -vf "pad=ceil(iw/2)*2:ceil(ih/2)*2" %s',magicfps,temp1,crf,mov1));
 
 % clean up
 rmdirquiet(temp0);
