@@ -47,6 +47,9 @@ function varargout = cvnlookup(FSID,view_number,data,clim0,cmap0,thresh0,Lookup,
 % b(10000:20000) = 1;
 % cvnlookup('fsaverage',13,[],[-3 3],[],5,[],[],{'roimask' {a==1 b==1} 'roicolor' {[1 0 0] [0 0 1]}});
 %
+% example 5 (assumes that *.corticalsulc.mgz is available)
+% cvnlookup('fsaverage',13,randn(163842*2,1),[],[],10,[],[],{'roiname','corticalsulc','roicolor','r','drawroinames',true});
+%
 % some useful options might include (see cvnlookupimages.m for details):
 % 'rgbnan',1 (this sets background to white)
 % 'roiname',{'Kastner*' 'flocgeneral'},'roicolor',{'r' 'b'},'drawroinames',true, ...
