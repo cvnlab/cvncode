@@ -44,6 +44,8 @@ function [surfvals A] = cvnsurfsmooth(subject,surfvals,fwhm,hemi,surftype,surfsu
 % smoothedvalslh = cvnsurfsmooth('fsaverage',lh,2,'lh','white','orig','iterative');
 % smoothedvalsrh = cvnsurfsmooth('fsaverage',rh,4,'rh','white','orig','iterative');
 % cvnlookup('fsaverage',13,[smoothedvalslh; smoothedvalsrh])
+% smoothedvals = cvnsurfsmooth('fsaverage',[lh;rh],6,{'lh' 'rh'},'white','orig','iterative');
+% cvnlookup('fsaverage',13,smoothedvals);
 
 % KJ 2016-03-04 add 'workbench' option to wrap wb_command -metric-smoothing
 % KJ 2016-03-22 fix bug when data is a struct with both hemispheres
@@ -53,10 +55,12 @@ if(~exist('algorithm','var') || isempty('algorithm'))
     algorithm='iterative';
 end
 
+if(~iscell(hemi))
+    hemi={hemi};
+end
+
+
 if(isstruct(surfvals))
-    if(~iscell(hemi))
-        hemi={hemi};
-    end
     
     for h = 1:numel(hemi)
         if(strcmpi(hemi{h},'lh'))
@@ -71,17 +75,24 @@ if(isstruct(surfvals))
 end
 
 A=[];
-surf=cvnreadsurface(subject,hemi,surftype,surfsuffix);
-switch lower(algorithm)
-    case {'iter','iterative'}
-        if(fwhm<=0)
-            iter=abs(fwhm);
-        else
-            iter=mesh_fwhm2iter_cvn(surf.faces,surf.vertices,fwhm);
-        end
-        [surfvals,A]=mesh_diffuse_fast(surfvals,surf.faces,iter);
-    case 'workbench'
-        wb_command=sprintf('%s/wb_command',cvnpath('workbench'));
-        surfvals=mesh_smooth_workbench(surf,surfvals,fwhm,wb_command);
+newsurfvals = [];
+cnt = 0;
+for h = 1:numel(hemi)
+  surf=cvnreadsurface(subject,hemi{h},surftype,surfsuffix);
+  cnt0 = size(surf.vertices,1);
+  switch lower(algorithm)
+      case {'iter','iterative'}
+          if(fwhm<=0)
+              iter=abs(fwhm);
+          else
+              iter=mesh_fwhm2iter_cvn(surf.faces,surf.vertices,fwhm);
+          end
+          [surfvals0,A]=mesh_diffuse_fast(surfvals(cnt+(1:cnt0),:),surf.faces,iter);
+      case 'workbench'
+          wb_command=sprintf('%s/wb_command',cvnpath('workbench'));
+          surfvals0=mesh_smooth_workbench(surf,surfvals(cnt+(1:cnt0),:),fwhm,wb_command);
+  end
+  newsurfvals = cat(1,newsurfvals,surfvals0);
+  cnt = cnt + cnt0;
 end
-
+surfvals = newsurfvals;
