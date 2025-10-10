@@ -175,6 +175,9 @@ for bugloop = 1:numbugloops
         
         imgmask=hsvmask(:,:,1)>0;
         imgshading=hsvmask(:,:,3);
+        if any(imgshading(:)>1)  % for some reason, some versions output from 0 to 255 for the V channel??
+          imgshading = imgshading/255;
+        end
         
         close(fig);
         
