@@ -3,7 +3,7 @@ function cvnalignmultiple(niifiles,subjectid,outputprefix,mcmask,skips,rots)
 % function cvnalignmultiple(niifiles,subjectid,outputprefix,mcmask,skips,rots)
 %
 % <niifiles> is a cell vector of NIFTI files
-% <subjectid> is like 'C0001'
+% <subjectid> is like 'C0001' or {A} where A is the directory to write to
 % <outputprefix> is like 'T1average'
 % <mcmask> (optional) is {mn sd} with the mn and sd outputs of defineellipse3d.m.
 %   If [] or not supplied, we prompt the user to determine these with the GUI.
@@ -28,10 +28,12 @@ function cvnalignmultiple(niifiles,subjectid,outputprefix,mcmask,skips,rots)
 % resliced versions of the remaining volumes).
 %
 % We write out a NIFTI file to <anatomicals>/<outputprefix>.nii.gz using the first NIFTI as a template.
+% We also write out the individual (aligned) reps as <outputprefix>_rep%02d.nii.gz.
 % 
 % Inspections of results are written to a directory <ppresults>/<outputprefix>figures.
 %
 % history:
+% 2025/11/25 - <subjectid> can be {A}; write out individual rep NIFTIs
 % 2016/09/02 - change where files are written; fix the gzipping
 % 2016/07/12 - switch to _untouch_
 % 2016/06/10 - force non-finite values in resliced volumes to be 0 (flirt fails otherwise)
@@ -49,8 +51,13 @@ if ~exist('rots','var') || isempty(rots)
 end
 
 % calc
-dir0 = sprintf('%s/%s',cvnpath('anatomicals'),subjectid);
-pp0 =  sprintf('%s/%s',cvnpath('ppresults'),  subjectid);
+if iscell(subjectid)
+  dir0 = subjectid{1};
+  pp0 = subjectid{1};
+else
+  dir0 = sprintf('%s/%s',cvnpath('anatomicals'),subjectid);
+  pp0 =  sprintf('%s/%s',cvnpath('ppresults'),  subjectid);
+end
 
 % match files
 niifiles = matchfiles(niifiles);
@@ -167,7 +174,12 @@ end
 % 
 % end
 
-% save NIFTI file as output
+% save NIFTI files as output
 vol1orig.img = cast(meanvol,class(vol1orig.img));
 file0 = sprintf('%s/%s.nii',dir0,outputprefix);
 save_untouch_nii(vol1orig,file0); gzip(file0); delete(file0);
+for rep=1:size(vols,4)
+  vol1orig.img = cast(vols(:,:,:,rep),class(vol1orig.img));
+  file0 = sprintf('%s/%s_rep%02d.nii',dir0,outputprefix,rep);
+  save_untouch_nii(vol1orig,file0); gzip(file0); delete(file0);
+end
