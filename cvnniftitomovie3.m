@@ -2,7 +2,9 @@ function cvnniftitomovie3(nifti0,mov0,framerate,rots,flips,reorder,specialdrop,c
 
 % function cvnniftitomovie3(nifti0,mov0,framerate,rots,flips,reorder,specialdrop,crf)
 %
-% <nifti0> is a wildcard matching one or more 4D NIFTI files
+% <nifti0> is a wildcard matching one or more 4D NIFTI files (or DICOM directories).
+%   Alternatively, can be the data directly like X x Y x Z x T or a cell vector of 
+%   things like that.
 % <mov0> is the .mp4 movie file to write, e.g. 'output.mp4'
 % <framerate> is the desired number of frames per second.
 % <rots> (optional) is 3-element vector with number of CCW rotations
@@ -69,20 +71,35 @@ mkdirquiet(temp1);
 delete(mov0);
 delete(mov1);
 
+% calc
+isalreadydata = isnumeric(nifti0) || (iscell(nifti0) && isnumeric(nifti0{1}));  % is nifti0 already the data?
+
 % match the NIFTI files
-runs = matchfiles(nifti0);
+if isalreadydata
+  if ~iscell(nifti0)
+    nifti0 = {nifti0};
+  end
+  numruns = length(nifti0);
+else
+  runs = matchfiles(nifti0);
+  numruns = length(runs);
+end
 
 % do it
 cnt = 1;
-for zz=1:length(runs)
+for zz=1:numruns
 
   % load data
-  if exist(runs{zz},'dir')  % DICOM dir?
-    data = dicomloaddir(runs{zz});
-    assert(length(data)==1);
-    data = data{1};
+  if isalreadydata
+    data = nifti0{zz};
   else
-    data = getfield(load_untouch_nii(runs{zz}),'img');  % note: no slope/intercept adjustment
+    if exist(runs{zz},'dir')  % DICOM dir?
+      data = dicomloaddir(runs{zz});
+      assert(length(data)==1);
+      data = data{1};
+    else
+      data = getfield(load_untouch_nii(runs{zz}),'img');  % note: no slope/intercept adjustment!!
+    end
   end
   
   % drop?
