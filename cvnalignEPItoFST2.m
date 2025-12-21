@@ -2,20 +2,23 @@ function cvnalignEPItoFST2(subjectid,outputdir,functionaldata,dicomref,synp2,syn
 
 % function cvnalignEPItoFST2(subjectid,outputdir,functionaldata,dicomref,synp2,synp3,imt,wantt2masked,wantepihomogeneity)
 %
-% <subjectid> is like 'cvn7002'
+% <subjectid> is an FS ID like 'cvn7002'. Or, you can specify <subjectid> to be
+%   directly the T2 NIFTI file to use.
 % <outputdir> is some output directory like '/path/to/FSalignment'
 % <functionaldata> is a NIFTI file with the fMRI data. Either one volume or multiple volumes.
 %   We automatically take the mean across the volumes and use the result as the "fixed image".
 % <dicomref> is some DICOM folder that we can use as a reference for the fMRI data.
 %   For example, this can be a SBRef scan. We primarily want this to help create reasonable
 %   NIFTI headers in order to provide a good starting point for the alignment.
+%   Alternatively, you can supply <dicomref> as a NIFTI file to load (this is useful
+%   if you want to just pass the EPI.nii.gz output back in on a future call).
 % <synp2> (optional) with the 2nd SyN parameter. Default: 40.
 % <synp3> (optional) with the 3rd SyN parameter. Default: 3.
 % <imt> (optional) indicating the initial moving transform. Can be a string that refers,
 %   for example, to an ANTS .mat file (e.g. 0GenericAffine.mat). Can also be 0, 1, or 2,
 %   as per the ANTS specification. Default: 1.
 % <wantt2masked> (optional) is whether to load T2_masked.nii.gz (as opposed to T2.nii.gz).
-%   Default: 0.
+%   Default: 0. (This input is ignored if <subjectid> is specified as a T2 NIFTI.)
 % <wantepihomogeneity> (optional) is whether to homogenize the EPI volume before alignment.
 %   0 means do nothing special. 1 means to use the parameters of [99 1/10 5 10] in
 %   homogenizevolumes.m. [A B C D] means to use those parameters. Default: 0.
@@ -24,6 +27,13 @@ function cvnalignEPItoFST2(subjectid,outputdir,functionaldata,dicomref,synp2,syn
 % The <dicomref> helps us with NIFTI header stuff to get a good starting point.
 % We start with rigid, then affine, and then SyN.
 % Diagnostic images of the alignment quality are written to <outputdir>.
+
+% NOTES:
+% - dicomref goes through dcm2nii. after that, seems to be RPI. (i.e. the EPI.nii.gz reference file)
+%   we have to take our dicom-bare-bones-preprocessing and do flipdim(permute(data,[2 1 3]),2);
+%   This means dicom-bare-bones is originally ARI and we want to make it RPI.
+% - be cognizant of dropout issues, extra skull issues, initial positioning issues, 
+%   bleedage issues (due to fieldmap), valid.nii issues
 
 % inputs
 if ~exist('synp2','var') || isempty(synp2)
@@ -46,11 +56,15 @@ end
 mkdirquiet(outputdir);
 
 % calc
-fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
-if wantt2masked
-  t2nifti = sprintf('%s/mri/T2_masked.nii.gz',fsdir);  % we assume a _masked version has been made
+if exist(subjectid,'file')==2
+  t2nifti = subjectid;
 else
-  t2nifti = sprintf('%s/mri/T2.nii.gz',fsdir);         % we assume mri_convert created a .nii.gz version
+  fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
+  if wantt2masked
+    t2nifti = sprintf('%s/mri/T2_masked.nii.gz',fsdir);  % we assume a _masked version has been made
+  else
+    t2nifti = sprintf('%s/mri/T2.nii.gz',fsdir);         % we assume mri_convert created a .nii.gz version
+  end
 end
 epinifti = sprintf('%s/EPI.nii.gz',outputdir);
 epimasknifti = sprintf('%s/EPIvalidmask.nii.gz',outputdir);
@@ -62,15 +76,17 @@ f1 = load_untouch_nii(functionaldata);   % this is the functional data that will
 v1 = load_untouch_nii([stripfile(functionaldata) '/valid.nii']);  % this should be a simple binary mask
 
 % convert dicom to NIFTI for the dicomref
-tt = tempdir;  % temporary directory to write to
-result = unix_wrapper(sprintf('dcm2nii -o %s %s',tt,dicomref));
-temp = regexp(result,'GZip\.\.\.(.+)\n','tokens');
-temp = temp{1}{1};                  % this is the output NIFTI
-temp2 = sprintf('%s/%s',tt,temp);   % this is the full path to the output NIFTI
-
-% load the dicomref NIFTI
-r1 = load_untouch_nii(temp2);       % this is the reference NIFTI
-delete(temp2);                      % clean up
+if exist(dicomref)==7  % dir
+  tt = tempdir;  % temporary directory to write to
+  result = unix_wrapper(sprintf('dcm2nii -o %s %s',tt,dicomref));
+  temp = regexp(result,'GZip\.\.\.(.+)\n','tokens');
+  temp = temp{1}{1};                  % this is the output NIFTI
+  temp2 = sprintf('%s/%s',tt,temp);   % this is the full path to the output NIFTI
+  r1 = load_untouch_nii(temp2);       % this is the reference NIFTI
+  delete(temp2);                      % clean up
+else
+  r1 = load_untouch_nii(dicomref);    % this is the reference NIFTI
+end
 
 % write an inspection of the dicomref
 imwrite(uint8(255*makeimagestack(double(r1.img(:,:,round(end/2))),1)),gray(256),sprintf('%s/dicomrefbefore.png',outputdir));
@@ -120,6 +136,7 @@ pre0 = sprintf('%s/EPIrigid_',outputdir);
 b = tempname;
 savetext([b '.sh'],sprintf(a,pre0,pre0,imt0,file1,file0,file1m));
 unix_wrapper(sprintf('sh %s',[b '.sh']));
+delete([b '.sh']);
 
 % AFFINE ALIGNMENT
 % Notice we do only the last resolution stage.
@@ -128,6 +145,7 @@ pre0 = sprintf('%s/EPIaffine_',outputdir);
 b = tempname;
 savetext([b '.sh'],sprintf(a,pre0,pre0,outputdir,file1,file0,file1m));
 unix_wrapper(sprintf('sh %s',[b '.sh']));
+delete([b '.sh']);
 
 % SYN ALIGNMENT
 % Notice the use of SyN.
@@ -137,6 +155,7 @@ pre0 = sprintf('%s/EPIsyn_',outputdir);
 b = tempname;
 savetext([b '.sh'],sprintf(a,pre0,pre0,outputdir,synp2/fixedres,synp3/fixedres,file1,file0,file1m));
 unix_wrapper(sprintf('sh %s',[b '.sh']));
+delete([b '.sh']);
 
 % inspect the alignment
 makeimagestack3dfiles(file1,                 sprintf('%s/epi',outputdir),             [4 4 4],[0 1 1],[],1);
