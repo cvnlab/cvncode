@@ -1,6 +1,6 @@
-function cvnalignEPItoFST2(subjectid,outputdir,functionaldata,dicomref,synp2,synp3,imt,wantt2masked,wantepihomogeneity)
+function cvnalignEPItoFST2(subjectid,outputdir,functionaldata,dicomref,synp2,synp3,imt,wantt2masked,wantepihomogeneity,wantspecialfun)
 
-% function cvnalignEPItoFST2(subjectid,outputdir,functionaldata,dicomref,synp2,synp3,imt,wantt2masked,wantepihomogeneity)
+% function cvnalignEPItoFST2(subjectid,outputdir,functionaldata,dicomref,synp2,synp3,imt,wantt2masked,wantepihomogeneity,wantspecialfun)
 %
 % <subjectid> is an FS ID like 'cvn7002'. Or, you can specify <subjectid> to be
 %   directly the T2 NIFTI file to use.
@@ -22,6 +22,10 @@ function cvnalignEPItoFST2(subjectid,outputdir,functionaldata,dicomref,synp2,syn
 % <wantepihomogeneity> (optional) is whether to homogenize the EPI volume before alignment.
 %   0 means do nothing special. 1 means to use the parameters of [99 1/10 5 10] in
 %   homogenizevolumes.m. [A B C D] means to use those parameters. Default: 0.
+% <wantspecialfun> (optional) indicates a function that pre-transforms the <functionaldata>
+%   (and any associated valid.nii file). (This is useful for DICOM vs. NIFTI discrepancies.)
+%   0 means do nothing. 1 means @(x) flipdim(permute(x,[2 1 3]),2).
+%   Default: 1.
 %
 % Perform alignment of the T2 anatomy (prepared via FreeSurfer) to the <functionaldata>.
 % The <dicomref> helps us with NIFTI header stuff to get a good starting point.
@@ -51,6 +55,9 @@ end
 if ~exist('wantepihomogeneity','var') || isempty(wantepihomogeneity)
   wantepihomogeneity = 0;
 end
+if ~exist('wantspecialfun','var') || isempty(wantspecialfun)
+  wantspecialfun = 1;
+end
 
 % make directory
 mkdirquiet(outputdir);
@@ -68,12 +75,25 @@ else
 end
 epinifti = sprintf('%s/EPI.nii.gz',outputdir);
 epimasknifti = sprintf('%s/EPIvalidmask.nii.gz',outputdir);
+validfile = [stripfile(functionaldata) '/valid.nii'];
+
+% more
+if isequal(wantspecialfun,0)
+  wantspecialfun = @(x) x;
+elseif isequal(wantspecialfun,1)
+  wantspecialfun = @(x) flipdim(permute(x,[2 1 3]),2);  % notice the strange permute and flipdim [this is because dcm2nii does some reordering]
+end
 
 %% %%%%% Do some preparation work
 
 % load
 f1 = load_untouch_nii(functionaldata);   % this is the functional data that will serve as the fixed image
-v1 = load_untouch_nii([stripfile(functionaldata) '/valid.nii']);  % this should be a simple binary mask
+                                         % NOTE THAT WE IGNORE THE scl_* stuff!
+if exist(validfile,'file')
+  v1 = load_untouch_nii(validfile);  % this should be a simple binary mask
+else
+  v1 = [];
+end
 
 % convert dicom to NIFTI for the dicomref
 if exist(dicomref)==7  % dir
@@ -88,11 +108,17 @@ else
   r1 = load_untouch_nii(dicomref);    % this is the reference NIFTI
 end
 
+% just act as a single volume and other stuff
+r1.img = r1.img(:,:,:,1);
+r1.hdr.dime.dim(5) = 1;
+r1.hdr.dime.scl_slope = 1;
+r1.hdr.dime.scl_inter = 0;
+
 % write an inspection of the dicomref
 imwrite(uint8(255*makeimagestack(double(r1.img(:,:,round(end/2))),1)),gray(256),sprintf('%s/dicomrefbefore.png',outputdir));
 
 % take the mean of the functional data and save into the official "epinifti" file
-newdata = flipdim(permute(mean(single(f1.img),4),[2 1 3]),2);  % notice the strange permute and flipdim [this is because dcm2nii does some reordering]
+newdata = wantspecialfun(mean(single(f1.img),4));
 if ~isequal(wantepihomogeneity,0)
   if isequal(wantepihomogeneity,1)
     knobs = [99 1/10 5 10];
@@ -111,7 +137,11 @@ save_untouch_nii(r1,epinifti);
 imwrite(uint8(255*makeimagestack(double(r1.img(:,:,round(end/2))),1)),gray(256),sprintf('%s/dicomrefafter.png',outputdir));
 
 % save the official "epimasknifti"
-newdata = flipdim(permute(v1.img,[2 1 3]),2);  % notice the strange permute and flipdim
+if ~isempty(v1)
+  newdata = wantspecialfun(v1.img);
+else
+  newdata = ones(size(r1.img));
+end
 r1.img = cast(newdata,class(r1.img));
 save_untouch_nii(r1,epimasknifti);
 
