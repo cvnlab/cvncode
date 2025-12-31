@@ -1,13 +1,18 @@
-function cvnsampleEPI(subjectid,aligndir,regridfile,outputfilename)
+function cvnsampleEPI(subjectid,aligndir,regridfile,outputfilename,mode)
 
-% function cvnsampleEPI(subjectid,aligndir,regridfile,outputfilename)
+% function cvnsampleEPI(subjectid,aligndir,regridfile,outputfilename,mode)
 %
-% <subjectid> is like 'cvn7002'
+% <subjectid> is an FS ID like 'cvn7002'. Or, you can specify <subjectid> to be
+%   directly the T2 NIFTI file (in this case, <regridfile> cannot be {0}).
 % <aligndir> refers to multiple directories like '/path/to/FSalignmentZ_run%02d'
 % <regridfile> is either
 %   (1) the result of cvnregridEPI.m like '/path/to/FSalignmentZ_run01/regridEPI.mat'
 %   (2) {0} which indicates graymid 
 % <outputfilename> (optional) is .mat file to save. Default: 'sampleEPI.mat'.
+% <mode> (optional) deals with reversing the transformation performed in
+%   cvnalignEPItoFST2.m. If 0, do nothing special. If 1, this corresponds to
+%   the case of cvnalignEPItoFST2's <wantspecialfun> flag set to 1.
+%   Default: 1.
 %
 % Using the locations indicated in <regridfile>, this function
 % determines the corresponding locations for each given run of EPI data 
@@ -18,6 +23,9 @@ function cvnsampleEPI(subjectid,aligndir,regridfile,outputfilename)
 % inputs
 if ~exist('outputfilename','var') || isempty(outputfilename)
   outputfilename = 'sampleEPI.mat';
+end
+if ~exist('mode','var') || isempty(mode)
+  mode = 1;
 end
 
 % setup locations
@@ -46,8 +54,12 @@ while 1
 
   % basic setup
   epifile = sprintf('%s/EPI.nii.gz',aligndir0);
-  fsdir =   sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
-  t2file =  sprintf('%s/mri/T2.nii.gz',fsdir);
+  if exist(subjectid,'file')==2
+    t2file =  subjectid;
+  else
+    fsdir =   sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
+    t2file =  sprintf('%s/mri/T2.nii.gz',fsdir);
+  end
   trans1file  = sprintf('%s/EPIsyn_1Warp.nii.gz',aligndir0);
   trans2file  = sprintf('%s/EPIsyn_0GenericAffine.mat',aligndir0);
   itrans1file = sprintf('%s/EPIsyn_1InverseWarp.nii.gz',aligndir0);
@@ -90,9 +102,11 @@ while 1
   if isempty(pts4dim)
     extratrans = {cat(1,Cnew,ones(1,size(Cnew,2),'single'))};  % NOTE: single format
 
-    % finally, we have to reverse the funny transformation we did at the beginning
-    extratrans{1}(2,:) = (size(a1.img,2)+1) - extratrans{1}(2,:);  % reverse the flipdim(...,2)
-    extratrans{1}([1 2],:) = extratrans{1}([2 1],:);  % reverse the permute(...,[2 1 3])
+    if isequal(mode,1)
+      % finally, we have to reverse the funny transformation we did at the beginning
+      extratrans{1}(2,:) = (size(a1.img,2)+1) - extratrans{1}(2,:);  % reverse the flipdim(...,2)
+      extratrans{1}([1 2],:) = extratrans{1}([2 1],:);  % reverse the permute(...,[2 1 3])
+    end
   
   % this is the volume case
   else
@@ -100,9 +114,11 @@ while 1
                   reshape(Cnew(2,:),pts4dim) ...
                   reshape(Cnew(3,:),pts4dim)};   % NOTE: single format
 
-    % finally, we have to reverse the funny transformation we did at the beginning
-    extratrans{2} = (size(a1.img,2)+1) - extratrans{2};  % reverse the flipdim(...,2)
-    [extratrans{1},extratrans{2}] = swap(extratrans{1},extratrans{2});  % reverse the permute(...,[2 1 3])
+    if isequal(mode,1)
+      % finally, we have to reverse the funny transformation we did at the beginning
+      extratrans{2} = (size(a1.img,2)+1) - extratrans{2};  % reverse the flipdim(...,2)
+      [extratrans{1},extratrans{2}] = swap(extratrans{1},extratrans{2});  % reverse the permute(...,[2 1 3])
+    end
 
   end
   
