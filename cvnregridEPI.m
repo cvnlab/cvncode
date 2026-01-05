@@ -2,7 +2,8 @@ function cvnregridEPI(subjectid,aligndir,targetresolution,mode,crop)
 
 % function cvnregridEPI(subjectid,aligndir,targetresolution,mode,crop)
 %
-% <subjectid> is like 'cvn7002'
+% <subjectid> is an FS ID like 'cvn7002'. Or, you can specify <subjectid> to be
+%   directly the T2 NIFTI file.
 % <aligndir> is a specific directory like '/path/to/FSalignmentZ_run01'
 % <targetresolution> is a number in mm (e.g. 0.5)
 % <mode> (optional) is
@@ -10,7 +11,15 @@ function cvnregridEPI(subjectid,aligndir,targetresolution,mode,crop)
 %   1 means conform a box.
 %   Default: 0.
 % <crop> (optional) is {A:B C:D E:F} where these are 1-based index ranges.
-%   Default: [] which means perform no crop.
+%   Special case is specifying <crop> as {FILE N}, which indicates FILE as
+%   a NIFTI file and N as a non-negative number of padding voxels. In this
+%   case, <mode> should be 0, and we reslice the <crop> file to match the 
+%   T2 file using nearest neighbor and tight-crop according to non-zero
+%   values (with N anatomical T2 voxels of padding). The intention is for 
+%   <crop> to be FS's aseg.nii.gz file, but could be anything. A third
+%   case is specifying <crop> as [X1 X2 Y1 Y2 Z1 Z2] with 1-based indices 
+%   for the start and finish of each of the three dimensions of the T2
+%   file. Default: [] which means perform no crop. 
 %
 % Based on the ANTS transformation telling us how the EPI data are registered
 % to the T2 anatomy, this function determines a new "regridding" of
@@ -46,8 +55,12 @@ end
 
 % basic setup
 epifile = sprintf('%s/EPI.nii.gz',aligndir);
-fsdir =   sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
-t2file =  sprintf('%s/mri/T2.nii.gz',fsdir);
+if exist(subjectid,'file')==2
+  t2file =  subjectid;
+else
+  fsdir =   sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
+  t2file =  sprintf('%s/mri/T2.nii.gz',fsdir);
+end
 trans1file  = sprintf('%s/EPIsyn_1Warp.nii.gz',aligndir);
 trans2file  = sprintf('%s/EPIsyn_0GenericAffine.mat',aligndir);
 itrans1file = sprintf('%s/EPIsyn_1InverseWarp.nii.gz',aligndir);
@@ -92,6 +105,7 @@ T(4,:) = [0 0 0 1];
 pts2 = T*pts;
 
 % this is the conform-box case
+finalcrop = [];
 if isequal(mode,1)
 
   % subtract the centroid
@@ -158,15 +172,33 @@ elseif isequal(mode,0)
 
   % grid according to user's preference. 
   % this creates 1-based index units of the t2file.
-  [X2,Y2,Z2] = ndgrid((-(nd1*targetresolution)/2 + targetresolution/2 : targetresolution : (nd1*targetresolution)/2 - targetresolution/2) / t1res(1) + ((1+size(t1.img,1))/2), ...
-                      (-(nd2*targetresolution)/2 + targetresolution/2 : targetresolution : (nd2*targetresolution)/2 - targetresolution/2) / t1res(2) + ((1+size(t1.img,2))/2), ...
-                      (-(nd3*targetresolution)/2 + targetresolution/2 : targetresolution : (nd3*targetresolution)/2 - targetresolution/2) / t1res(3) + ((1+size(t1.img,3))/2));
+  xrng = (-(nd1*targetresolution)/2 + targetresolution/2 : targetresolution : (nd1*targetresolution)/2 - targetresolution/2) / t1res(1) + ((1+size(t1.img,1))/2);
+  yrng = (-(nd2*targetresolution)/2 + targetresolution/2 : targetresolution : (nd2*targetresolution)/2 - targetresolution/2) / t1res(2) + ((1+size(t1.img,2))/2);
+  zrng = (-(nd3*targetresolution)/2 + targetresolution/2 : targetresolution : (nd3*targetresolution)/2 - targetresolution/2) / t1res(3) + ((1+size(t1.img,3))/2);
 
   % apply crop
-  if ~isempty(crop)
+  if iscell(crop) && ~ischar(crop{1})  % this is the first case
+    [X2,Y2,Z2] = ndgrid(xrng,yrng,zrng);
     X2 = subscript(X2,crop);
     Y2 = subscript(Y2,crop);
     Z2 = subscript(Z2,crop);
+  elseif (iscell(crop) && ischar(crop{1})) || (~iscell(crop) && length(crop)==6)
+    if iscell(crop) && ischar(crop{1})
+      cvals = resliceniftitomatch(t2file,crop{1},[],'nearest');
+      d1 = find(sum(sum(cvals~=0,2),3)~=0);  % 1-based indices into first dimension indicating where any non-zero exist (e.g. out of 320)
+      d2 = find(sum(sum(cvals~=0,1),3)~=0);  % 1-based indices into second dimension indicating where any non-zero exist
+      d3 = find(sum(sum(cvals~=0,1),2)~=0);  % 1-based indices into third dimension indicating where any non-zero exist
+      finalcrop = [d1(1)-crop{2} d1(end)+crop{2} d2(1)-crop{2} d2(end)+crop{2} d3(1)-crop{2} d3(end)+crop{2}];  % give some padding (wrt T2)
+      fprintf('FINALCROP %d %d %d %d %d %d\n',finalcrop);
+    else
+      finalcrop = crop;
+    end
+    xrng = xrng(lastel(find(xrng <= finalcrop(1))) : firstel(find(xrng >= finalcrop(2))));  % grid should start before and after
+    yrng = yrng(lastel(find(yrng <= finalcrop(3))) : firstel(find(yrng >= finalcrop(4))));
+    zrng = zrng(lastel(find(zrng <= finalcrop(5))) : firstel(find(zrng >= finalcrop(6))));
+    [X2,Y2,Z2] = ndgrid(xrng,yrng,zrng);
+  else
+    [X2,Y2,Z2] = ndgrid(xrng,yrng,zrng);
   end
 
   % this creates 4 x points in 0-based index units of the t2file.
@@ -182,7 +214,7 @@ elseif isequal(mode,0)
 end
 
 % save precious results
-save(outputfile,'pts4','pts4dim','T');
+save(outputfile,'pts4','pts4dim','T','finalcrop');
 
 %% Determine EPI indices to sample at
 
