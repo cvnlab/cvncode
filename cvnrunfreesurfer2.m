@@ -1,10 +1,12 @@
-function cvnrunfreesurfer2(subjectid,extraflags)
+function cvnrunfreesurfer2(subjectid,extraflags,anatomicalsdir)
 
-% function cvnrunfreesurfer2(subjectid,extraflags)
+% function cvnrunfreesurfer2(subjectid,extraflags,anatomicalsdir)
 %
 % <subjectid> is like 'C0001'
 % <extraflags> (optional) is a string with extra flags to pass to recon-all.
 %   Default: ''
+% <anatomicalsdir> (optional) is the anatomicals directory.
+%   Default: cvnpath('anatomicals')/subjectid
 %
 % This is part 2/2 for pushing anatomical data through FreeSurfer.
 % see code for assumptions.
@@ -13,9 +15,16 @@ function cvnrunfreesurfer2(subjectid,extraflags)
 if ~exist('extraflags','var') || isempty(extraflags)
   extraflags = '';
 end
+if ~exist('anatomicalsdir','var') || isempty(anatomicalsdir)
+  anatomicalsdir = [];
+end
 
 % calc
-dir0 = sprintf('%s/%s',cvnpath('anatomicals'),subjectid);
+if isempty(anatomicalsdir)
+  dir0 = sprintf('%s/%s',cvnpath('anatomicals'),subjectid);
+else
+  dir0 = anatomicalsdir;
+end
 fsdir = sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
 
 % make subject anatomical directory
@@ -65,7 +74,7 @@ for p=1:length(prefixes)
   % it is wrong (see above) and since this is obsolete probably anyway.
 
   % save
-  save(sprintf('%s/%s/%smidgray.mat',cvnpath('anatomicals'),subjectid,prefix0), ...
+  save(sprintf('%s/%smidgray.mat',dir0,prefix0), ...
        'faces','thickness','curvature','fslabels');
 
 end
@@ -105,7 +114,7 @@ end
                            sprintf('%s/%s/surf/rh.sphere.reg',cvnpath('freesurfer'),subjectid));
 
 % save
-save(sprintf('%s/%s/tfun.mat',cvnpath('anatomicals'),subjectid),'tfunFSSSlh','tfunFSSSrh','tfunSSFSlh','tfunSSFSrh');
+save(sprintf('%s/tfun.mat',dir0),'tfunFSSSlh','tfunFSSSrh','tfunSSFSlh','tfunSSFSrh');
 
 %%%%% write out some useful mgz files (inherited from cvnmakelayers.m)
 
