@@ -1,6 +1,6 @@
-function cvnmakelayers(subjectid,layerdepths,layerprefix,fstruncate)
+function cvnmakelayers(subjectid,layerdepths,layerprefix,fstruncate,anatomicalsdir)
 
-% function cvnmakelayers(subjectid,layerdepths,layerprefix,fstruncate)
+% function cvnmakelayers(subjectid,layerdepths,layerprefix,fstruncate,anatomicalsdir)
 %
 % <subjectid> is like 'C0041'
 % <layerdepths> is a vector of fractional distances (each having at 
@@ -10,6 +10,8 @@ function cvnmakelayers(subjectid,layerdepths,layerprefix,fstruncate)
 %   this causes files like 'lh.layerA1' to be made.
 % <fstruncate> is the name of the truncation surface in fsaverage (e.g. 'pt', 
 %   which refers to 'lh.pt' and 'rh.pt')
+% <anatomicalsdir> (optional) is the anatomicals directory.
+%   Default: cvnpath('anatomicals')/subjectid
 % 
 % Create layer surfaces.
 % Subdivide layer and other surfaces to form dense surfaces.
@@ -37,8 +39,17 @@ function cvnmakelayers(subjectid,layerdepths,layerprefix,fstruncate)
 % - 2016/11/04 - added transfer functions for the fsaverage dense surfaces
 % - 2016/04/29 - add saving of sulc, sapv, and ael; start using unix_wrapper
 
+% input
+if ~exist('anatomicalsdir','var') || isempty(anatomicalsdir)
+  anatomicalsdir = [];
+end
+
 % calc
-dir0 = sprintf('%s/%s',cvnpath('anatomicals'),subjectid);
+if isempty(anatomicalsdir)
+  dir0 = sprintf('%s/%s',cvnpath('anatomicals'),subjectid);
+else
+  dir0 = anatomicalsdir;
+end
 fsdir =    sprintf('%s/%s',cvnpath('freesurfer'),subjectid);
 fsdirAVG = sprintf('%s/%s',cvnpath('freesurfer'),'fsaverage');
 
