@@ -1,6 +1,6 @@
-function cvnniftitomovie3(nifti0,mov0,framerate,rots,flips,reorder,specialdrop,crf)
+function cvnniftitomovie3(nifti0,mov0,framerate,rots,flips,reorder,specialdrop,crf,vfflag,rngmode)
 
-% function cvnniftitomovie3(nifti0,mov0,framerate,rots,flips,reorder,specialdrop,crf)
+% function cvnniftitomovie3(nifti0,mov0,framerate,rots,flips,reorder,specialdrop,crf,vfflag,rngmode)
 %
 % <nifti0> is a wildcard matching one or more 4D NIFTI files (or DICOM directories).
 %   Alternatively, can be the data directly like X x Y x Z x T or a cell vector of 
@@ -18,6 +18,8 @@ function cvnniftitomovie3(nifti0,mov0,framerate,rots,flips,reorder,specialdrop,c
 % <crf> (optional) controls the movie compression. The scale is 1-51
 %   where 1 is very low compression, 23 is default, and 51 is high compression.
 %   Default: 18.
+% <vfflag> (optional). default: 'pad=ceil(iw/2)*2:ceil(ih/2)*2'
+% <rngmode> (optional). 
 %
 % Create output.mp4 file. We visualize the middle slice along each 
 % of the three dimensions, and show every volume in every run.
@@ -56,6 +58,12 @@ if ~exist('specialdrop','var') || isempty(specialdrop)
 end
 if ~exist('crf','var') || isempty(crf)
   crf = 18;
+end
+if ~exist('vfflag','var') || isempty(vfflag)
+  vfflag = 'pad=ceil(iw/2)*2:ceil(ih/2)*2';
+end
+if ~exist('rngmode','var') || isempty(rngmode)
+  rngmode = 0;
 end
 
 % special scrub filename
@@ -108,7 +116,7 @@ for zz=1:numruns
   end
 
   % determine rng
-  if zz==1
+  if (rngmode==0 && zz==1) || rngmode==1
     rng = prctile(flatten(double(data(:,:,:,1))),[.5 99.5]);
     mx = max(sizefull(data,3));  % what is the largest of all three dimensions?
   end
@@ -160,15 +168,17 @@ for zz=1:numruns
 
 end
 
-% make a special 120 frames, 1-s version
-extractix = round(linspace(1,cnt-1,magicfps));
-for p=1:length(extractix)
-  assert(copyfile(sprintf('%s/image%05d.png',temp0,extractix(p)),sprintf('%s/image%05d.png',temp1,p)));
-end
-
 % create a movie from image files
-unix_wrapper(sprintf('ffmpeg -framerate %d -pattern_type glob -i ''%s/image*.png'' -crf %d -c:v libx264 -pix_fmt yuv420p -vf "pad=ceil(iw/2)*2:ceil(ih/2)*2" %s',framerate,temp0,crf,mov0));
-unix_wrapper(sprintf('ffmpeg -framerate %d -pattern_type glob -i ''%s/image*.png'' -crf %d -c:v libx264 -pix_fmt yuv420p -vf "pad=ceil(iw/2)*2:ceil(ih/2)*2" %s',magicfps,temp1,crf,mov1));
+unix_wrapper(sprintf('ffmpeg -framerate %d -pattern_type glob -i ''%s/image*.png'' -crf %d -c:v libx264 -pix_fmt yuv420p -vf "%s" %s',framerate,temp0,crf,vfflag,mov0));
+
+% make a special 120 frames, 1-s version
+if cnt-1 >= 1
+  extractix = round(linspace(1,cnt-1,magicfps));
+  for p=1:length(extractix)
+    assert(copyfile(sprintf('%s/image%05d.png',temp0,extractix(p)),sprintf('%s/image%05d.png',temp1,p)));
+  end
+  unix_wrapper(sprintf('ffmpeg -framerate %d -pattern_type glob -i ''%s/image*.png'' -crf %d -c:v libx264 -pix_fmt yuv420p -vf "%s" %s',magicfps,temp1,crf,vfflag,mov1));
+end
 
 % clean up
 rmdirquiet(temp0);
