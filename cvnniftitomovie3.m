@@ -91,6 +91,7 @@ if isalreadydata
 else
   runs = matchfiles(nifti0);
   numruns = length(runs);
+  assert(numruns >= 1,'no runs were found!');
 end
 
 % do it
